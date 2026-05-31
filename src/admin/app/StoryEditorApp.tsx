@@ -1,0 +1,562 @@
+import { useState, useEffect } from '@wordpress/element';
+import EditorHeader from './EditorHeader';
+import TabBar from './TabBar';
+import StoryCanvas from '../canvas/StoryCanvas';
+import CanvasNodeList from './CanvasNodeList';
+import SettingsPanel from './panels/SettingsPanel';
+import NodesPanel from './panels/NodesPanel';
+import LinksPanel from './panels/LinksPanel';
+import NodeModal from './forms/NodeModal';
+import { apiFetch } from '../utils';
+import type {
+	StorySettings, StoryNode, StoryEdge, StoryLink,
+	MapRenderData, MapObjectRef, MapAreaRef,
+	LineStyle, PostStatus, SaveStatus, StoryTab, NodeFormData,
+} from '../../types';
+
+interface NodeModalState {
+	open:  boolean;
+	nodeId: number | null; // null = new node
+	x:     number;
+	y:     number;
+}
+
+function buildInitialSettings(): StorySettings {
+	const d = window.cnsStoryEditor || ( {} as typeof window.cnsStoryEditor );
+	return {
+		title:       d.title    ?? '',
+		status:      d.status   ?? 'draft',
+		mapId:       null,
+		mapTitle:    '',
+		lineColor:   '#ffffff',
+		lineWidth:   3,
+		lineStyle:   'solid',
+		lineOpacity: 1.0,
+		startNodeId: null,
+		viewUrl:     d.viewUrl  ?? '',
+	};
+}
+
+export default function StoryEditorApp() {
+	const d       = window.cnsStoryEditor || ( {} as typeof window.cnsStoryEditor );
+	const storyId = d.storyId  || 0;
+	const isNew   = d.isNew    || false;
+
+	const [ settings,        setSettings        ] = useState< StorySettings >( buildInitialSettings );
+	const [ nodes,           setNodes           ] = useState< StoryNode[] >( [] );
+	const [ edges,           setEdges           ] = useState< StoryEdge[] >( [] );
+	const [ links,           setLinks           ] = useState< StoryLink[] >( [] );
+	const [ mapData,         setMapData         ] = useState< MapRenderData | null >( null );
+	const [ mapObjects,      setMapObjects      ] = useState< MapObjectRef[] >( [] );
+	const [ mapAreas,        setMapAreas        ] = useState< MapAreaRef[] >( [] );
+	const [ activeTab,       setActiveTab       ] = useState< StoryTab >( 'settings' );
+	const [ selectedNodeId,  setSelectedNodeId  ] = useState< number | null >( null );
+	const [ isEdgeMode,      setIsEdgeMode      ] = useState( false );
+	const [ edgeStartNodeId, setEdgeStartNodeId ] = useState< number | null >( null );
+	const [ saveStatus,      setSaveStatus      ] = useState< SaveStatus >( { text: '', type: '' } );
+	const [ nodeModal,       setNodeModal       ] = useState< NodeModalState >( { open: false, nodeId: null, x: 0.5, y: 0.5 } );
+	const [ loading,         setLoading         ] = useState( ! isNew );
+
+	// ── Initial data load ─────────────────────────────────────────────────────
+
+	useEffect( () => {
+		if ( isNew ) return;
+		( async () => {
+			const res  = await apiFetch( 'GET', `/stories/${ storyId }/data` );
+			const data = await res.json() as {
+				story:   StorySettings & { id: number };
+				mapData: MapRenderData | null;
+				nodes:   StoryNode[];
+				edges:   StoryEdge[];
+			};
+			if ( res.ok ) {
+				setSettings( data.story );
+				setNodes( data.nodes );
+				setEdges( data.edges );
+				if ( data.mapData ) {
+					setMapData( data.mapData );
+					setMapObjects( data.mapData.objects );
+					setMapAreas( data.mapData.areas );
+				}
+			}
+			const linksRes = await apiFetch( 'GET', `/stories/${ storyId }/links` );
+			if ( linksRes.ok ) setLinks( await linksRes.json() );
+			setLoading( false );
+		} )();
+	}, [] );
+
+	// ── Save story settings ───────────────────────────────────────────────────
+
+	async function handleSave() {
+		setSaveStatus( { text: 'Saving…', type: '' } );
+		try {
+			const res = await apiFetch( 'POST', '/stories', {
+				story_id:    storyId,
+				title:       settings.title,
+				status:      settings.status,
+				map_id:      settings.mapId ?? 0,
+				line_color:  settings.lineColor,
+				line_width:  settings.lineWidth,
+				line_style:  settings.lineStyle,
+				line_opacity: settings.lineOpacity,
+				start_node_id: settings.startNodeId ?? 0,
+			} );
+			const data = await res.json() as { created?: boolean; editUrl?: string; viewUrl?: string; message?: string };
+			if ( ! res.ok ) throw new Error( data.message || 'Save failed.' );
+			if ( data.created && data.editUrl ) {
+				window.location.href = data.editUrl;
+			} else {
+				if ( data.viewUrl !== undefined ) {
+					setSettings( ( p ) => ( { ...p, viewUrl: data.viewUrl! } ) );
+				}
+				setSaveStatus( { text: 'Saved.', type: 'ok' } );
+				setTimeout( () => setSaveStatus( { text: '', type: '' } ), 2000 );
+			}
+		} catch ( err ) {
+			setSaveStatus( { text: ( err as Error ).message, type: 'error' } );
+		}
+	}
+
+	// ── Map data reload when mapId changes ────────────────────────────────────
+
+	async function handleMapChange( mapId: number | null, mapTitle: string ) {
+		setSettings( ( p ) => ( { ...p, mapId, mapTitle } ) );
+		if ( ! mapId ) {
+			setMapData( null ); setMapObjects( [] ); setMapAreas( [] );
+			return;
+		}
+		const res = await apiFetch( 'GET', `/maps/${ mapId }/stories` );
+		// Reload full story data to get map render data.
+		if ( ! isNew && storyId ) {
+			const dataRes = await apiFetch( 'GET', `/stories/${ storyId }/data` );
+			if ( dataRes.ok ) {
+				const data = await dataRes.json() as { mapData: MapRenderData | null };
+				if ( data.mapData ) {
+					setMapData( data.mapData );
+					setMapObjects( data.mapData.objects );
+					setMapAreas( data.mapData.areas );
+				}
+			}
+		}
+		void res;
+	}
+
+	// ── Node operations ───────────────────────────────────────────────────────
+
+	async function handleNodeCreate( formData: NodeFormData, x: number, y: number ) {
+		const res = await apiFetch( 'POST', `/stories/${ storyId }/nodes`, {
+			x, y,
+			substory_id:      formData.substoryId ?? 0,
+			title_override:   formData.titleOverride   || null,
+			excerpt_override: formData.excerptOverride || null,
+			icon_type:        formData.iconType,
+			icon_id:          formData.iconId ?? 0,
+			icon_color:       formData.iconColor,
+			icon_size:        formData.iconSize,
+		} );
+		if ( res.ok ) {
+			const node = await res.json() as StoryNode;
+			setNodes( ( p ) => [ ...p, node ] );
+			return node;
+		}
+	}
+
+	async function handleNodeUpdate( nodeId: number, formData: NodeFormData ) {
+		const res = await apiFetch( 'PATCH', `/nodes/${ nodeId }`, {
+			x:                formData.x,
+			y:                formData.y,
+			substory_id:      formData.substoryId ?? 0,
+			title_override:   formData.titleOverride   || null,
+			excerpt_override: formData.excerptOverride || null,
+			icon_type:        formData.iconType,
+			icon_id:          formData.iconId ?? 0,
+			icon_color:       formData.iconColor,
+			icon_size:        formData.iconSize,
+		} );
+		if ( res.ok ) {
+			const updated = await res.json() as StoryNode;
+			setNodes( ( p ) => p.map( ( n ) => ( n.id === nodeId ? updated : n ) ) );
+		}
+	}
+
+	async function handleNodeDelete( nodeId: number ) {
+		const res = await apiFetch( 'DELETE', `/nodes/${ nodeId }` );
+		if ( res.ok ) {
+			setNodes( ( p ) => p.filter( ( n ) => n.id !== nodeId ) );
+			setEdges( ( p ) => p.filter( ( e ) => e.fromNodeId !== nodeId && e.toNodeId !== nodeId ) );
+			if ( selectedNodeId === nodeId )  setSelectedNodeId( null );
+		}
+	}
+
+	async function handleNodeDragEnd( nodeId: number, x: number, y: number ) {
+		const res = await apiFetch( 'PATCH', `/nodes/${ nodeId }`, { x, y } );
+		if ( res.ok ) {
+			const updated = await res.json() as StoryNode;
+			setNodes( ( p ) => p.map( ( n ) => ( n.id === nodeId ? updated : n ) ) );
+		}
+	}
+
+	// ── Edge operations ───────────────────────────────────────────────────────
+
+	async function handleEdgeCreate( fromId: number, toId: number ) {
+		const res = await apiFetch( 'POST', '/edges', {
+			story_id:    storyId,
+			from_node_id: fromId,
+			to_node_id:  toId,
+		} );
+		if ( res.ok ) {
+			const edge = await res.json() as StoryEdge;
+			setEdges( ( p ) => {
+				// Replace if duplicate returned (status 200).
+				const filtered = p.filter( ( e ) => e.id !== edge.id );
+				return [ ...filtered, edge ];
+			} );
+		}
+	}
+
+	async function handleEdgeDelete( edgeId: number ) {
+		const res = await apiFetch( 'DELETE', `/edges/${ edgeId }` );
+		if ( res.ok ) {
+			setEdges( ( p ) => p.filter( ( e ) => e.id !== edgeId ) );
+		}
+	}
+
+	// ── Link operations ───────────────────────────────────────────────────────
+
+	async function handleLinkAdd( linkType: string, linkId: number ) {
+		const res = await apiFetch( 'POST', `/stories/${ storyId }/links`, { link_type: linkType, link_id: linkId } );
+		if ( res.ok ) {
+			const link = await res.json() as StoryLink;
+			setLinks( ( p ) => {
+				const filtered = p.filter( ( l ) => l.id !== link.id );
+				return [ ...filtered, link ];
+			} );
+		}
+	}
+
+	async function handleLinkDelete( linkId: number ) {
+		const res = await apiFetch( 'DELETE', `/links/${ linkId }` );
+		if ( res.ok ) setLinks( ( p ) => p.filter( ( l ) => l.id !== linkId ) );
+	}
+
+	// ── Edge reorder ─────────────────────────────────────────────────────────
+
+	async function handleEdgeReorder( edgeId: number, sortOrder: number ) {
+		const res = await apiFetch( 'PATCH', `/edges/${ edgeId }`, { sort_order: sortOrder } );
+		if ( res.ok ) {
+			const updated = await res.json() as StoryEdge;
+			setEdges( ( p ) => p.map( ( e ) => ( e.id === edgeId ? updated : e ) ) );
+		}
+	}
+
+	// ── Edge mode key handler ─────────────────────────────────────────────────
+
+	useEffect( () => {
+		if ( ! isEdgeMode ) return;
+		function onKey( e: KeyboardEvent ) {
+			if ( e.key === 'Escape' || e.key === 'Enter' ) {
+				setIsEdgeMode( false );
+				setEdgeStartNodeId( null );
+			}
+		}
+		document.addEventListener( 'keydown', onKey );
+		return () => document.removeEventListener( 'keydown', onKey );
+	}, [ isEdgeMode ] );
+
+	// ── Canvas interaction ────────────────────────────────────────────────────
+
+	function enterEdgeMode() {
+		if ( selectedNodeId === null ) return;
+		setEdgeStartNodeId( selectedNodeId );
+		setIsEdgeMode( true );
+	}
+
+	function exitEdgeMode() {
+		setIsEdgeMode( false );
+		setEdgeStartNodeId( null );
+	}
+
+	function handleNodeClick( nodeId: number ) {
+		if ( isEdgeMode ) {
+			if ( edgeStartNodeId === null || edgeStartNodeId === nodeId ) {
+				// Clicked the current base node — end the chain.
+				exitEdgeMode();
+			} else {
+				// Create connection and advance the chain to the new node.
+				handleEdgeCreate( edgeStartNodeId, nodeId );
+				setEdgeStartNodeId( nodeId );
+				setSelectedNodeId( nodeId );
+			}
+		} else {
+			// Select the node; editing is done via the sidebar Edit button.
+			setSelectedNodeId( nodeId );
+		}
+	}
+
+	function handleCanvasClick( x: number, y: number ) {
+		if ( isEdgeMode ) {
+			setEdgeStartNodeId( null );
+			setIsEdgeMode( false );
+			return;
+		}
+		if ( isNew ) {
+			setSaveStatus( { text: 'Save the story first before adding nodes.', type: 'error' } );
+			setTimeout( () => setSaveStatus( { text: '', type: '' } ), 3000 );
+			return;
+		}
+		if ( selectedNodeId !== null ) {
+			handleNodeDragEnd( selectedNodeId, x, y );
+			setSelectedNodeId( null );
+			return;
+		}
+		setNodeModal( { open: true, nodeId: null, x, y } );
+	}
+
+	function handleEdgeClick( edgeId: number ) {
+		if ( window.confirm( 'Delete this connection?' ) ) {
+			handleEdgeDelete( edgeId );
+		}
+	}
+
+	function handleStartEdgeFrom( fromNodeId: number ) {
+		setSelectedNodeId( fromNodeId );
+		setEdgeStartNodeId( fromNodeId );
+		setIsEdgeMode( true );
+	}
+
+	// ── Modal save ────────────────────────────────────────────────────────────
+
+	async function handleModalSave( formData: NodeFormData ) {
+		if ( nodeModal.nodeId === null ) {
+			await handleNodeCreate( formData, formData.x, formData.y );
+		} else {
+			await handleNodeUpdate( nodeModal.nodeId, formData );
+		}
+		setNodeModal( { open: false, nodeId: null, x: 0, y: 0 } );
+		setSelectedNodeId( null );
+	}
+
+	// ── Tab change ────────────────────────────────────────────────────────────
+
+	function handleTabChange( tab: StoryTab ) {
+		if ( tab !== 'canvas' ) {
+			exitEdgeMode();
+			setSelectedNodeId( null );
+		}
+		setActiveTab( tab );
+	}
+
+	// ── Render ────────────────────────────────────────────────────────────────
+
+	const pageTitle = isNew ? 'New Story' : `Edit: ${ settings.title || '(no title)' }`;
+	const selectedNode = nodes.find( ( n ) => n.id === selectedNodeId ) ?? null;
+
+	if ( loading ) {
+		return <div className="cns-story-editor"><div className="cns-loading">Loading…</div></div>;
+	}
+
+	return (
+		<div className="cns-story-editor cns-map-editor">
+			<EditorHeader
+				pageTitle={ pageTitle }
+				overviewUrl={ d.overviewUrl || '#' }
+				viewUrl={ ! isNew ? settings.viewUrl : '' }
+				status={ settings.status }
+				saveStatus={ saveStatus }
+				onStatusChange={ ( s: PostStatus ) => setSettings( ( p ) => ( { ...p, status: s } ) ) }
+				onSave={ handleSave }
+			/>
+
+			<div className="cns-editor-main">
+				<div className="cns-map-editor__body">
+					<TabBar activeTab={ activeTab } onChange={ handleTabChange } />
+
+					<div className="cns-map-editor__content">
+						{ activeTab === 'settings' && (
+							<SettingsPanel
+								settings={ settings }
+								onChange={ setSettings }
+								onMapChange={ handleMapChange }
+							/>
+						) }
+
+						{ activeTab === 'canvas' && (
+							<div className="cns-story-canvas-view">
+								<div className="cns-story-canvas-toolbar">
+									<div className="cns-story-canvas-toolbar__row">
+										{ ! isEdgeMode && ! isNew && (
+											<button
+												className="button"
+												onClick={ enterEdgeMode }
+												disabled={ selectedNodeId === null }
+												title={ selectedNodeId === null ? 'Select a node first to connect from' : 'Start building a path from the selected node' }
+											>
+												⟶ Connect Nodes
+											</button>
+										) }
+										{ isEdgeMode && (
+											<button className="button button-primary" onClick={ exitEdgeMode }>
+												✓ Save Path
+											</button>
+										) }
+										{ isEdgeMode && (
+											<span className="cns-story-canvas-toolbar__hint">
+												Click nodes to chain a path · Enter or Esc to finish
+											</span>
+										) }
+										{ ! isEdgeMode && ! isNew && selectedNodeId !== null && (
+											<span className="cns-story-canvas-toolbar__hint">
+												Click canvas to move here · Connect Nodes to start a path
+											</span>
+										) }
+										{ ! isEdgeMode && ! isNew && selectedNodeId === null && (
+											<span className="cns-story-canvas-toolbar__hint">
+												Click a node to select · Click empty space to add · Drag to move
+											</span>
+										) }
+									</div>
+
+									<div className="cns-story-canvas-toolbar__row cns-story-canvas-toolbar__line-style">
+										<span className="cns-story-canvas-toolbar__label">Lines:</span>
+										<label>
+											Color
+											<input
+												type="color"
+												value={ settings.lineColor }
+												onChange={ ( e ) => setSettings( ( p ) => ( { ...p, lineColor: e.target.value } ) ) }
+											/>
+										</label>
+										<label>
+											Width
+											<input
+												type="number"
+												min="0.5"
+												max="20"
+												step="0.5"
+												value={ settings.lineWidth }
+												onChange={ ( e ) => setSettings( ( p ) => ( { ...p, lineWidth: parseFloat( e.target.value ) } ) ) }
+												style={ { width: 48 } }
+											/>
+											px
+										</label>
+										<label>
+											Style
+											<select
+												value={ settings.lineStyle }
+												onChange={ ( e ) => setSettings( ( p ) => ( { ...p, lineStyle: e.target.value as LineStyle } ) ) }
+											>
+												<option value="solid">Solid</option>
+												<option value="dashed">Dashed</option>
+												<option value="dotted">Dotted</option>
+											</select>
+										</label>
+										<label>
+											Opacity
+											<input
+												type="range"
+												min="0"
+												max="1"
+												step="0.05"
+												value={ settings.lineOpacity }
+												onChange={ ( e ) => setSettings( ( p ) => ( { ...p, lineOpacity: parseFloat( e.target.value ) } ) ) }
+												style={ { width: 80 } }
+											/>
+											{ Math.round( settings.lineOpacity * 100 ) }%
+										</label>
+									</div>
+								</div>
+
+								<div className="cns-story-canvas-layout">
+									<div className="cns-story-canvas-main">
+										<div className="cns-story-canvas-wrap">
+											<StoryCanvas
+												mapData={ mapData }
+												mapObjects={ mapObjects }
+												mapAreas={ mapAreas }
+												nodes={ nodes }
+												edges={ edges }
+												selectedNodeId={ selectedNodeId }
+												edgeStartNodeId={ edgeStartNodeId }
+												isEdgeMode={ isEdgeMode }
+												lineColor={ settings.lineColor }
+												lineWidth={ settings.lineWidth }
+												lineStyle={ settings.lineStyle }
+												lineOpacity={ settings.lineOpacity }
+												onNodeClick={ handleNodeClick }
+												onCanvasClick={ handleCanvasClick }
+												onEdgeClick={ handleEdgeClick }
+												onNodeDragEnd={ handleNodeDragEnd }
+											/>
+										</div>
+									</div>
+
+									<div className="cns-story-window-panel">
+										<CanvasNodeList
+											nodes={ nodes }
+											edges={ edges }
+											startNodeId={ settings.startNodeId }
+											selectedNodeId={ selectedNodeId }
+											onSelect={ ( id ) => setSelectedNodeId( id ) }
+											onEdit={ ( id ) => {
+												setSelectedNodeId( id );
+												setNodeModal( { open: true, nodeId: id, x: 0, y: 0 } );
+											} }
+											onDelete={ handleNodeDelete }
+											onSetStartNode={ ( id ) => setSettings( ( p ) => ( { ...p, startNodeId: id } ) ) }
+											onEdgeReorder={ handleEdgeReorder }
+											onEdgeDelete={ handleEdgeDelete }
+											onStartEdgeFrom={ handleStartEdgeFrom }
+										/>
+									</div>
+								</div>
+							</div>
+						) }
+
+						{ activeTab === 'nodes' && (
+							<NodesPanel
+								nodes={ nodes }
+								edges={ edges }
+								startNodeId={ settings.startNodeId }
+								onEditNode={ ( id ) => {
+									setSelectedNodeId( id );
+									setNodeModal( { open: true, nodeId: id, x: 0, y: 0 } );
+								} }
+								onDeleteNode={ handleNodeDelete }
+								onSetStartNode={ ( id ) => setSettings( ( p ) => ( { ...p, startNodeId: id } ) ) }
+								onEdgeReorder={ handleEdgeReorder }
+								onEdgeDelete={ handleEdgeDelete }
+							/>
+						) }
+
+						{ activeTab === 'links' && ! isNew && (
+							<LinksPanel
+								storyId={ storyId }
+								links={ links }
+								onLinkAdd={ handleLinkAdd }
+								onLinkDelete={ handleLinkDelete }
+							/>
+						) }
+
+						{ activeTab === 'links' && isNew && (
+							<div className="cns-panel-notice">Save the story first to manage links.</div>
+						) }
+					</div>
+				</div>
+			</div>
+
+			{ nodeModal.open && (
+				<NodeModal
+					nodeId={ nodeModal.nodeId }
+					existingNode={ selectedNode }
+					initialX={ nodeModal.x }
+					initialY={ nodeModal.y }
+					onSave={ handleModalSave }
+					onClose={ () => {
+						setNodeModal( { open: false, nodeId: null, x: 0, y: 0 } );
+						setSelectedNodeId( null );
+					} }
+				/>
+			) }
+		</div>
+	);
+}

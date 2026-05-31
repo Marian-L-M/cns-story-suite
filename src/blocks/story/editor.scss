@@ -1,0 +1,25 @@
+.cns-story-block-preview {
+	border: 1px dashed #ccc;
+	border-radius: 4px;
+	padding: 24px;
+	text-align: center;
+
+	&__label {
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #666;
+		margin-bottom: 6px;
+	}
+
+	&__title {
+		font-size: 1.2rem;
+		font-weight: 600;
+	}
+
+	&__note {
+		margin-top: 8px;
+		font-size: 0.8rem;
+		color: #888;
+	}
+}

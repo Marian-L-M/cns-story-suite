@@ -1,0 +1,126 @@
+// ── Block layout: canvas left, node list right ────────────────────────────────
+
+.cns-story-block {
+	display: grid;
+	grid-template-columns: 3fr minmax(220px, 1fr);
+	align-items: start;
+
+	@media ( max-width: 640px ) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.cns-story-block__canvas-wrap {
+	overflow: hidden;
+	line-height: 0;
+
+	canvas {
+		max-width: 100%;
+		height: auto;
+		display: block;
+	}
+}
+
+// ── Story window panel ────────────────────────────────────────────────────────
+
+.cns-story-window {
+	border-left: 2px solid var(--wp--preset--color--primary, #333);
+	background: var(--wp--preset--color--background, #fff);
+	max-height: 80vh;
+	overflow-y: auto;
+	position: sticky;
+	top: 0;
+
+	@media ( max-width: 640px ) {
+		border-left: none;
+		border-top: 2px solid var(--wp--preset--color--primary, #333);
+		max-height: 50vh;
+		position: static;
+	}
+}
+
+// ── Node list ─────────────────────────────────────────────────────────────────
+
+.cns-sw-list {
+	padding: 4px 0;
+}
+
+.cns-sw-item {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+	&.is-active > .cns-sw-item__head {
+		background: rgba(0, 0, 0, 0.04);
+
+		.cns-sw-item__title {
+			font-weight: 600;
+		}
+	}
+}
+
+.cns-sw-item__head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	padding: 7px 10px 7px 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	text-align: left;
+	font-size: 0.8125rem;
+	color: inherit;
+	line-height: 1.3;
+
+	&:hover {
+		background: rgba(0, 0, 0, 0.03);
+	}
+}
+
+.cns-sw-item__num {
+	font-size: 10px;
+	color: #999;
+	min-width: 32px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+.cns-sw-item__dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	border: 1px solid rgba(0, 0, 0, 0.18);
+	flex-shrink: 0;
+}
+
+.cns-sw-item__title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+// ── Expandable detail ─────────────────────────────────────────────────────────
+
+.cns-sw-item__detail {
+	display: none;
+	padding: 4px 12px 12px 50px;
+}
+
+.cns-sw-item.is-open > .cns-sw-item__detail {
+	display: block;
+}
+
+.cns-sw-item__excerpt {
+	font-size: 0.8125rem;
+	margin: 0 0 8px;
+	line-height: 1.5;
+	color: #555;
+}
+
+.cns-sw-item__read-more {
+	font-size: 0.8125rem;
+	display: inline-block;
+}
