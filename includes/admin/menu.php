@@ -135,7 +135,7 @@ function cns_story_suite_enqueue_admin_assets(): void {
 		'nonce'         => wp_create_nonce('wp_rest'),
 		'overviewUrl'   => add_query_arg(['page' => $overview_page], admin_url('admin.php')),
 		'editorUrl'     => add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin.php')),
-		'substoriesUrl' => add_query_arg(['page' => CNS_STORY_PAGE_SUBSTORIES], admin_url('admin.php')),
+		'substoriesUrl' => admin_url('edit.php?post_type=cns_substory'),
 	]);
 
 	if ($page === CNS_STORY_PAGE_EDITOR) {

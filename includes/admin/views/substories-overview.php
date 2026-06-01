@@ -35,6 +35,9 @@ $new_url     = admin_url('post-new.php?post_type=cns_substory');
 		<a href="<?php echo esc_url($new_url); ?>" class="button button-primary">
 			<?php esc_html_e('+ New Substory', 'cns-story-suite'); ?>
 		</a>
+		<a href="<?php echo esc_url(admin_url('edit.php?post_type=cns_substory')); ?>" class="button">
+			<?php esc_html_e('Full overview', 'cns-story-suite'); ?>
+		</a>
 	</div>
 
 	<div class="cns-maps-overview__page-count">
