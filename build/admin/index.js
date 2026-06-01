@@ -1,1 +1,2672 @@
-(()=>{"use strict";const e=window.wp.element,t=window.ReactJSXRuntime,n={draft:"Draft",publish:"Published",private:"Private"};function s({pageTitle:e,overviewUrl:s,viewUrl:i,status:o,saveStatus:a,onStatusChange:l,onSave:r}){return(0,t.jsxs)("div",{className:"cns-map-editor__header",children:[(0,t.jsx)("a",{href:s,className:"cns-back-link",children:"← All Stories"}),(0,t.jsx)("h1",{children:e}),(0,t.jsxs)("div",{className:"cns-map-editor__header-actions",children:[a.text&&(0,t.jsx)("span",{className:"cns-save-status"+(a.type?` cns-save-status--${a.type}`:""),children:a.text}),(0,t.jsx)("select",{value:o,onChange:e=>l(e.target.value),className:"cns-status-select","aria-label":"Post status",children:Object.keys(n).map(e=>(0,t.jsx)("option",{value:e,children:n[e]},e))}),i&&(0,t.jsx)("a",{href:i,target:"_blank",rel:"noopener noreferrer",className:"button",children:"View Story"}),(0,t.jsx)("button",{onClick:r,className:"button button-primary",children:"Save Story"})]})]})}const i=[{id:"settings",label:"Settings"},{id:"canvas",label:"Canvas"},{id:"nodes",label:"Nodes"},{id:"links",label:"Links"}];function o({activeTab:e,onChange:n}){return(0,t.jsx)("nav",{className:"cns-map-editor__tabs",role:"tablist","aria-label":"Story editor modes",children:i.map(s=>(0,t.jsx)("button",{className:"cns-tab"+(e===s.id?" cns-tab--active":""),role:"tab","aria-selected":e===s.id,onClick:()=>n(s.id),children:s.label},s.id))})}const a=new Map;function l(e){if(a.has(e))return a.get(e);const t=new Image;return t.src=e,a.set(e,t),t}function r(e,t,n,s,i,o,a,l){const r=Math.atan2(i-n,s-t),c=Math.max(10,3*o),d=s-16*Math.cos(r),u=i-16*Math.sin(r);e.save(),e.setLineDash([]),e.globalAlpha=l,e.fillStyle=a,e.beginPath(),e.moveTo(d,u),e.lineTo(d-c*Math.cos(r-Math.PI/6),u-c*Math.sin(r-Math.PI/6)),e.lineTo(d-c*Math.cos(r+Math.PI/6),u-c*Math.sin(r+Math.PI/6)),e.closePath(),e.fill(),e.restore()}const c=14;function d(e,t,n,s,i,o){const a=c*s.iconSize;if((i||o)&&(e.save(),e.beginPath(),e.arc(t,n,a+5,0,2*Math.PI),e.strokeStyle=o?"#ffcc00":"#00aaff",e.lineWidth=3,e.setLineDash([]),e.globalAlpha=1,e.stroke(),e.restore()),"icon"===s.iconType&&s.iconUrl){const i=l(s.iconUrl);if(i.complete&&i.naturalWidth)return void e.drawImage(i,t-a,n-a,2*a,2*a)}"square"===s.iconType?(e.save(),e.fillStyle=s.iconColor,e.strokeStyle="rgba(0,0,0,0.45)",e.lineWidth=2,e.setLineDash([]),e.fillRect(t-a,n-a,2*a,2*a),e.strokeRect(t-a,n-a,2*a,2*a),e.restore()):(e.save(),e.beginPath(),e.arc(t,n,a,0,2*Math.PI),e.fillStyle=s.iconColor,e.strokeStyle="rgba(0,0,0,0.45)",e.lineWidth=2,e.setLineDash([]),e.fill(),e.stroke(),e.restore())}function u(e,t,n,s,i){for(let o=n.length-1;o>=0;o--){const a=n[o];if((e-a.x*s)**2+(t-a.y*i)**2<=(c*a.iconSize+5)**2)return a.id}return null}function h({mapData:n,mapObjects:s,mapAreas:i,nodes:o,edges:a,selectedNodeId:c,edgeStartNodeId:h,isEdgeMode:m,lineColor:p,lineWidth:x,lineStyle:f,lineOpacity:y,onNodeClick:g,onCanvasClick:b,onEdgeClick:j,onNodeDragEnd:v}){const N=(0,e.useRef)(null),w=(0,e.useRef)({mapData:n,mapObjects:s,mapAreas:i,nodes:o,edges:a,selectedNodeId:c,edgeStartNodeId:h,isEdgeMode:m,lineColor:p,lineWidth:x,lineStyle:f,lineOpacity:y}),S=(0,e.useRef)(null),k=(0,e.useRef)(null),C=(0,e.useRef)(0),I=n?.width??900,_=n?Math.round(n.width*n.aspectRatio):600;(0,e.useEffect)(()=>{w.current={mapData:n,mapObjects:s,mapAreas:i,nodes:o,edges:a,selectedNodeId:c,edgeStartNodeId:h,isEdgeMode:m,lineColor:p,lineWidth:x,lineStyle:f,lineOpacity:y},N.current&&!S.current&&(N.current.style.cursor=m?"crosshair":"default")}),(0,e.useEffect)(()=>{const e=[];n?.bgImageUrl&&e.push(n.bgImageUrl),n?.imageUrl&&e.push(n.imageUrl),s.forEach(t=>{t.iconUrl&&e.push(t.iconUrl)}),o.forEach(t=>{t.iconUrl&&e.push(t.iconUrl)}),function(e){e.forEach(l)}(e)},[n,s,o]);const E=(0,e.useCallback)(()=>{const e=N.current;if(!e)return;const t=e.getContext("2d");if(!t)return;const n=w.current,s=e.width,i=e.height;if(function(e,t,n,s){e.clearRect(0,0,t,n),function(e,t,n,s){const i=s.mapData;if("image"===i?.bgType&&i.bgImageUrl){const s=l(i.bgImageUrl);if(s.complete&&s.naturalWidth)return void e.drawImage(s,0,0,t,n);s.onload=()=>{}}e.fillStyle=i?.bgColor??"#1a1a2e",e.fillRect(0,0,t,n)}(e,t,n,s),function(e,t,n,s){const i=s.mapData;if(!i?.imageUrl)return;const o=l(i.imageUrl);if(!o.complete||!o.naturalWidth)return;const a=i.imageW*t,r=a/o.naturalWidth*o.naturalHeight;e.drawImage(o,i.imageX*t,i.imageY*n,a,r)}(e,t,n,s),function(e,t,n,s){if(s.mapData){e.save();for(const i of s.mapAreas){const s=i.nodes;if(s.length<2)continue;const o=i.canvasStyles;e.beginPath(),e.moveTo(s[0].x*t,s[0].y*n);for(let i=1;i<s.length;i++)e.lineTo(s[i].x*t,s[i].y*n);e.closePath(),e.globalAlpha=.15*(o?.fillOpacity??1),e.fillStyle=o?.fill??"#888888",e.fill(),e.globalAlpha=.25,e.strokeStyle=o?.stroke??"#aaaaaa",e.lineWidth=o?.strokeWidth??1,e.setLineDash([]),e.stroke()}e.restore()}}(e,t,n,s),function(e,t,n,s){if(!s.mapData)return;const{width:i,aspectRatio:o}=s.mapData,a=i*o;e.save(),e.globalAlpha=.4;for(const o of s.mapObjects){const s=o.x/i*t,r=o.y/a*n,c=(o.canvasStyles?.size??32)*(t/i);if(o.iconUrl){const t=l(o.iconUrl);if(t.complete&&t.naturalWidth){e.drawImage(t,s-c/2,r-c/2,c,c);continue}}e.beginPath(),e.arc(s,r,c/2,0,2*Math.PI),e.fillStyle=o.canvasStyles?.fillStyle??"#888888",e.fill()}e.restore()}(e,t,n,s),function(e,t,n,s){if(!s.nodes.length||!s.edges.length)return;const i=new Map(s.nodes.map(e=>[e.id,e]));e.save(),e.strokeStyle=s.lineColor,e.lineWidth=s.lineWidth,e.globalAlpha=s.lineOpacity,"dashed"===s.lineStyle?e.setLineDash([10,5]):"dotted"===s.lineStyle?e.setLineDash([2,5]):e.setLineDash([]);for(const o of s.edges){const a=i.get(o.fromNodeId),l=i.get(o.toNodeId);if(!a||!l)continue;const c=a.x*t,d=a.y*n,u=l.x*t,h=l.y*n;e.beginPath(),e.moveTo(c,d),e.lineTo(u,h),e.stroke(),r(e,c,d,u,h,s.lineWidth,s.lineColor,s.lineOpacity)}e.restore()}(e,t,n,s),function(e,t,n,s){for(const i of s.nodes)d(e,i.x*t,i.y*n,i,i.id===s.selectedNodeId,i.id===s.edgeStartNodeId)}(e,t,n,s)}(t,s,i,n),n.isEdgeMode&&null!==n.edgeStartNodeId&&k.current){const e=n.nodes.find(e=>e.id===n.edgeStartNodeId);e&&function(e,t,n,s,i,o,a){e.save(),e.strokeStyle=a,e.lineWidth=2,e.setLineDash([6,4]),e.globalAlpha=.7,e.beginPath(),e.moveTo(s.x*t,s.y*n),e.lineTo(i,o),e.stroke(),e.restore()}(t,s,i,e,k.current.x,k.current.y,n.lineColor)}C.current=requestAnimationFrame(E)},[]);function T(e){const t=N.current.getBoundingClientRect(),n=N.current.width/t.width,s=N.current.height/t.height;return{x:(e.clientX-t.left)*n,y:(e.clientY-t.top)*s}}function M(e){N.current&&(N.current.style.cursor=e)}return(0,e.useEffect)(()=>(C.current=requestAnimationFrame(E),()=>cancelAnimationFrame(C.current)),[E]),(0,t.jsx)("canvas",{ref:N,width:I,height:_,style:{maxWidth:"100%",height:"auto",display:"block"},onMouseDown:function(e){if(0!==e.button)return;const{x:t,y:n}=T(e),s=N.current,i=u(t,n,w.current.nodes,s.width,s.height);null!==i&&(S.current={nodeId:i,startX:t,startY:n},M("grabbing"))},onMouseMove:function(e){const{x:t,y:n}=T(e);if(k.current={x:t,y:n},S.current)return;const s=N.current,i=w.current;i.isEdgeMode?M("crosshair"):M(null!==u(t,n,i.nodes,s.width,s.height)?"grab":"default")},onMouseUp:function(e){if(0!==e.button)return;const{x:t,y:n}=T(e),s=N.current,i=w.current;if(S.current){const{nodeId:e,startX:o,startY:a}=S.current;S.current=null;const l=t-o,r=n-a;if(Math.sqrt(l*l+r*r)>4){const i=Math.max(0,Math.min(1,t/s.width)),o=Math.max(0,Math.min(1,n/s.height));v(e,i,o)}else g(e);const c=u(t,n,i.nodes,s.width,s.height);return void M(i.isEdgeMode?"crosshair":null!==c?"grab":"default")}const o=u(t,n,i.nodes,s.width,s.height);if(null!==o)return void g(o);const a=function(e,t,n,s,i,o,a=8){const l=new Map(s.map(e=>[e.id,e]));for(const s of n){const n=l.get(s.fromNodeId),r=l.get(s.toNodeId);if(!n||!r)continue;const c=n.x*i,d=n.y*o,u=r.x*i-c,h=r.y*o-d,m=Math.sqrt(u*u+h*h);if(m<1)continue;const p=Math.max(0,Math.min(1,((e-c)*u+(t-d)*h)/(m*m))),x=c+p*u,f=d+p*h;if(Math.sqrt((e-x)**2+(t-f)**2)<=a)return s.id}return null}(t,n,i.edges,i.nodes,s.width,s.height);if(null!==a)return void j(a);const l=Math.max(0,Math.min(1,t/s.width)),r=Math.max(0,Math.min(1,n/s.height));b(l,r)},onMouseLeave:function(){k.current=null,S.current||M(w.current.isEdgeMode?"crosshair":"default")}})}function m(e){return e.titleOverride||e.substoryTitle||`Node #${e.id}`}function p({nodes:e,edges:n,startNodeId:s,selectedNodeId:i,onSelect:o,onEdit:a,onDelete:l,onSetStartNode:r,onEdgeReorder:c,onEdgeDelete:d,onStartEdgeFrom:u}){if(!e.length)return(0,t.jsx)("div",{className:"cns-canvas-node-list cns-canvas-node-list--empty",children:(0,t.jsx)("p",{className:"description",children:"Click on the canvas to add your first node."})});const h=function(e,t,n){const s=[],i=new Set,o=new Set,a=new Map,l=new Map,r=n??e[0]?.id??null;function c(n,r,d,u,h){if(i.has(n))return;i.add(n);const m=e.find(e=>e.id===n);if(!m)return;const p=!h&&o.has(n)?a.get(n)??null:null;s.push({node:m,incomingEdge:r,siblings:d,depth:u,stepNumber:p});const x=t.filter(e=>e.fromNodeId===n).sort((e,t)=>e.sortOrder-t.sortOrder);!function(e,n,s,i){const r=t.filter(t=>t.fromNodeId===e).sort((e,t)=>e.sortOrder-t.sortOrder);if(i)r.forEach((e,t)=>{o.has(e.toNodeId)&&!a.has(e.toNodeId)&&(a.set(e.toNodeId,[t+1,1]),l.set(e.toNodeId,!1))});else if(null!==n)if(1===r.length){const e=r[0].toNodeId;if(o.has(e)&&!a.has(e)){const t=s?[...n,1]:[...n.slice(0,-1),n[n.length-1]+1];a.set(e,t),l.set(e,!1)}}else r.length>1&&r.forEach((e,t)=>{o.has(e.toNodeId)&&!a.has(e.toNodeId)&&(a.set(e.toNodeId,[...n,t+1]),l.set(e.toNodeId,!0))})}(n,p,l.get(n)??!1,h);for(const e of x)c(e.toNodeId,e,x,u+1,!1)}null!==r&&function e(n){if(!o.has(n)){o.add(n);for(const s of t)s.fromNodeId===n&&e(s.toNodeId)}}(r),null!==r&&c(r,null,[],0,!0);for(const t of e)i.has(t.id)||c(t.id,null,[],0,!1);return s}(e,n,s);return(0,t.jsxs)("div",{className:"cns-canvas-node-list",children:[(0,t.jsx)("div",{className:"cns-canvas-node-list__header",children:"Nodes"}),h.map(e=>{const{node:n,incomingEdge:h,siblings:p,depth:x,stepNumber:f}=e,y=n.id===s,g=n.id===i,b=null===f&&!y,j=[...p].sort((e,t)=>e.sortOrder-t.sortOrder),v=j.findIndex(e=>e.id===h?.id),N=null!==h&&v>0,w=null!==h&&v<j.length-1;return(0,t.jsxs)("div",{className:["cns-canvas-node-list__item",g?"is-selected":"",b?"is-orphan":""].filter(Boolean).join(" "),style:{paddingLeft:8+14*Math.min(x,4)},children:[h&&(0,t.jsx)("span",{className:"cns-canvas-node-list__connector",children:"└"}),(0,t.jsx)("span",{className:"cns-canvas-node-list__step",children:y?"★":(S=f,null===S?"—":S.join("."))}),(0,t.jsx)("span",{className:"cns-node-swatch",style:{background:n.iconColor,borderRadius:"square"===n.iconType?2:"50%"}}),(0,t.jsx)("button",{className:"cns-canvas-node-list__title",onClick:()=>o(n.id),title:"Select on canvas",children:m(n)}),(0,t.jsxs)("div",{className:"cns-canvas-node-list__actions",children:[h&&(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)("button",{className:"cns-icon-btn",title:"Move up in sequence",disabled:!N,onClick:()=>function(e){const{incomingEdge:t,siblings:n}=e;if(!t)return;const s=[...n].sort((e,t)=>e.sortOrder-t.sortOrder),i=s.findIndex(e=>e.id===t.id);if(i<=0)return;const o=s[i-1];c(t.id,o.sortOrder),c(o.id,t.sortOrder)}(e),children:"↑"}),(0,t.jsx)("button",{className:"cns-icon-btn",title:"Move down in sequence",disabled:!w,onClick:()=>function(e){const{incomingEdge:t,siblings:n}=e;if(!t)return;const s=[...n].sort((e,t)=>e.sortOrder-t.sortOrder),i=s.findIndex(e=>e.id===t.id);if(i<0||i>=s.length-1)return;const o=s[i+1];c(t.id,o.sortOrder),c(o.id,t.sortOrder)}(e),children:"↓"}),(0,t.jsx)("button",{className:"cns-icon-btn",title:"Remove this branch",onClick:()=>{window.confirm("Remove the connection to this node?")&&d(h.id)},children:"←"}),(0,t.jsx)("button",{className:"cns-icon-btn",title:"Split route: add a parallel branch from the same parent",onClick:()=>u(h.fromNodeId),children:"→"})]}),!h&&!y&&(0,t.jsx)("button",{className:"cns-icon-btn",title:"Set as start node",onClick:()=>r(n.id),children:"★"}),(0,t.jsx)("button",{className:"cns-icon-btn",title:"Edit node",onClick:()=>a(n.id),children:"✎"}),(0,t.jsx)("button",{className:"cns-icon-btn cns-icon-btn--danger",title:"Delete node",onClick:()=>{window.confirm("Delete this node and all its connections?")&&l(n.id)},children:"✕"})]})]},n.id);var S})]})}function x({mapId:n,mapTitle:s,onChange:i}){const[o,a]=(0,e.useState)(""),[l,r]=(0,e.useState)([]),[c,d]=(0,e.useState)(!1),[u,h]=(0,e.useState)(!1);async function m(){if(o.trim()){d(!0);try{const e=window.cnsStorySuite,t=e.wpRestUrl+"/maps?search="+encodeURIComponent(o)+"&per_page=20&status=publish,private,draft",n=await fetch(t,{headers:{"X-WP-Nonce":e.nonce}}),s=await n.json();n.ok&&r(s.map(e=>({id:e.id,title:e.title.rendered,thumbnailUrl:""})))}finally{d(!1)}}}return(0,t.jsx)("div",{className:"cns-map-picker",children:n?(0,t.jsxs)("div",{className:"cns-picker-selected",children:[(0,t.jsx)("span",{children:s||`Map #${n}`}),(0,t.jsx)("button",{type:"button",className:"button button-small",onClick:function(){i(null,"")},children:"Change"})]}):(0,t.jsxs)(t.Fragment,{children:[(0,t.jsxs)("div",{className:"cns-row-group",children:[(0,t.jsx)("input",{type:"search",placeholder:"Search maps…",value:o,onChange:e=>a(e.target.value),onKeyDown:e=>{"Enter"===e.key&&(h(!0),m())},className:"regular-text"}),(0,t.jsx)("button",{type:"button",className:"button",onClick:()=>{h(!0),m()},disabled:c,children:c?"Searching…":"Search"})]}),u&&l.length>0&&(0,t.jsx)("ul",{className:"cns-picker-results",children:l.map(e=>(0,t.jsx)("li",{children:(0,t.jsx)("button",{type:"button",onClick:()=>function(e){i(e.id,e.title),h(!1),a(""),r([])}(e),children:(0,t.jsx)("span",{children:e.title})})},e.id))}),u&&!c&&0===l.length&&o&&(0,t.jsx)("p",{className:"description",children:"No maps found."})]})})}function f({settings:e,onChange:n,onMapChange:s}){return(0,t.jsxs)("div",{className:"cns-panel cns-settings-panel",children:[(0,t.jsx)("h2",{children:"Story Settings"}),(0,t.jsx)("table",{className:"form-table",role:"presentation",children:(0,t.jsxs)("tbody",{children:[(0,t.jsxs)("tr",{children:[(0,t.jsx)("th",{scope:"row",children:(0,t.jsx)("label",{htmlFor:"story-title",children:"Title"})}),(0,t.jsx)("td",{children:(0,t.jsx)("input",{id:"story-title",type:"text",className:"regular-text",value:e.title,onChange:t=>{return s="title",i=t.target.value,void n({...e,[s]:i});var s,i}})})]}),(0,t.jsxs)("tr",{children:[(0,t.jsx)("th",{scope:"row",children:(0,t.jsx)("label",{children:"Map"})}),(0,t.jsxs)("td",{children:[(0,t.jsx)(x,{mapId:e.mapId,mapTitle:e.mapTitle,onChange:s}),(0,t.jsx)("p",{className:"description",children:"The story canvas overlays this map. Objects and areas are shown read-only."})]})]})]})})]})}function y(e){return e.titleOverride||e.substoryTitle||`Node #${e.id}`}function g({nodes:e,edges:n,startNodeId:s,onEditNode:i,onDeleteNode:o,onSetStartNode:a,onEdgeReorder:l,onEdgeDelete:r}){return e.length?(0,t.jsxs)("div",{className:"cns-panel cns-nodes-panel",children:[(0,t.jsx)("h2",{children:"Story Nodes"}),(0,t.jsx)("p",{className:"description",children:'Click "Set Start" to mark the first node visitors will see. Connections are managed via the Canvas tab.'}),(0,t.jsxs)("table",{className:"wp-list-table widefat fixed striped",children:[(0,t.jsx)("thead",{children:(0,t.jsxs)("tr",{children:[(0,t.jsx)("th",{style:{width:32}}),(0,t.jsx)("th",{children:"Node"}),(0,t.jsx)("th",{children:"Substory"}),(0,t.jsx)("th",{children:"Outgoing connections"}),(0,t.jsx)("th",{children:"Actions"})]})}),(0,t.jsx)("tbody",{children:e.map(c=>{const d=n.filter(e=>e.fromNodeId===c.id).sort((e,t)=>e.sortOrder-t.sortOrder);return(0,t.jsxs)("tr",{children:[(0,t.jsx)("td",{children:(0,t.jsx)("span",{className:"cns-node-swatch",style:{background:c.iconColor,width:18,height:18,display:"inline-block",borderRadius:"square"===c.iconType?2:"50%",border:"1px solid rgba(0,0,0,0.3)"}})}),(0,t.jsxs)("td",{children:[(0,t.jsx)("strong",{children:y(c)}),c.id===s&&(0,t.jsx)("span",{className:"cns-badge cns-badge--featured",style:{marginLeft:6},children:"Start"})]}),(0,t.jsx)("td",{children:c.substoryId?c.substoryEditUrl?(0,t.jsxs)("a",{href:c.substoryEditUrl,target:"_blank",rel:"noopener",children:[c.substoryTitle||`Substory #${c.substoryId}`," ↗"]}):(0,t.jsx)("span",{children:c.substoryTitle||`Substory #${c.substoryId}`}):(0,t.jsx)("span",{className:"description",children:"—"})}),(0,t.jsxs)("td",{children:[0===d.length&&(0,t.jsx)("span",{className:"description",children:"None"}),d.map((n,s)=>{const i=e.find(e=>e.id===n.toNodeId);return(0,t.jsxs)("div",{className:"cns-edge-row",children:[(0,t.jsx)("input",{type:"number",min:"0",value:n.sortOrder,onChange:e=>l(n.id,parseInt(e.target.value)),style:{width:44},title:"Sort order (lower = higher priority)"}),(0,t.jsxs)("span",{children:["→ ",i?y(i):`#${n.toNodeId}`]}),(0,t.jsx)("button",{className:"cns-icon-btn",title:"Delete connection",onClick:()=>{window.confirm("Delete this connection?")&&r(n.id)},children:"✕"})]},n.id)})]}),(0,t.jsxs)("td",{className:"cns-maps-actions",children:[c.id!==s&&(0,t.jsx)("button",{className:"button button-small",onClick:()=>a(c.id),children:"Set Start"})," ",(0,t.jsx)("button",{className:"button button-small",onClick:()=>i(c.id),children:"Edit"})," ",(0,t.jsx)("button",{className:"button button-small cns-delete-link",onClick:()=>{window.confirm("Delete this node and all its connections?")&&o(c.id)},children:"Delete"})]})]},c.id)})})]})]}):(0,t.jsx)("div",{className:"cns-panel",children:(0,t.jsx)("p",{children:"No nodes yet. Switch to the Canvas tab and click to add your first node."})})}function b(e,t,n){const s=window.cnsStorySuite,i=s.restUrl+t;return fetch(i,{method:e,headers:{"Content-Type":"application/json","X-WP-Nonce":s.nonce},body:n?JSON.stringify(n):void 0})}const j={map_object:"Map Object",map_area:"Map Area",hierarchy:"Hierarchy Region"};function v({storyId:n,links:s,onLinkAdd:i,onLinkDelete:o}){const[a,l]=(0,e.useState)(""),[r,c]=(0,e.useState)([]),[d,u]=(0,e.useState)(!1),[h,m]=(0,e.useState)("map_object");async function p(){u(!0);try{let e="";e="map_object"===h?"/objects?per_page=50&search="+encodeURIComponent(a):"map_area"===h?"/areas?per_page=50&search="+encodeURIComponent(a):"/hierarchy?per_page=50&search="+encodeURIComponent(a);const t=await function(e,t){const n=window.cnsStorySuite,s=n.mapRestUrl+t;return fetch(s,{method:"GET",headers:{"Content-Type":"application/json","X-WP-Nonce":n.nonce},body:void 0})}(0,e),n=await t.json();t.ok&&c(n.map(e=>({id:e.id,title:e.title,type:h})))}finally{u(!1)}}const x=new Set(s.filter(e=>e.linkType===h).map(e=>e.linkId));return(0,t.jsxs)("div",{className:"cns-panel cns-links-panel",children:[(0,t.jsx)("h2",{children:"Map Suite Links"}),(0,t.jsx)("p",{className:"description",children:"Link this story to specific map objects, areas, or hierarchy regions. These relationships are used for cross-referencing in the map editor."}),s.length>0&&(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)("h3",{children:"Linked Entities"}),(0,t.jsxs)("table",{className:"wp-list-table widefat fixed striped",children:[(0,t.jsx)("thead",{children:(0,t.jsxs)("tr",{children:[(0,t.jsx)("th",{children:"Type"}),(0,t.jsx)("th",{children:"Entity"}),(0,t.jsx)("th",{children:"Actions"})]})}),(0,t.jsx)("tbody",{children:s.map(e=>(0,t.jsxs)("tr",{children:[(0,t.jsx)("td",{children:(0,t.jsx)("span",{className:"cns-badge",children:j[e.linkType]})}),(0,t.jsx)("td",{children:e.linkTitle||`#${e.linkId}`}),(0,t.jsx)("td",{children:(0,t.jsx)("button",{className:"button button-small cns-delete-link",onClick:()=>o(e.id),children:"Unlink"})})]},e.id))})]})]}),(0,t.jsx)("h3",{style:{marginTop:24},children:"Add Link"}),(0,t.jsxs)("div",{className:"cns-row-group",children:[(0,t.jsxs)("select",{value:h,onChange:e=>{m(e.target.value),c([])},children:[(0,t.jsx)("option",{value:"map_object",children:"Map Object"}),(0,t.jsx)("option",{value:"map_area",children:"Map Area"}),(0,t.jsx)("option",{value:"hierarchy",children:"Hierarchy Region"})]}),(0,t.jsx)("input",{type:"search",placeholder:"Search…",value:a,onChange:e=>l(e.target.value),onKeyDown:e=>{"Enter"===e.key&&p()},className:"regular-text"}),(0,t.jsx)("button",{className:"button",onClick:p,disabled:d,children:d?"Searching…":"Search"})]}),r.length>0&&(0,t.jsx)("ul",{className:"cns-link-results",children:r.map(e=>(0,t.jsxs)("li",{className:"cns-link-result",children:[(0,t.jsx)("span",{children:e.title||`#${e.id}`}),x.has(e.id)?(0,t.jsx)("span",{className:"cns-badge",children:"Linked"}):(0,t.jsx)("button",{className:"button button-small button-primary",onClick:()=>i(h,e.id),children:"+ Link"})]},e.id))})]})}function N({substoryId:n,substoryLabel:s,onChange:i}){const[o,a]=(0,e.useState)(""),[l,r]=(0,e.useState)([]),[c,d]=(0,e.useState)(!1),[u,h]=(0,e.useState)(!1);async function m(){d(!0);try{const e=await b("GET",`/substories?search=${encodeURIComponent(o)}&per_page=20`),t=await e.json();e.ok&&r(t)}finally{d(!1)}}return(0,e.useEffect)(()=>{if(!u)return;const e=setTimeout(m,300);return()=>clearTimeout(e)},[o,u]),(0,t.jsx)("div",{className:"cns-substory-picker",children:n?(0,t.jsxs)("div",{className:"cns-picker-selected",children:[(0,t.jsx)("span",{children:s||`Substory #${n}`}),(0,t.jsx)("button",{type:"button",className:"button button-small",onClick:function(){i(null,"")},children:"Remove"})]}):(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)("button",{type:"button",className:"button",onClick:()=>{h(e=>!e),u||a("")},children:u?"Close":"+ Connect Substory Post"}),u&&(0,t.jsxs)("div",{className:"cns-picker-dropdown",children:[(0,t.jsx)("input",{type:"search",placeholder:"Search substories…",value:o,onChange:e=>a(e.target.value),autoFocus:!0,className:"regular-text"}),c&&(0,t.jsx)("div",{className:"cns-picker-loading",children:"Searching…"}),(0,t.jsxs)("ul",{className:"cns-picker-results",children:[l.map(e=>(0,t.jsx)("li",{children:(0,t.jsxs)("button",{type:"button",onClick:()=>function(e){i(e.id,e.title),h(!1),a("")}(e),children:[e.thumbnailUrl&&(0,t.jsx)("img",{src:e.thumbnailUrl,alt:"",width:"32",height:"32"}),(0,t.jsx)("span",{children:e.title}),(0,t.jsx)("small",{children:e.status})]})},e.id)),!c&&0===l.length&&o&&(0,t.jsx)("li",{className:"cns-picker-empty",children:"No substories found."})]})]})]})})}function w(e,t,n){return{x:e?.x??t,y:e?.y??n,substoryId:e?.substoryId??null,substoryLabel:e?.substoryTitle??"",titleOverride:e?.titleOverride??"",excerptOverride:e?.excerptOverride??"",iconType:e?.iconType??"round",iconId:e?.iconId??null,iconColor:e?.iconColor??"#ffffff",iconSize:e?.iconSize??1}}function S({nodeId:n,existingNode:s,initialX:i,initialY:o,onSave:a,onClose:l}){const[r,c]=(0,e.useState)(()=>w(s,i,o)),[d,u]=(0,e.useState)(!1),[h,m]=(0,e.useState)(""),[p,x]=(0,e.useState)(!1),f=null===n;function y(e,t){c(n=>({...n,[e]:t}))}async function g(){if(h.trim()){x(!0);try{const e=await b("POST","/substories",{title:h}),t=await e.json();e.ok&&(y("substoryId",t.id),y("substoryLabel",t.title),m(""))}finally{x(!1)}}}return(0,e.useEffect)(()=>{function e(e){"Escape"===e.key&&l()}return document.body.classList.add("cns-modal-open"),document.addEventListener("keydown",e),()=>{document.body.classList.remove("cns-modal-open"),document.removeEventListener("keydown",e)}},[]),(0,e.useEffect)(()=>{c(w(s,i,o))},[s]),(0,t.jsxs)("div",{className:"cns-modal",role:"dialog","aria-modal":"true","aria-label":f?"Add Node":"Edit Node",children:[(0,t.jsx)("div",{className:"cns-modal__backdrop",onClick:l}),(0,t.jsxs)("div",{className:"cns-modal__dialog",children:[(0,t.jsxs)("div",{className:"cns-modal__header",children:[(0,t.jsx)("h2",{className:"cns-modal__title",children:f?"Add Node":"Edit Node"}),(0,t.jsx)("button",{className:"cns-modal__close",onClick:l,"aria-label":"Close",children:"×"})]}),(0,t.jsxs)("div",{className:"cns-modal__body",children:[(0,t.jsxs)("div",{className:"cns-modal-section",children:[(0,t.jsx)("h3",{children:"Substory Post"}),(0,t.jsx)(N,{substoryId:r.substoryId,substoryLabel:r.substoryLabel,onChange:(e,t)=>{y("substoryId",e),y("substoryLabel",t)}}),!r.substoryId&&(0,t.jsxs)("div",{className:"cns-modal-section__create",style:{marginTop:10},children:[(0,t.jsx)("p",{className:"description",style:{marginBottom:6},children:"Or create a new substory post:"}),(0,t.jsxs)("div",{style:{display:"flex",gap:8,alignItems:"center"},children:[(0,t.jsx)("input",{type:"text",className:"regular-text",placeholder:"New substory title…",value:h,onChange:e=>m(e.target.value),onKeyDown:e=>{"Enter"===e.key&&g()},style:{flex:1}}),(0,t.jsx)("button",{type:"button",className:"button",onClick:g,disabled:p||!h.trim(),children:p?"Creating…":"Create"})]})]})]}),(0,t.jsxs)("div",{className:"cns-modal-section",children:[(0,t.jsx)("h3",{children:"Display Overrides"}),(0,t.jsx)("p",{className:"description",style:{marginBottom:12},children:"Leave blank to use the substory post’s title and excerpt."}),(0,t.jsxs)("div",{className:"cns-form-grid",children:[(0,t.jsxs)("div",{className:"cns-form-row cns-form-row--full",children:[(0,t.jsx)("label",{htmlFor:"node-title-override",children:"Title"}),(0,t.jsx)("input",{id:"node-title-override",type:"text",className:"regular-text",value:r.titleOverride,onChange:e=>y("titleOverride",e.target.value),placeholder:r.substoryLabel||"Node title…"})]}),(0,t.jsxs)("div",{className:"cns-form-row cns-form-row--full",children:[(0,t.jsx)("label",{htmlFor:"node-excerpt-override",children:"Excerpt"}),(0,t.jsx)("textarea",{id:"node-excerpt-override",className:"large-text",rows:3,value:r.excerptOverride,onChange:e=>y("excerptOverride",e.target.value),placeholder:"Short description shown in the story window…"})]})]})]}),(0,t.jsxs)("div",{className:"cns-modal-section",children:[(0,t.jsx)("h3",{children:"Position"}),(0,t.jsxs)("div",{className:"cns-form-grid",children:[(0,t.jsxs)("div",{className:"cns-form-row",children:[(0,t.jsx)("label",{htmlFor:"node-pos-x",children:"X (%)"}),(0,t.jsx)("input",{id:"node-pos-x",type:"number",className:"small-text",min:"0",max:"100",step:"0.1",value:Math.round(1e3*r.x)/10,onChange:e=>y("x",Math.max(0,Math.min(1,parseFloat(e.target.value)/100)))})]}),(0,t.jsxs)("div",{className:"cns-form-row",children:[(0,t.jsx)("label",{htmlFor:"node-pos-y",children:"Y (%)"}),(0,t.jsx)("input",{id:"node-pos-y",type:"number",className:"small-text",min:"0",max:"100",step:"0.1",value:Math.round(1e3*r.y)/10,onChange:e=>y("y",Math.max(0,Math.min(1,parseFloat(e.target.value)/100)))})]})]}),(0,t.jsx)("p",{className:"description",style:{marginTop:6},children:"Position as a percentage of canvas width/height from the top-left. Also adjustable by clicking or dragging on the canvas."})]}),(0,t.jsxs)("div",{className:"cns-modal-section",children:[(0,t.jsx)("h3",{children:"Node Appearance"}),(0,t.jsxs)("div",{className:"cns-form-grid",children:[(0,t.jsxs)("div",{className:"cns-form-row cns-form-row--full",children:[(0,t.jsx)("label",{children:"Shape"}),(0,t.jsx)("div",{className:"cns-radio-toggle",children:["round","square","icon"].map(e=>(0,t.jsxs)("label",{children:[(0,t.jsx)("input",{type:"radio",name:"icon-type",value:e,checked:r.iconType===e,onChange:()=>y("iconType",e)})," ",e.charAt(0).toUpperCase()+e.slice(1)]},e))})]}),"icon"===r.iconType&&(0,t.jsxs)("div",{className:"cns-form-row cns-form-row--full",children:[(0,t.jsx)("label",{children:"Icon Image"}),(0,t.jsxs)("div",{style:{display:"flex",gap:8,alignItems:"center"},children:[(0,t.jsx)("button",{type:"button",className:"button",onClick:()=>{const e=window.wp?.media({title:"Select Icon",button:{text:"Use this icon"},multiple:!1});e.on("select",()=>{y("iconId",e.state().get("selection").first().toJSON().id)}),e.open()},children:r.iconId?`Icon #${r.iconId}`:"Select Icon"}),r.iconId&&(0,t.jsx)("button",{type:"button",className:"button",onClick:()=>y("iconId",null),children:"Remove"})]})]}),(0,t.jsxs)("div",{className:"cns-form-row",children:[(0,t.jsx)("label",{children:"Color"}),(0,t.jsx)("div",{children:(0,t.jsx)("input",{type:"color",value:r.iconColor,onChange:e=>y("iconColor",e.target.value)})})]}),(0,t.jsxs)("div",{className:"cns-form-row",children:[(0,t.jsx)("label",{children:"Size"}),(0,t.jsxs)("div",{className:"cns-range-wrap",children:[(0,t.jsx)("input",{type:"range",min:"0.25",max:"3",step:"0.25",value:r.iconSize,onChange:e=>y("iconSize",parseFloat(e.target.value))}),(0,t.jsxs)("span",{className:"cns-range-value",children:[r.iconSize,"×"]})]})]})]})]})]}),(0,t.jsxs)("div",{className:"cns-modal__footer",children:[(0,t.jsx)("button",{className:"button",onClick:l,children:"Cancel"}),(0,t.jsx)("button",{className:"button button-primary",onClick:async function(){u(!0),await a(r),u(!1)},disabled:d,children:d?"Saving…":f?"Add Node":"Save Node"})]})]})]})}function k(){const e=window.cnsStoryEditor||{};return{title:e.title??"",status:e.status??"draft",mapId:null,mapTitle:"",lineColor:"#ffffff",lineWidth:3,lineStyle:"solid",lineOpacity:1,startNodeId:null,viewUrl:e.viewUrl??""}}function C(){const n=window.cnsStoryEditor||{},i=n.storyId||0,a=n.isNew||!1,[l,r]=(0,e.useState)(k),[c,d]=(0,e.useState)([]),[u,m]=(0,e.useState)([]),[x,y]=(0,e.useState)([]),[j,N]=(0,e.useState)(null),[w,C]=(0,e.useState)([]),[I,_]=(0,e.useState)([]),[E,T]=(0,e.useState)("settings"),[M,O]=(0,e.useState)(null),[D,U]=(0,e.useState)(!1),[L,P]=(0,e.useState)(null),[R,A]=(0,e.useState)({text:"",type:""}),[W,$]=(0,e.useState)({open:!1,nodeId:null,x:.5,y:.5}),[F,z]=(0,e.useState)(!a);async function q(e){(await b("DELETE",`/nodes/${e}`)).ok&&(d(t=>t.filter(t=>t.id!==e)),m(t=>t.filter(t=>t.fromNodeId!==e&&t.toNodeId!==e)),M===e&&O(null))}async function X(e,t,n){const s=await b("PATCH",`/nodes/${e}`,{x:t,y:n});if(s.ok){const t=await s.json();d(n=>n.map(n=>n.id===e?t:n))}}async function Y(e){(await b("DELETE",`/edges/${e}`)).ok&&m(t=>t.filter(t=>t.id!==e))}async function G(e,t){const n=await b("PATCH",`/edges/${e}`,{sort_order:t});if(n.ok){const t=await n.json();m(n=>n.map(n=>n.id===e?t:n))}}function H(){U(!1),P(null)}(0,e.useEffect)(()=>{a||(async()=>{const e=await b("GET",`/stories/${i}/data`),t=await e.json();e.ok&&(r(t.story),d(t.nodes),m(t.edges),t.mapData&&(N(t.mapData),C(t.mapData.objects),_(t.mapData.areas)));const n=await b("GET",`/stories/${i}/links`);n.ok&&y(await n.json()),z(!1)})()},[]),(0,e.useEffect)(()=>{if(D)return document.addEventListener("keydown",e),()=>document.removeEventListener("keydown",e);function e(e){"Escape"!==e.key&&"Enter"!==e.key||(U(!1),P(null))}},[D]);const B=a?"New Story":`Edit: ${l.title||"(no title)"}`,J=c.find(e=>e.id===M)??null;return F?(0,t.jsx)("div",{className:"cns-story-editor",children:(0,t.jsx)("div",{className:"cns-loading",children:"Loading…"})}):(0,t.jsxs)("div",{className:"cns-story-editor cns-map-editor",children:[(0,t.jsx)(s,{pageTitle:B,overviewUrl:n.overviewUrl||"#",viewUrl:a?"":l.viewUrl,status:l.status,saveStatus:R,onStatusChange:e=>r(t=>({...t,status:e})),onSave:async function(){A({text:"Saving…",type:""});try{const e=await b("POST","/stories",{story_id:i,title:l.title,status:l.status,map_id:l.mapId??0,line_color:l.lineColor,line_width:l.lineWidth,line_style:l.lineStyle,line_opacity:l.lineOpacity,start_node_id:l.startNodeId??0}),t=await e.json();if(!e.ok)throw new Error(t.message||"Save failed.");t.created&&t.editUrl?window.location.href=t.editUrl:(void 0!==t.viewUrl&&r(e=>({...e,viewUrl:t.viewUrl})),A({text:"Saved.",type:"ok"}),setTimeout(()=>A({text:"",type:""}),2e3))}catch(e){A({text:e.message,type:"error"})}}}),(0,t.jsx)("div",{className:"cns-editor-main",children:(0,t.jsxs)("div",{className:"cns-map-editor__body",children:[(0,t.jsx)(o,{activeTab:E,onChange:function(e){"canvas"!==e&&(H(),O(null)),T(e)}}),(0,t.jsxs)("div",{className:"cns-map-editor__content",children:["settings"===E&&(0,t.jsx)(f,{settings:l,onChange:r,onMapChange:async function(e,t){if(r(n=>({...n,mapId:e,mapTitle:t})),!e)return N(null),C([]),void _([]);if(await b("GET",`/maps/${e}/stories`),!a&&i){const e=await b("GET",`/stories/${i}/data`);if(e.ok){const t=await e.json();t.mapData&&(N(t.mapData),C(t.mapData.objects),_(t.mapData.areas))}}}}),"canvas"===E&&(0,t.jsxs)("div",{className:"cns-story-canvas-view",children:[(0,t.jsxs)("div",{className:"cns-story-canvas-toolbar",children:[(0,t.jsxs)("div",{className:"cns-story-canvas-toolbar__row",children:[!D&&!a&&(0,t.jsx)("button",{className:"button",onClick:function(){null!==M&&(P(M),U(!0))},disabled:null===M,title:null===M?"Select a node first to connect from":"Start building a path from the selected node",children:"⟶ Connect Nodes"}),D&&(0,t.jsx)("button",{className:"button button-primary",onClick:H,children:"✓ Save Path"}),D&&(0,t.jsx)("span",{className:"cns-story-canvas-toolbar__hint",children:"Click nodes to chain a path · Enter or Esc to finish"}),!D&&!a&&null!==M&&(0,t.jsx)("span",{className:"cns-story-canvas-toolbar__hint",children:"Click canvas to move here · Connect Nodes to start a path"}),!D&&!a&&null===M&&(0,t.jsx)("span",{className:"cns-story-canvas-toolbar__hint",children:"Click a node to select · Click empty space to add · Drag to move"})]}),(0,t.jsxs)("div",{className:"cns-story-canvas-toolbar__row cns-story-canvas-toolbar__line-style",children:[(0,t.jsx)("span",{className:"cns-story-canvas-toolbar__label",children:"Lines:"}),(0,t.jsxs)("label",{children:["Color",(0,t.jsx)("input",{type:"color",value:l.lineColor,onChange:e=>r(t=>({...t,lineColor:e.target.value}))})]}),(0,t.jsxs)("label",{children:["Width",(0,t.jsx)("input",{type:"number",min:"0.5",max:"20",step:"0.5",value:l.lineWidth,onChange:e=>r(t=>({...t,lineWidth:parseFloat(e.target.value)})),style:{width:48}}),"px"]}),(0,t.jsxs)("label",{children:["Style",(0,t.jsxs)("select",{value:l.lineStyle,onChange:e=>r(t=>({...t,lineStyle:e.target.value})),children:[(0,t.jsx)("option",{value:"solid",children:"Solid"}),(0,t.jsx)("option",{value:"dashed",children:"Dashed"}),(0,t.jsx)("option",{value:"dotted",children:"Dotted"})]})]}),(0,t.jsxs)("label",{children:["Opacity",(0,t.jsx)("input",{type:"range",min:"0",max:"1",step:"0.05",value:l.lineOpacity,onChange:e=>r(t=>({...t,lineOpacity:parseFloat(e.target.value)})),style:{width:80}}),Math.round(100*l.lineOpacity),"%"]})]})]}),(0,t.jsxs)("div",{className:"cns-story-canvas-layout",children:[(0,t.jsx)("div",{className:"cns-story-canvas-main",children:(0,t.jsx)("div",{className:"cns-story-canvas-wrap",children:(0,t.jsx)(h,{mapData:j,mapObjects:w,mapAreas:I,nodes:c,edges:u,selectedNodeId:M,edgeStartNodeId:L,isEdgeMode:D,lineColor:l.lineColor,lineWidth:l.lineWidth,lineStyle:l.lineStyle,lineOpacity:l.lineOpacity,onNodeClick:function(e){D?null===L||L===e?H():(async function(e,t){const n=await b("POST","/edges",{story_id:i,from_node_id:e,to_node_id:t});if(n.ok){const e=await n.json();m(t=>[...t.filter(t=>t.id!==e.id),e])}}(L,e),P(e),O(e)):O(e)},onCanvasClick:function(e,t){return D?(P(null),void U(!1)):a?(A({text:"Save the story first before adding nodes.",type:"error"}),void setTimeout(()=>A({text:"",type:""}),3e3)):null!==M?(X(M,e,t),void O(null)):void $({open:!0,nodeId:null,x:e,y:t})},onEdgeClick:function(e){window.confirm("Delete this connection?")&&Y(e)},onNodeDragEnd:X})})}),(0,t.jsx)("div",{className:"cns-story-window-panel",children:(0,t.jsx)(p,{nodes:c,edges:u,startNodeId:l.startNodeId,selectedNodeId:M,onSelect:e=>O(e),onEdit:e=>{O(e),$({open:!0,nodeId:e,x:0,y:0})},onDelete:q,onSetStartNode:e=>r(t=>({...t,startNodeId:e})),onEdgeReorder:G,onEdgeDelete:Y,onStartEdgeFrom:function(e){O(e),P(e),U(!0)}})})]})]}),"nodes"===E&&(0,t.jsx)(g,{nodes:c,edges:u,startNodeId:l.startNodeId,onEditNode:e=>{O(e),$({open:!0,nodeId:e,x:0,y:0})},onDeleteNode:q,onSetStartNode:e=>r(t=>({...t,startNodeId:e})),onEdgeReorder:G,onEdgeDelete:Y}),"links"===E&&!a&&(0,t.jsx)(v,{storyId:i,links:x,onLinkAdd:async function(e,t){const n=await b("POST",`/stories/${i}/links`,{link_type:e,link_id:t});if(n.ok){const e=await n.json();y(t=>[...t.filter(t=>t.id!==e.id),e])}},onLinkDelete:async function(e){(await b("DELETE",`/links/${e}`)).ok&&y(t=>t.filter(t=>t.id!==e))}}),"links"===E&&a&&(0,t.jsx)("div",{className:"cns-panel-notice",children:"Save the story first to manage links."})]})]})}),W.open&&(0,t.jsx)(S,{nodeId:W.nodeId,existingNode:J,initialX:W.x,initialY:W.y,onSave:async function(e){null===W.nodeId?await async function(e,t,n){const s=await b("POST",`/stories/${i}/nodes`,{x:t,y:n,substory_id:e.substoryId??0,title_override:e.titleOverride||null,excerpt_override:e.excerptOverride||null,icon_type:e.iconType,icon_id:e.iconId??0,icon_color:e.iconColor,icon_size:e.iconSize});if(s.ok){const e=await s.json();return d(t=>[...t,e]),e}}(e,e.x,e.y):await async function(e,t){const n=await b("PATCH",`/nodes/${e}`,{x:t.x,y:t.y,substory_id:t.substoryId??0,title_override:t.titleOverride||null,excerpt_override:t.excerptOverride||null,icon_type:t.iconType,icon_id:t.iconId??0,icon_color:t.iconColor,icon_size:t.iconSize});if(n.ok){const t=await n.json();d(n=>n.map(n=>n.id===e?t:n))}}(W.nodeId,e),$({open:!1,nodeId:null,x:0,y:0}),O(null)},onClose:()=>{$({open:!1,nodeId:null,x:0,y:0}),O(null)}})]})}const I=document.getElementById("cns-admin-root");I&&(0,e.createRoot)(I).render((0,t.jsx)(C,{}))})();
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/admin/app/CanvasNodeList.tsx"
+/*!******************************************!*\
+  !*** ./src/admin/app/CanvasNodeList.tsx ***!
+  \******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ CanvasNodeList)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+
+function formatStep(num) {
+  return num === null ? '—' : num.join('.');
+}
+
+/**
+ * Numbering rules
+ * ───────────────
+ * • The start (root) node is unnumbered.
+ * • Each direct child of root starts a new top-level path: child 1 → [1,1], child 2 → [2,1] …
+ * • Linear continuation (parent has exactly 1 outgoing edge):
+ *     – if the parent's number was assigned via branching (fromBranch=true): append 1   → [1,2,1] → [1,2,1,1]
+ *     – otherwise increment the last segment                               → [1,1] → [1,2] → [1,3]
+ * • Branching (parent has ≥2 outgoing edges): each child i → [...parent, i+1], fromBranch=true
+ */
+function buildTree(nodes, edges, startNodeId) {
+  const result = [];
+  const visited = new Set();
+  const reachable = new Set();
+  const stepNums = new Map();
+  const fromBranchOf = new Map();
+
+  // Flood-fill reachability from start
+  function markReachable(id) {
+    if (reachable.has(id)) return;
+    reachable.add(id);
+    for (const e of edges) {
+      if (e.fromNodeId === id) markReachable(e.toNodeId);
+    }
+  }
+  const startId = startNodeId ?? nodes[0]?.id ?? null;
+  if (startId !== null) markReachable(startId);
+  function assignChildNumbers(nodeId, parentNum, fromBranch, isRoot) {
+    const out = edges.filter(e => e.fromNodeId === nodeId).sort((a, b) => a.sortOrder - b.sortOrder);
+    if (isRoot) {
+      // Root's children each start a new path [pathIndex, 1]
+      out.forEach((edge, i) => {
+        if (reachable.has(edge.toNodeId) && !stepNums.has(edge.toNodeId)) {
+          stepNums.set(edge.toNodeId, [i + 1, 1]);
+          fromBranchOf.set(edge.toNodeId, false);
+        }
+      });
+    } else if (parentNum !== null) {
+      if (out.length === 1) {
+        const childId = out[0].toNodeId;
+        if (reachable.has(childId) && !stepNums.has(childId)) {
+          const childNum = fromBranch ? [...parentNum, 1] : [...parentNum.slice(0, -1), parentNum[parentNum.length - 1] + 1];
+          stepNums.set(childId, childNum);
+          fromBranchOf.set(childId, false);
+        }
+      } else if (out.length > 1) {
+        out.forEach((edge, i) => {
+          if (reachable.has(edge.toNodeId) && !stepNums.has(edge.toNodeId)) {
+            stepNums.set(edge.toNodeId, [...parentNum, i + 1]);
+            fromBranchOf.set(edge.toNodeId, true);
+          }
+        });
+      }
+    }
+  }
+  function visit(nodeId, incomingEdge, siblings, depth, isRoot) {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    const stepNumber = !isRoot && reachable.has(nodeId) ? stepNums.get(nodeId) ?? null : null;
+    result.push({
+      node,
+      incomingEdge,
+      siblings,
+      depth,
+      stepNumber
+    });
+    const outEdges = edges.filter(e => e.fromNodeId === nodeId).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    // Assign numbers to direct children before descending
+    assignChildNumbers(nodeId, stepNumber, fromBranchOf.get(nodeId) ?? false, isRoot);
+    for (const edge of outEdges) {
+      visit(edge.toNodeId, edge, outEdges, depth + 1, false);
+    }
+  }
+  if (startId !== null) visit(startId, null, [], 0, true);
+  // Orphaned nodes (not reachable from start)
+  for (const node of nodes) {
+    if (!visited.has(node.id)) visit(node.id, null, [], 0, false);
+  }
+  return result;
+}
+function getDisplayTitle(node) {
+  return node.titleOverride || node.substoryTitle || `Node #${node.id}`;
+}
+function CanvasNodeList({
+  nodes,
+  edges,
+  startNodeId,
+  selectedNodeId,
+  onSelect,
+  onEdit,
+  onDelete,
+  onSetStartNode,
+  onEdgeReorder,
+  onEdgeDelete,
+  onStartEdgeFrom
+}) {
+  if (!nodes.length) {
+    return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", {
+      className: "cns-canvas-node-list cns-canvas-node-list--empty",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("p", {
+        className: "description",
+        children: "Click on the canvas to add your first node."
+      })
+    });
+  }
+  const tree = buildTree(nodes, edges, startNodeId);
+  function handleMoveUp(item) {
+    const {
+      incomingEdge,
+      siblings
+    } = item;
+    if (!incomingEdge) return;
+    const sorted = [...siblings].sort((a, b) => a.sortOrder - b.sortOrder);
+    const idx = sorted.findIndex(e => e.id === incomingEdge.id);
+    if (idx <= 0) return;
+    const prev = sorted[idx - 1];
+    onEdgeReorder(incomingEdge.id, prev.sortOrder);
+    onEdgeReorder(prev.id, incomingEdge.sortOrder);
+  }
+  function handleMoveDown(item) {
+    const {
+      incomingEdge,
+      siblings
+    } = item;
+    if (!incomingEdge) return;
+    const sorted = [...siblings].sort((a, b) => a.sortOrder - b.sortOrder);
+    const idx = sorted.findIndex(e => e.id === incomingEdge.id);
+    if (idx < 0 || idx >= sorted.length - 1) return;
+    const next = sorted[idx + 1];
+    onEdgeReorder(incomingEdge.id, next.sortOrder);
+    onEdgeReorder(next.id, incomingEdge.sortOrder);
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+    className: "cns-canvas-node-list",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", {
+      className: "cns-canvas-node-list__header",
+      children: "Nodes"
+    }), tree.map(item => {
+      const {
+        node,
+        incomingEdge,
+        siblings,
+        depth,
+        stepNumber
+      } = item;
+      const isStart = node.id === startNodeId;
+      const isSelected = node.id === selectedNodeId;
+      const isOrphan = stepNumber === null && !isStart;
+      const sorted = [...siblings].sort((a, b) => a.sortOrder - b.sortOrder);
+      const idx = sorted.findIndex(e => e.id === incomingEdge?.id);
+      const canUp = incomingEdge !== null && idx > 0;
+      const canDown = incomingEdge !== null && idx < sorted.length - 1;
+      return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+        className: ['cns-canvas-node-list__item', isSelected ? 'is-selected' : '', isOrphan ? 'is-orphan' : ''].filter(Boolean).join(' '),
+        style: {
+          paddingLeft: 8 + Math.min(depth, 4) * 14
+        },
+        children: [incomingEdge && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+          className: "cns-canvas-node-list__connector",
+          children: "\u2514"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+          className: "cns-canvas-node-list__step",
+          children: isStart ? '★' : formatStep(stepNumber)
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+          className: "cns-node-swatch",
+          style: {
+            background: node.iconColor,
+            borderRadius: node.iconType === 'square' ? 2 : '50%'
+          }
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+          className: "cns-canvas-node-list__title",
+          onClick: () => onSelect(node.id),
+          title: "Select on canvas",
+          children: getDisplayTitle(node)
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+          className: "cns-canvas-node-list__actions",
+          children: [incomingEdge && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.Fragment, {
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+              className: "cns-icon-btn",
+              title: "Move up in sequence",
+              disabled: !canUp,
+              onClick: () => handleMoveUp(item),
+              children: "\u2191"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+              className: "cns-icon-btn",
+              title: "Move down in sequence",
+              disabled: !canDown,
+              onClick: () => handleMoveDown(item),
+              children: "\u2193"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+              className: "cns-icon-btn",
+              title: "Remove this branch",
+              onClick: () => {
+                if (window.confirm('Remove the connection to this node?')) {
+                  onEdgeDelete(incomingEdge.id);
+                }
+              },
+              children: "\u2190"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+              className: "cns-icon-btn",
+              title: "Split route: add a parallel branch from the same parent",
+              onClick: () => onStartEdgeFrom(incomingEdge.fromNodeId),
+              children: "\u2192"
+            })]
+          }), !incomingEdge && !isStart && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+            className: "cns-icon-btn",
+            title: "Set as start node",
+            onClick: () => onSetStartNode(node.id),
+            children: "\u2605"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+            className: "cns-icon-btn",
+            title: "Edit node",
+            onClick: () => onEdit(node.id),
+            children: "\u270E"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+            className: "cns-icon-btn cns-icon-btn--danger",
+            title: "Delete node",
+            onClick: () => {
+              if (window.confirm('Delete this node and all its connections?')) {
+                onDelete(node.id);
+              }
+            },
+            children: "\u2715"
+          })]
+        })]
+      }, node.id);
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/EditorHeader.tsx"
+/*!****************************************!*\
+  !*** ./src/admin/app/EditorHeader.tsx ***!
+  \****************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ EditorHeader)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+
+const STATUS_LABELS = {
+  draft: 'Draft',
+  publish: 'Published',
+  private: 'Private'
+};
+function EditorHeader({
+  pageTitle,
+  overviewUrl,
+  viewUrl,
+  status,
+  saveStatus,
+  onStatusChange,
+  onSave
+}) {
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+    className: "cns-map-editor__header",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("a", {
+      href: overviewUrl,
+      className: "cns-back-link",
+      children: "\u2190 All Stories"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h1", {
+      children: pageTitle
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+      className: "cns-map-editor__header-actions",
+      children: [saveStatus.text && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+        className: `cns-save-status${saveStatus.type ? ` cns-save-status--${saveStatus.type}` : ''}`,
+        children: saveStatus.text
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("select", {
+        value: status,
+        onChange: e => onStatusChange(e.target.value),
+        className: "cns-status-select",
+        "aria-label": "Post status",
+        children: Object.keys(STATUS_LABELS).map(s => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("option", {
+          value: s,
+          children: STATUS_LABELS[s]
+        }, s))
+      }), viewUrl && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("a", {
+        href: viewUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        className: "button",
+        children: "View Story"
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+        onClick: onSave,
+        className: "button button-primary",
+        children: "Save Story"
+      })]
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/StoryEditorApp.tsx"
+/*!******************************************!*\
+  !*** ./src/admin/app/StoryEditorApp.tsx ***!
+  \******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ StoryEditorApp)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _EditorHeader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./EditorHeader */ "./src/admin/app/EditorHeader.tsx");
+/* harmony import */ var _TabBar__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./TabBar */ "./src/admin/app/TabBar.tsx");
+/* harmony import */ var _canvas_StoryCanvas__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../canvas/StoryCanvas */ "./src/admin/canvas/StoryCanvas.tsx");
+/* harmony import */ var _CanvasNodeList__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./CanvasNodeList */ "./src/admin/app/CanvasNodeList.tsx");
+/* harmony import */ var _panels_SettingsPanel__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./panels/SettingsPanel */ "./src/admin/app/panels/SettingsPanel.tsx");
+/* harmony import */ var _panels_NodesPanel__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./panels/NodesPanel */ "./src/admin/app/panels/NodesPanel.tsx");
+/* harmony import */ var _panels_LinksPanel__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./panels/LinksPanel */ "./src/admin/app/panels/LinksPanel.tsx");
+/* harmony import */ var _forms_NodeModal__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./forms/NodeModal */ "./src/admin/app/forms/NodeModal.tsx");
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../utils */ "./src/admin/utils.ts");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__);
+
+
+
+
+
+
+
+
+
+
+
+function buildInitialSettings() {
+  const d = window.cnsStoryEditor || {};
+  return {
+    title: d.title ?? '',
+    status: d.status ?? 'draft',
+    mapId: null,
+    mapTitle: '',
+    lineColor: '#ffffff',
+    lineWidth: 3,
+    lineStyle: 'solid',
+    lineOpacity: 1.0,
+    startNodeId: null,
+    viewUrl: d.viewUrl ?? ''
+  };
+}
+function StoryEditorApp() {
+  const d = window.cnsStoryEditor || {};
+  const storyId = d.storyId || 0;
+  const isNew = d.isNew || false;
+  const [settings, setSettings] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(buildInitialSettings);
+  const [nodes, setNodes] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [edges, setEdges] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [links, setLinks] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [mapData, setMapData] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [mapObjects, setMapObjects] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [mapAreas, setMapAreas] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [activeTab, setActiveTab] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('settings');
+  const [selectedNodeId, setSelectedNodeId] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [isEdgeMode, setIsEdgeMode] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [edgeStartNodeId, setEdgeStartNodeId] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [saveStatus, setSaveStatus] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)({
+    text: '',
+    type: ''
+  });
+  const [nodeModal, setNodeModal] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)({
+    open: false,
+    nodeId: null,
+    x: 0.5,
+    y: 0.5
+  });
+  const [loading, setLoading] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(!isNew);
+
+  // ── Initial data load ─────────────────────────────────────────────────────
+
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (isNew) return;
+    (async () => {
+      const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('GET', `/stories/${storyId}/data`);
+      const data = await res.json();
+      if (res.ok) {
+        setSettings(data.story);
+        setNodes(data.nodes);
+        setEdges(data.edges);
+        if (data.mapData) {
+          setMapData(data.mapData);
+          setMapObjects(data.mapData.objects);
+          setMapAreas(data.mapData.areas);
+        }
+      }
+      const linksRes = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('GET', `/stories/${storyId}/links`);
+      if (linksRes.ok) setLinks(await linksRes.json());
+      setLoading(false);
+    })();
+  }, []);
+
+  // ── Save story settings ───────────────────────────────────────────────────
+
+  async function handleSave() {
+    setSaveStatus({
+      text: 'Saving…',
+      type: ''
+    });
+    try {
+      const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('POST', '/stories', {
+        story_id: storyId,
+        title: settings.title,
+        status: settings.status,
+        map_id: settings.mapId ?? 0,
+        line_color: settings.lineColor,
+        line_width: settings.lineWidth,
+        line_style: settings.lineStyle,
+        line_opacity: settings.lineOpacity,
+        start_node_id: settings.startNodeId ?? 0
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Save failed.');
+      if (data.created && data.editUrl) {
+        window.location.href = data.editUrl;
+      } else {
+        if (data.viewUrl !== undefined) {
+          setSettings(p => ({
+            ...p,
+            viewUrl: data.viewUrl
+          }));
+        }
+        setSaveStatus({
+          text: 'Saved.',
+          type: 'ok'
+        });
+        setTimeout(() => setSaveStatus({
+          text: '',
+          type: ''
+        }), 2000);
+      }
+    } catch (err) {
+      setSaveStatus({
+        text: err.message,
+        type: 'error'
+      });
+    }
+  }
+
+  // ── Map data reload when mapId changes ────────────────────────────────────
+
+  async function handleMapChange(mapId, mapTitle) {
+    setSettings(p => ({
+      ...p,
+      mapId,
+      mapTitle
+    }));
+    if (!mapId) {
+      setMapData(null);
+      setMapObjects([]);
+      setMapAreas([]);
+      return;
+    }
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('GET', `/maps/${mapId}/stories`);
+    // Reload full story data to get map render data.
+    if (!isNew && storyId) {
+      const dataRes = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('GET', `/stories/${storyId}/data`);
+      if (dataRes.ok) {
+        const data = await dataRes.json();
+        if (data.mapData) {
+          setMapData(data.mapData);
+          setMapObjects(data.mapData.objects);
+          setMapAreas(data.mapData.areas);
+        }
+      }
+    }
+    void res;
+  }
+
+  // ── Node operations ───────────────────────────────────────────────────────
+
+  async function handleNodeCreate(formData, x, y) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('POST', `/stories/${storyId}/nodes`, {
+      x,
+      y,
+      substory_id: formData.substoryId ?? 0,
+      title_override: formData.titleOverride || null,
+      excerpt_override: formData.excerptOverride || null,
+      icon_type: formData.iconType,
+      icon_id: formData.iconId ?? 0,
+      icon_color: formData.iconColor,
+      icon_size: formData.iconSize
+    });
+    if (res.ok) {
+      const node = await res.json();
+      setNodes(p => [...p, node]);
+      return node;
+    }
+  }
+  async function handleNodeUpdate(nodeId, formData) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('PATCH', `/nodes/${nodeId}`, {
+      x: formData.x,
+      y: formData.y,
+      substory_id: formData.substoryId ?? 0,
+      title_override: formData.titleOverride || null,
+      excerpt_override: formData.excerptOverride || null,
+      icon_type: formData.iconType,
+      icon_id: formData.iconId ?? 0,
+      icon_color: formData.iconColor,
+      icon_size: formData.iconSize
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setNodes(p => p.map(n => n.id === nodeId ? updated : n));
+    }
+  }
+  async function handleNodeDelete(nodeId) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('DELETE', `/nodes/${nodeId}`);
+    if (res.ok) {
+      setNodes(p => p.filter(n => n.id !== nodeId));
+      setEdges(p => p.filter(e => e.fromNodeId !== nodeId && e.toNodeId !== nodeId));
+      if (selectedNodeId === nodeId) setSelectedNodeId(null);
+    }
+  }
+  async function handleNodeDragEnd(nodeId, x, y) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('PATCH', `/nodes/${nodeId}`, {
+      x,
+      y
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setNodes(p => p.map(n => n.id === nodeId ? updated : n));
+    }
+  }
+
+  // ── Edge operations ───────────────────────────────────────────────────────
+
+  async function handleEdgeCreate(fromId, toId) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('POST', '/edges', {
+      story_id: storyId,
+      from_node_id: fromId,
+      to_node_id: toId
+    });
+    if (res.ok) {
+      const edge = await res.json();
+      setEdges(p => {
+        // Replace if duplicate returned (status 200).
+        const filtered = p.filter(e => e.id !== edge.id);
+        return [...filtered, edge];
+      });
+    }
+  }
+  async function handleEdgeDelete(edgeId) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('DELETE', `/edges/${edgeId}`);
+    if (res.ok) {
+      setEdges(p => p.filter(e => e.id !== edgeId));
+    }
+  }
+
+  // ── Link operations ───────────────────────────────────────────────────────
+
+  async function handleLinkAdd(linkType, linkId) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('POST', `/stories/${storyId}/links`, {
+      link_type: linkType,
+      link_id: linkId
+    });
+    if (res.ok) {
+      const link = await res.json();
+      setLinks(p => {
+        const filtered = p.filter(l => l.id !== link.id);
+        return [...filtered, link];
+      });
+    }
+  }
+  async function handleLinkDelete(linkId) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('DELETE', `/links/${linkId}`);
+    if (res.ok) setLinks(p => p.filter(l => l.id !== linkId));
+  }
+
+  // ── Edge reorder ─────────────────────────────────────────────────────────
+
+  async function handleEdgeReorder(edgeId, sortOrder) {
+    const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_9__.apiFetch)('PATCH', `/edges/${edgeId}`, {
+      sort_order: sortOrder
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setEdges(p => p.map(e => e.id === edgeId ? updated : e));
+    }
+  }
+
+  // ── Edge mode key handler ─────────────────────────────────────────────────
+
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!isEdgeMode) return;
+    function onKey(e) {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        setIsEdgeMode(false);
+        setEdgeStartNodeId(null);
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isEdgeMode]);
+
+  // ── Canvas interaction ────────────────────────────────────────────────────
+
+  function enterEdgeMode() {
+    if (selectedNodeId === null) return;
+    setEdgeStartNodeId(selectedNodeId);
+    setIsEdgeMode(true);
+  }
+  function exitEdgeMode() {
+    setIsEdgeMode(false);
+    setEdgeStartNodeId(null);
+  }
+  function handleNodeClick(nodeId) {
+    if (isEdgeMode) {
+      if (edgeStartNodeId === null || edgeStartNodeId === nodeId) {
+        // Clicked the current base node — end the chain.
+        exitEdgeMode();
+      } else {
+        // Create connection and advance the chain to the new node.
+        handleEdgeCreate(edgeStartNodeId, nodeId);
+        setEdgeStartNodeId(nodeId);
+        setSelectedNodeId(nodeId);
+      }
+    } else {
+      // Select the node; editing is done via the sidebar Edit button.
+      setSelectedNodeId(nodeId);
+    }
+  }
+  function handleCanvasClick(x, y) {
+    if (isEdgeMode) {
+      setEdgeStartNodeId(null);
+      setIsEdgeMode(false);
+      return;
+    }
+    if (isNew) {
+      setSaveStatus({
+        text: 'Save the story first before adding nodes.',
+        type: 'error'
+      });
+      setTimeout(() => setSaveStatus({
+        text: '',
+        type: ''
+      }), 3000);
+      return;
+    }
+    if (selectedNodeId !== null) {
+      handleNodeDragEnd(selectedNodeId, x, y);
+      setSelectedNodeId(null);
+      return;
+    }
+    setNodeModal({
+      open: true,
+      nodeId: null,
+      x,
+      y
+    });
+  }
+  function handleEdgeClick(edgeId) {
+    if (window.confirm('Delete this connection?')) {
+      handleEdgeDelete(edgeId);
+    }
+  }
+  function handleStartEdgeFrom(fromNodeId) {
+    setSelectedNodeId(fromNodeId);
+    setEdgeStartNodeId(fromNodeId);
+    setIsEdgeMode(true);
+  }
+
+  // ── Modal save ────────────────────────────────────────────────────────────
+
+  async function handleModalSave(formData) {
+    if (nodeModal.nodeId === null) {
+      await handleNodeCreate(formData, formData.x, formData.y);
+    } else {
+      await handleNodeUpdate(nodeModal.nodeId, formData);
+    }
+    setNodeModal({
+      open: false,
+      nodeId: null,
+      x: 0,
+      y: 0
+    });
+    setSelectedNodeId(null);
+  }
+
+  // ── Tab change ────────────────────────────────────────────────────────────
+
+  function handleTabChange(tab) {
+    if (tab !== 'canvas') {
+      exitEdgeMode();
+      setSelectedNodeId(null);
+    }
+    setActiveTab(tab);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const pageTitle = isNew ? 'New Story' : `Edit: ${settings.title || '(no title)'}`;
+  const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null;
+  if (loading) {
+    return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+      className: "cns-story-editor",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+        className: "cns-loading",
+        children: "Loading\u2026"
+      })
+    });
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+    className: "cns-story-editor cns-map-editor",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_EditorHeader__WEBPACK_IMPORTED_MODULE_1__["default"], {
+      pageTitle: pageTitle,
+      overviewUrl: d.overviewUrl || '#',
+      viewUrl: !isNew ? settings.viewUrl : '',
+      status: settings.status,
+      saveStatus: saveStatus,
+      onStatusChange: s => setSettings(p => ({
+        ...p,
+        status: s
+      })),
+      onSave: handleSave
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+      className: "cns-editor-main",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+        className: "cns-map-editor__body",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_TabBar__WEBPACK_IMPORTED_MODULE_2__["default"], {
+          activeTab: activeTab,
+          onChange: handleTabChange
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+          className: "cns-map-editor__content",
+          children: [activeTab === 'settings' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_panels_SettingsPanel__WEBPACK_IMPORTED_MODULE_5__["default"], {
+            settings: settings,
+            onChange: setSettings,
+            onMapChange: handleMapChange
+          }), activeTab === 'canvas' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+            className: "cns-story-canvas-view",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+              className: "cns-story-canvas-toolbar",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+                className: "cns-story-canvas-toolbar__row",
+                children: [!isEdgeMode && !isNew && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("button", {
+                  className: "button",
+                  onClick: enterEdgeMode,
+                  disabled: selectedNodeId === null,
+                  title: selectedNodeId === null ? 'Select a node first to connect from' : 'Start building a path from the selected node',
+                  children: "\u27F6 Connect Nodes"
+                }), isEdgeMode && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("button", {
+                  className: "button button-primary",
+                  onClick: exitEdgeMode,
+                  children: "\u2713 Save Path"
+                }), isEdgeMode && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("span", {
+                  className: "cns-story-canvas-toolbar__hint",
+                  children: "Click nodes to chain a path \xB7 Enter or Esc to finish"
+                }), !isEdgeMode && !isNew && selectedNodeId !== null && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("span", {
+                  className: "cns-story-canvas-toolbar__hint",
+                  children: "Click canvas to move here \xB7 Connect Nodes to start a path"
+                }), !isEdgeMode && !isNew && selectedNodeId === null && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("span", {
+                  className: "cns-story-canvas-toolbar__hint",
+                  children: "Click a node to select \xB7 Click empty space to add \xB7 Drag to move"
+                })]
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+                className: "cns-story-canvas-toolbar__row cns-story-canvas-toolbar__line-style",
+                children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("span", {
+                  className: "cns-story-canvas-toolbar__label",
+                  children: "Lines:"
+                }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("label", {
+                  children: ["Color", /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("input", {
+                    type: "color",
+                    value: settings.lineColor,
+                    onChange: e => setSettings(p => ({
+                      ...p,
+                      lineColor: e.target.value
+                    }))
+                  })]
+                }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("label", {
+                  children: ["Width", /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("input", {
+                    type: "number",
+                    min: "0.5",
+                    max: "20",
+                    step: "0.5",
+                    value: settings.lineWidth,
+                    onChange: e => setSettings(p => ({
+                      ...p,
+                      lineWidth: parseFloat(e.target.value)
+                    })),
+                    style: {
+                      width: 48
+                    }
+                  }), "px"]
+                }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("label", {
+                  children: ["Style", /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("select", {
+                    value: settings.lineStyle,
+                    onChange: e => setSettings(p => ({
+                      ...p,
+                      lineStyle: e.target.value
+                    })),
+                    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("option", {
+                      value: "solid",
+                      children: "Solid"
+                    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("option", {
+                      value: "dashed",
+                      children: "Dashed"
+                    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("option", {
+                      value: "dotted",
+                      children: "Dotted"
+                    })]
+                  })]
+                }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("label", {
+                  children: ["Opacity", /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("input", {
+                    type: "range",
+                    min: "0",
+                    max: "1",
+                    step: "0.05",
+                    value: settings.lineOpacity,
+                    onChange: e => setSettings(p => ({
+                      ...p,
+                      lineOpacity: parseFloat(e.target.value)
+                    })),
+                    style: {
+                      width: 80
+                    }
+                  }), Math.round(settings.lineOpacity * 100), "%"]
+                })]
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxs)("div", {
+              className: "cns-story-canvas-layout",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+                className: "cns-story-canvas-main",
+                children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+                  className: "cns-story-canvas-wrap",
+                  children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_canvas_StoryCanvas__WEBPACK_IMPORTED_MODULE_3__["default"], {
+                    mapData: mapData,
+                    mapObjects: mapObjects,
+                    mapAreas: mapAreas,
+                    nodes: nodes,
+                    edges: edges,
+                    selectedNodeId: selectedNodeId,
+                    edgeStartNodeId: edgeStartNodeId,
+                    isEdgeMode: isEdgeMode,
+                    lineColor: settings.lineColor,
+                    lineWidth: settings.lineWidth,
+                    lineStyle: settings.lineStyle,
+                    lineOpacity: settings.lineOpacity,
+                    onNodeClick: handleNodeClick,
+                    onCanvasClick: handleCanvasClick,
+                    onEdgeClick: handleEdgeClick,
+                    onNodeDragEnd: handleNodeDragEnd
+                  })
+                })
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+                className: "cns-story-window-panel",
+                children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_CanvasNodeList__WEBPACK_IMPORTED_MODULE_4__["default"], {
+                  nodes: nodes,
+                  edges: edges,
+                  startNodeId: settings.startNodeId,
+                  selectedNodeId: selectedNodeId,
+                  onSelect: id => setSelectedNodeId(id),
+                  onEdit: id => {
+                    setSelectedNodeId(id);
+                    setNodeModal({
+                      open: true,
+                      nodeId: id,
+                      x: 0,
+                      y: 0
+                    });
+                  },
+                  onDelete: handleNodeDelete,
+                  onSetStartNode: id => setSettings(p => ({
+                    ...p,
+                    startNodeId: id
+                  })),
+                  onEdgeReorder: handleEdgeReorder,
+                  onEdgeDelete: handleEdgeDelete,
+                  onStartEdgeFrom: handleStartEdgeFrom
+                })
+              })]
+            })]
+          }), activeTab === 'nodes' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_panels_NodesPanel__WEBPACK_IMPORTED_MODULE_6__["default"], {
+            nodes: nodes,
+            edges: edges,
+            startNodeId: settings.startNodeId,
+            onEditNode: id => {
+              setSelectedNodeId(id);
+              setNodeModal({
+                open: true,
+                nodeId: id,
+                x: 0,
+                y: 0
+              });
+            },
+            onDeleteNode: handleNodeDelete,
+            onSetStartNode: id => setSettings(p => ({
+              ...p,
+              startNodeId: id
+            })),
+            onEdgeReorder: handleEdgeReorder,
+            onEdgeDelete: handleEdgeDelete
+          }), activeTab === 'links' && !isNew && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_panels_LinksPanel__WEBPACK_IMPORTED_MODULE_7__["default"], {
+            storyId: storyId,
+            links: links,
+            onLinkAdd: handleLinkAdd,
+            onLinkDelete: handleLinkDelete
+          }), activeTab === 'links' && isNew && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)("div", {
+            className: "cns-panel-notice",
+            children: "Save the story first to manage links."
+          })]
+        })]
+      })
+    }), nodeModal.open && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_10__.jsx)(_forms_NodeModal__WEBPACK_IMPORTED_MODULE_8__["default"], {
+      nodeId: nodeModal.nodeId,
+      existingNode: selectedNode,
+      initialX: nodeModal.x,
+      initialY: nodeModal.y,
+      onSave: handleModalSave,
+      onClose: () => {
+        setNodeModal({
+          open: false,
+          nodeId: null,
+          x: 0,
+          y: 0
+        });
+        setSelectedNodeId(null);
+      }
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/TabBar.tsx"
+/*!**********************************!*\
+  !*** ./src/admin/app/TabBar.tsx ***!
+  \**********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ TabBar)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+
+const TABS = [{
+  id: 'settings',
+  label: 'Settings'
+}, {
+  id: 'canvas',
+  label: 'Canvas'
+}, {
+  id: 'nodes',
+  label: 'Nodes'
+}, {
+  id: 'links',
+  label: 'Links'
+}];
+function TabBar({
+  activeTab,
+  onChange
+}) {
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("nav", {
+    className: "cns-map-editor__tabs",
+    role: "tablist",
+    "aria-label": "Story editor modes",
+    children: TABS.map(t => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+      className: `cns-tab${activeTab === t.id ? ' cns-tab--active' : ''}`,
+      role: "tab",
+      "aria-selected": activeTab === t.id,
+      onClick: () => onChange(t.id),
+      children: t.label
+    }, t.id))
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/forms/NodeModal.tsx"
+/*!*******************************************!*\
+  !*** ./src/admin/app/forms/NodeModal.tsx ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ NodeModal)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _shared_SubstoryPicker__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/SubstoryPicker */ "./src/admin/app/shared/SubstoryPicker.tsx");
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../utils */ "./src/admin/utils.ts");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__);
+
+
+
+
+function buildInitialForm(node, initialX, initialY) {
+  return {
+    x: node?.x ?? initialX,
+    y: node?.y ?? initialY,
+    substoryId: node?.substoryId ?? null,
+    substoryLabel: node?.substoryTitle ?? '',
+    titleOverride: node?.titleOverride ?? '',
+    excerptOverride: node?.excerptOverride ?? '',
+    iconType: node?.iconType ?? 'round',
+    iconId: node?.iconId ?? null,
+    iconColor: node?.iconColor ?? '#ffffff',
+    iconSize: node?.iconSize ?? 1.0
+  };
+}
+function NodeModal({
+  nodeId,
+  existingNode,
+  initialX,
+  initialY,
+  onSave,
+  onClose
+}) {
+  const [form, setForm] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(() => buildInitialForm(existingNode, initialX, initialY));
+  const [saving, setSaving] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [newTitle, setNewTitle] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [creating, setCreating] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const isNew = nodeId === null;
+
+  // Lock body scroll and handle Escape key.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    document.body.classList.add('cns-modal-open');
+    function onKey(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('cns-modal-open');
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    setForm(buildInitialForm(existingNode, initialX, initialY));
+  }, [existingNode]);
+  function set(key, value) {
+    setForm(p => ({
+      ...p,
+      [key]: value
+    }));
+  }
+  async function handleCreateSubstory() {
+    if (!newTitle.trim()) return;
+    setCreating(true);
+    try {
+      const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_2__.apiFetch)('POST', '/substories', {
+        title: newTitle
+      });
+      const data = await res.json();
+      if (res.ok) {
+        set('substoryId', data.id);
+        set('substoryLabel', data.title);
+        setNewTitle('');
+      }
+    } finally {
+      setCreating(false);
+    }
+  }
+  async function handleSave() {
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+    className: "cns-modal",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-label": isNew ? 'Add Node' : 'Edit Node',
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("div", {
+      className: "cns-modal__backdrop",
+      onClick: onClose
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+      className: "cns-modal__dialog",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+        className: "cns-modal__header",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("h2", {
+          className: "cns-modal__title",
+          children: isNew ? 'Add Node' : 'Edit Node'
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+          className: "cns-modal__close",
+          onClick: onClose,
+          "aria-label": "Close",
+          children: "\xD7"
+        })]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+        className: "cns-modal__body",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+          className: "cns-modal-section",
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("h3", {
+            children: "Substory Post"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(_shared_SubstoryPicker__WEBPACK_IMPORTED_MODULE_1__["default"], {
+            substoryId: form.substoryId,
+            substoryLabel: form.substoryLabel,
+            onChange: (id, label) => {
+              set('substoryId', id);
+              set('substoryLabel', label);
+            }
+          }), !form.substoryId && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+            className: "cns-modal-section__create",
+            style: {
+              marginTop: 10
+            },
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("p", {
+              className: "description",
+              style: {
+                marginBottom: 6
+              },
+              children: "Or create a new substory post:"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              style: {
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center'
+              },
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                type: "text",
+                className: "regular-text",
+                placeholder: "New substory title\u2026",
+                value: newTitle,
+                onChange: e => setNewTitle(e.target.value),
+                onKeyDown: e => {
+                  if (e.key === 'Enter') handleCreateSubstory();
+                },
+                style: {
+                  flex: 1
+                }
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+                type: "button",
+                className: "button",
+                onClick: handleCreateSubstory,
+                disabled: creating || !newTitle.trim(),
+                children: creating ? 'Creating…' : 'Create'
+              })]
+            })]
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+          className: "cns-modal-section",
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("h3", {
+            children: "Display Overrides"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("p", {
+            className: "description",
+            style: {
+              marginBottom: 12
+            },
+            children: "Leave blank to use the substory post\u2019s title and excerpt."
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+            className: "cns-form-grid",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row cns-form-row--full",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                htmlFor: "node-title-override",
+                children: "Title"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                id: "node-title-override",
+                type: "text",
+                className: "regular-text",
+                value: form.titleOverride,
+                onChange: e => set('titleOverride', e.target.value),
+                placeholder: form.substoryLabel || 'Node title…'
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row cns-form-row--full",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                htmlFor: "node-excerpt-override",
+                children: "Excerpt"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("textarea", {
+                id: "node-excerpt-override",
+                className: "large-text",
+                rows: 3,
+                value: form.excerptOverride,
+                onChange: e => set('excerptOverride', e.target.value),
+                placeholder: "Short description shown in the story window\u2026"
+              })]
+            })]
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+          className: "cns-modal-section",
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("h3", {
+            children: "Position"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+            className: "cns-form-grid",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                htmlFor: "node-pos-x",
+                children: "X (%)"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                id: "node-pos-x",
+                type: "number",
+                className: "small-text",
+                min: "0",
+                max: "100",
+                step: "0.1",
+                value: Math.round(form.x * 1000) / 10,
+                onChange: e => set('x', Math.max(0, Math.min(1, parseFloat(e.target.value) / 100)))
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                htmlFor: "node-pos-y",
+                children: "Y (%)"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                id: "node-pos-y",
+                type: "number",
+                className: "small-text",
+                min: "0",
+                max: "100",
+                step: "0.1",
+                value: Math.round(form.y * 1000) / 10,
+                onChange: e => set('y', Math.max(0, Math.min(1, parseFloat(e.target.value) / 100)))
+              })]
+            })]
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("p", {
+            className: "description",
+            style: {
+              marginTop: 6
+            },
+            children: "Position as a percentage of canvas width/height from the top-left. Also adjustable by clicking or dragging on the canvas."
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+          className: "cns-modal-section",
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("h3", {
+            children: "Node Appearance"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+            className: "cns-form-grid",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row cns-form-row--full",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                children: "Shape"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("div", {
+                className: "cns-radio-toggle",
+                children: ['round', 'square', 'icon'].map(t => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("label", {
+                  children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                    type: "radio",
+                    name: "icon-type",
+                    value: t,
+                    checked: form.iconType === t,
+                    onChange: () => set('iconType', t)
+                  }), ' ', t.charAt(0).toUpperCase() + t.slice(1)]
+                }, t))
+              })]
+            }), form.iconType === 'icon' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row cns-form-row--full",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                children: "Icon Image"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+                style: {
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center'
+                },
+                children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+                  type: "button",
+                  className: "button",
+                  onClick: () => {
+                    const frame = window.wp?.media({
+                      title: 'Select Icon',
+                      button: {
+                        text: 'Use this icon'
+                      },
+                      multiple: false
+                    });
+                    frame.on('select', () => {
+                      const attachment = frame.state().get('selection').first().toJSON();
+                      set('iconId', attachment.id);
+                    });
+                    frame.open();
+                  },
+                  children: form.iconId ? `Icon #${form.iconId}` : 'Select Icon'
+                }), form.iconId && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+                  type: "button",
+                  className: "button",
+                  onClick: () => set('iconId', null),
+                  children: "Remove"
+                })]
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                children: "Color"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("div", {
+                children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                  type: "color",
+                  value: form.iconColor,
+                  onChange: e => set('iconColor', e.target.value)
+                })
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              className: "cns-form-row",
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
+                children: "Size"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+                className: "cns-range-wrap",
+                children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
+                  type: "range",
+                  min: "0.25",
+                  max: "3",
+                  step: "0.25",
+                  value: form.iconSize,
+                  onChange: e => set('iconSize', parseFloat(e.target.value))
+                }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("span", {
+                  className: "cns-range-value",
+                  children: [form.iconSize, "\xD7"]
+                })]
+              })]
+            })]
+          })]
+        })]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+        className: "cns-modal__footer",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+          className: "button",
+          onClick: onClose,
+          children: "Cancel"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("button", {
+          className: "button button-primary",
+          onClick: handleSave,
+          disabled: saving,
+          children: saving ? 'Saving…' : isNew ? 'Add Node' : 'Save Node'
+        })]
+      })]
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/panels/LinksPanel.tsx"
+/*!*********************************************!*\
+  !*** ./src/admin/app/panels/LinksPanel.tsx ***!
+  \*********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ LinksPanel)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../utils */ "./src/admin/utils.ts");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+const LINK_TYPE_LABELS = {
+  map_object: 'Map Object',
+  map_area: 'Map Area',
+  hierarchy: 'Hierarchy Region'
+};
+function LinksPanel({
+  storyId: _storyId,
+  links,
+  onLinkAdd,
+  onLinkDelete
+}) {
+  const [search, setSearch] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [results, setResults] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [loading, setLoading] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [linkType, setLinkType] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('map_object');
+  async function handleSearch() {
+    setLoading(true);
+    try {
+      // Query map-suite's REST API for linkable entities.
+      let path = '';
+      if (linkType === 'map_object') {
+        path = '/objects?per_page=50&search=' + encodeURIComponent(search);
+      } else if (linkType === 'map_area') {
+        path = '/areas?per_page=50&search=' + encodeURIComponent(search);
+      } else {
+        path = '/hierarchy?per_page=50&search=' + encodeURIComponent(search);
+      }
+      const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_1__.mapApiFetch)('GET', path);
+      const data = await res.json();
+      if (res.ok) {
+        setResults(data.map(item => ({
+          id: item.id,
+          title: item.title,
+          type: linkType
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+  const linkedIds = new Set(links.filter(l => l.linkType === linkType).map(l => l.linkId));
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+    className: "cns-panel cns-links-panel",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("h2", {
+      children: "Map Suite Links"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("p", {
+      className: "description",
+      children: "Link this story to specific map objects, areas, or hierarchy regions. These relationships are used for cross-referencing in the map editor."
+    }), links.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.Fragment, {
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("h3", {
+        children: "Linked Entities"
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("table", {
+        className: "wp-list-table widefat fixed striped",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("thead", {
+          children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("th", {
+              children: "Type"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("th", {
+              children: "Entity"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("th", {
+              children: "Actions"
+            })]
+          })
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("tbody", {
+          children: links.map(link => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("td", {
+              children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+                className: "cns-badge",
+                children: LINK_TYPE_LABELS[link.linkType]
+              })
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("td", {
+              children: link.linkTitle || `#${link.linkId}`
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("td", {
+              children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("button", {
+                className: "button button-small cns-delete-link",
+                onClick: () => onLinkDelete(link.id),
+                children: "Unlink"
+              })
+            })]
+          }, link.id))
+        })]
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("h3", {
+      style: {
+        marginTop: 24
+      },
+      children: "Add Link"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+      className: "cns-row-group",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("select", {
+        value: linkType,
+        onChange: e => {
+          setLinkType(e.target.value);
+          setResults([]);
+        },
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("option", {
+          value: "map_object",
+          children: "Map Object"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("option", {
+          value: "map_area",
+          children: "Map Area"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("option", {
+          value: "hierarchy",
+          children: "Hierarchy Region"
+        })]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("input", {
+        type: "search",
+        placeholder: "Search\u2026",
+        value: search,
+        onChange: e => setSearch(e.target.value),
+        onKeyDown: e => {
+          if (e.key === 'Enter') handleSearch();
+        },
+        className: "regular-text"
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("button", {
+        className: "button",
+        onClick: handleSearch,
+        disabled: loading,
+        children: loading ? 'Searching…' : 'Search'
+      })]
+    }), results.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("ul", {
+      className: "cns-link-results",
+      children: results.map(item => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("li", {
+        className: "cns-link-result",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+          children: item.title || `#${item.id}`
+        }), linkedIds.has(item.id) ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+          className: "cns-badge",
+          children: "Linked"
+        }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("button", {
+          className: "button button-small button-primary",
+          onClick: () => onLinkAdd(linkType, item.id),
+          children: "+ Link"
+        })]
+      }, item.id))
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/panels/NodesPanel.tsx"
+/*!*********************************************!*\
+  !*** ./src/admin/app/panels/NodesPanel.tsx ***!
+  \*********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ NodesPanel)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+
+function getDisplayTitle(node) {
+  return node.titleOverride || node.substoryTitle || `Node #${node.id}`;
+}
+function NodesPanel({
+  nodes,
+  edges,
+  startNodeId,
+  onEditNode,
+  onDeleteNode,
+  onSetStartNode,
+  onEdgeReorder,
+  onEdgeDelete
+}) {
+  if (!nodes.length) {
+    return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", {
+      className: "cns-panel",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("p", {
+        children: "No nodes yet. Switch to the Canvas tab and click to add your first node."
+      })
+    });
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+    className: "cns-panel cns-nodes-panel",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h2", {
+      children: "Story Nodes"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("p", {
+      className: "description",
+      children: "Click \"Set Start\" to mark the first node visitors will see. Connections are managed via the Canvas tab."
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
+      className: "wp-list-table widefat fixed striped",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("thead", {
+        children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", {
+            style: {
+              width: 32
+            }
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", {
+            children: "Node"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", {
+            children: "Substory"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", {
+            children: "Outgoing connections"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", {
+            children: "Actions"
+          })]
+        })
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("tbody", {
+        children: nodes.map(node => {
+          const outEdges = edges.filter(e => e.fromNodeId === node.id).sort((a, b) => a.sortOrder - b.sortOrder);
+          return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("td", {
+              children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+                className: "cns-node-swatch",
+                style: {
+                  background: node.iconColor,
+                  width: 18,
+                  height: 18,
+                  display: 'inline-block',
+                  borderRadius: node.iconType === 'square' ? 2 : '50%',
+                  border: '1px solid rgba(0,0,0,0.3)'
+                }
+              })
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("td", {
+              children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", {
+                children: getDisplayTitle(node)
+              }), node.id === startNodeId && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+                className: "cns-badge cns-badge--featured",
+                style: {
+                  marginLeft: 6
+                },
+                children: "Start"
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("td", {
+              children: node.substoryId ? node.substoryEditUrl ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("a", {
+                href: node.substoryEditUrl,
+                target: "_blank",
+                rel: "noopener",
+                children: [node.substoryTitle || `Substory #${node.substoryId}`, " \u2197"]
+              }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+                children: node.substoryTitle || `Substory #${node.substoryId}`
+              }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+                className: "description",
+                children: "\u2014"
+              })
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("td", {
+              children: [outEdges.length === 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", {
+                className: "description",
+                children: "None"
+              }), outEdges.map((edge, i) => {
+                const toNode = nodes.find(n => n.id === edge.toNodeId);
+                return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                  className: "cns-edge-row",
+                  children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("input", {
+                    type: "number",
+                    min: "0",
+                    value: edge.sortOrder,
+                    onChange: e => onEdgeReorder(edge.id, parseInt(e.target.value)),
+                    style: {
+                      width: 44
+                    },
+                    title: "Sort order (lower = higher priority)"
+                  }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("span", {
+                    children: ["\u2192 ", toNode ? getDisplayTitle(toNode) : `#${edge.toNodeId}`]
+                  }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+                    className: "cns-icon-btn",
+                    title: "Delete connection",
+                    onClick: () => {
+                      if (window.confirm('Delete this connection?')) onEdgeDelete(edge.id);
+                    },
+                    children: "\u2715"
+                  })]
+                }, edge.id);
+              })]
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("td", {
+              className: "cns-maps-actions",
+              children: [node.id !== startNodeId && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+                className: "button button-small",
+                onClick: () => onSetStartNode(node.id),
+                children: "Set Start"
+              }), ' ', /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+                className: "button button-small",
+                onClick: () => onEditNode(node.id),
+                children: "Edit"
+              }), ' ', /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", {
+                className: "button button-small cns-delete-link",
+                onClick: () => {
+                  if (window.confirm('Delete this node and all its connections?')) {
+                    onDeleteNode(node.id);
+                  }
+                },
+                children: "Delete"
+              })]
+            })]
+          }, node.id);
+        })
+      })]
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/panels/SettingsPanel.tsx"
+/*!************************************************!*\
+  !*** ./src/admin/app/panels/SettingsPanel.tsx ***!
+  \************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ SettingsPanel)
+/* harmony export */ });
+/* harmony import */ var _shared_MapPicker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/MapPicker */ "./src/admin/app/shared/MapPicker.tsx");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__);
+
+
+function SettingsPanel({
+  settings,
+  onChange,
+  onMapChange
+}) {
+  function set(key, value) {
+    onChange({
+      ...settings,
+      [key]: value
+    });
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("div", {
+    className: "cns-panel cns-settings-panel",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("h2", {
+      children: "Story Settings"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("table", {
+      className: "form-table",
+      role: "presentation",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("tbody", {
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("tr", {
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("th", {
+            scope: "row",
+            children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("label", {
+              htmlFor: "story-title",
+              children: "Title"
+            })
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("td", {
+            children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("input", {
+              id: "story-title",
+              type: "text",
+              className: "regular-text",
+              value: settings.title,
+              onChange: e => set('title', e.target.value)
+            })
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("tr", {
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("th", {
+            scope: "row",
+            children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("label", {
+              children: "Map"
+            })
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("td", {
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)(_shared_MapPicker__WEBPACK_IMPORTED_MODULE_0__["default"], {
+              mapId: settings.mapId,
+              mapTitle: settings.mapTitle,
+              onChange: onMapChange
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("p", {
+              className: "description",
+              children: "The story canvas overlays this map. Objects and areas are shown read-only."
+            })]
+          })]
+        })]
+      })
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/shared/MapPicker.tsx"
+/*!********************************************!*\
+  !*** ./src/admin/app/shared/MapPicker.tsx ***!
+  \********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ MapPicker)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__);
+
+
+function MapPicker({
+  mapId,
+  mapTitle,
+  onChange
+}) {
+  const [query, setQuery] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [results, setResults] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [loading, setLoading] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [open, setOpen] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  async function search() {
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      // Use WP REST API to search the maps CPT.
+      const g = window.cnsStorySuite;
+      const url = g.wpRestUrl + '/maps?search=' + encodeURIComponent(query) + '&per_page=20&status=publish,private,draft';
+      const res = await fetch(url, {
+        headers: {
+          'X-WP-Nonce': g.nonce
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResults(data.map(m => ({
+          id: m.id,
+          title: m.title.rendered,
+          thumbnailUrl: ''
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+  function handleSelect(item) {
+    onChange(item.id, item.title);
+    setOpen(false);
+    setQuery('');
+    setResults([]);
+  }
+  function handleClear() {
+    onChange(null, '');
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("div", {
+    className: "cns-map-picker",
+    children: mapId ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("div", {
+      className: "cns-picker-selected",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("span", {
+        children: mapTitle || `Map #${mapId}`
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("button", {
+        type: "button",
+        className: "button button-small",
+        onClick: handleClear,
+        children: "Change"
+      })]
+    }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.Fragment, {
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsxs)("div", {
+        className: "cns-row-group",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("input", {
+          type: "search",
+          placeholder: "Search maps\u2026",
+          value: query,
+          onChange: e => setQuery(e.target.value),
+          onKeyDown: e => {
+            if (e.key === 'Enter') {
+              setOpen(true);
+              search();
+            }
+          },
+          className: "regular-text"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("button", {
+          type: "button",
+          className: "button",
+          onClick: () => {
+            setOpen(true);
+            search();
+          },
+          disabled: loading,
+          children: loading ? 'Searching…' : 'Search'
+        })]
+      }), open && results.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("ul", {
+        className: "cns-picker-results",
+        children: results.map(item => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("li", {
+          children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("button", {
+            type: "button",
+            onClick: () => handleSelect(item),
+            children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("span", {
+              children: item.title
+            })
+          })
+        }, item.id))
+      }), open && !loading && results.length === 0 && query && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)("p", {
+        className: "description",
+        children: "No maps found."
+      })]
+    })
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/app/shared/SubstoryPicker.tsx"
+/*!*************************************************!*\
+  !*** ./src/admin/app/shared/SubstoryPicker.tsx ***!
+  \*************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ SubstoryPicker)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../utils */ "./src/admin/utils.ts");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+function SubstoryPicker({
+  substoryId,
+  substoryLabel,
+  onChange
+}) {
+  const [query, setQuery] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [results, setResults] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [loading, setLoading] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [open, setOpen] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!open) return;
+    const timeout = setTimeout(search, 300);
+    return () => clearTimeout(timeout);
+  }, [query, open]);
+  async function search() {
+    setLoading(true);
+    try {
+      const res = await (0,_utils__WEBPACK_IMPORTED_MODULE_1__.apiFetch)('GET', `/substories?search=${encodeURIComponent(query)}&per_page=20`);
+      const data = await res.json();
+      if (res.ok) setResults(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+  function handleSelect(item) {
+    onChange(item.id, item.title);
+    setOpen(false);
+    setQuery('');
+  }
+  function handleClear() {
+    onChange(null, '');
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("div", {
+    className: "cns-substory-picker",
+    children: substoryId ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+      className: "cns-picker-selected",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+        children: substoryLabel || `Substory #${substoryId}`
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("button", {
+        type: "button",
+        className: "button button-small",
+        onClick: handleClear,
+        children: "Remove"
+      })]
+    }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.Fragment, {
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("button", {
+        type: "button",
+        className: "button",
+        onClick: () => {
+          setOpen(p => !p);
+          if (!open) setQuery('');
+        },
+        children: open ? 'Close' : '+ Connect Substory Post'
+      }), open && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+        className: "cns-picker-dropdown",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("input", {
+          type: "search",
+          placeholder: "Search substories\u2026",
+          value: query,
+          onChange: e => setQuery(e.target.value),
+          autoFocus: true,
+          className: "regular-text"
+        }), loading && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("div", {
+          className: "cns-picker-loading",
+          children: "Searching\u2026"
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("ul", {
+          className: "cns-picker-results",
+          children: [results.map(item => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("li", {
+            children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("button", {
+              type: "button",
+              onClick: () => handleSelect(item),
+              children: [item.thumbnailUrl && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("img", {
+                src: item.thumbnailUrl,
+                alt: "",
+                width: "32",
+                height: "32"
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+                children: item.title
+              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("small", {
+                children: item.status
+              })]
+            })
+          }, item.id)), !loading && results.length === 0 && query && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("li", {
+            className: "cns-picker-empty",
+            children: "No substories found."
+          })]
+        })]
+      })]
+    })
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/canvas/StoryCanvas.tsx"
+/*!******************************************!*\
+  !*** ./src/admin/canvas/StoryCanvas.tsx ***!
+  \******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ StoryCanvas)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _canvas__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./canvas */ "./src/admin/canvas/canvas.ts");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+function StoryCanvas({
+  mapData,
+  mapObjects,
+  mapAreas,
+  nodes,
+  edges,
+  selectedNodeId,
+  edgeStartNodeId,
+  isEdgeMode,
+  lineColor,
+  lineWidth,
+  lineStyle,
+  lineOpacity,
+  onNodeClick,
+  onCanvasClick,
+  onEdgeClick,
+  onNodeDragEnd
+}) {
+  const canvasRef = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const stateRef = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)({
+    mapData,
+    mapObjects,
+    mapAreas,
+    nodes,
+    edges,
+    selectedNodeId,
+    edgeStartNodeId,
+    isEdgeMode,
+    lineColor,
+    lineWidth,
+    lineStyle,
+    lineOpacity
+  });
+  const dragging = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const mousePos = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const animFrame = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(0);
+  const canvasW = mapData?.width ?? 900;
+  const canvasH = mapData ? Math.round(mapData.width * mapData.aspectRatio) : 600;
+
+  // Keep stateRef current and sync cursor whenever isEdgeMode changes.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    stateRef.current = {
+      mapData,
+      mapObjects,
+      mapAreas,
+      nodes,
+      edges,
+      selectedNodeId,
+      edgeStartNodeId,
+      isEdgeMode,
+      lineColor,
+      lineWidth,
+      lineStyle,
+      lineOpacity
+    };
+    if (canvasRef.current && !dragging.current) {
+      canvasRef.current.style.cursor = isEdgeMode ? 'crosshair' : 'default';
+    }
+  });
+
+  // Preload all image URLs.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const urls = [];
+    if (mapData?.bgImageUrl) urls.push(mapData.bgImageUrl);
+    if (mapData?.imageUrl) urls.push(mapData.imageUrl);
+    mapObjects.forEach(o => {
+      if (o.iconUrl) urls.push(o.iconUrl);
+    });
+    nodes.forEach(n => {
+      if (n.iconUrl) urls.push(n.iconUrl);
+    });
+    (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.preloadImages)(urls);
+  }, [mapData, mapObjects, nodes]);
+
+  // Render loop.
+  const render = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useCallback)(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const s = stateRef.current;
+    const W = canvas.width;
+    const H = canvas.height;
+    (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.drawStory)(ctx, W, H, s);
+
+    // Pending edge overlay.
+    if (s.isEdgeMode && s.edgeStartNodeId !== null && mousePos.current) {
+      const fromNode = s.nodes.find(n => n.id === s.edgeStartNodeId);
+      if (fromNode) {
+        (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.drawPendingEdge)(ctx, W, H, fromNode, mousePos.current.x, mousePos.current.y, s.lineColor);
+      }
+    }
+    animFrame.current = requestAnimationFrame(render);
+  }, []);
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    animFrame.current = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animFrame.current);
+  }, [render]);
+
+  // ── Pointer helpers ───────────────────────────────────────────────────────
+
+  function getCanvasCoords(e) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+  function setCursor(cursor) {
+    if (canvasRef.current) canvasRef.current.style.cursor = cursor;
+  }
+
+  // ── Mouse handlers ────────────────────────────────────────────────────────
+
+  function handleMouseDown(e) {
+    if (e.button !== 0) return;
+    const {
+      x,
+      y
+    } = getCanvasCoords(e);
+    const canvas = canvasRef.current;
+    const s = stateRef.current;
+    const nodeId = (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.getNodeAtPoint)(x, y, s.nodes, canvas.width, canvas.height);
+    if (nodeId !== null) {
+      dragging.current = {
+        nodeId,
+        startX: x,
+        startY: y
+      };
+      setCursor('grabbing');
+    }
+  }
+  function handleMouseMove(e) {
+    const {
+      x,
+      y
+    } = getCanvasCoords(e);
+    mousePos.current = {
+      x,
+      y
+    };
+    if (dragging.current) return; // cursor already 'grabbing'
+
+    const canvas = canvasRef.current;
+    const s = stateRef.current;
+    if (s.isEdgeMode) {
+      setCursor('crosshair');
+      return;
+    }
+    const nodeId = (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.getNodeAtPoint)(x, y, s.nodes, canvas.width, canvas.height);
+    setCursor(nodeId !== null ? 'grab' : 'default');
+  }
+  function handleMouseUp(e) {
+    if (e.button !== 0) return;
+    const {
+      x,
+      y
+    } = getCanvasCoords(e);
+    const canvas = canvasRef.current;
+    const s = stateRef.current;
+    if (dragging.current) {
+      const {
+        nodeId,
+        startX,
+        startY
+      } = dragging.current;
+      dragging.current = null;
+      const dx = x - startX;
+      const dy = y - startY;
+      if (Math.sqrt(dx * dx + dy * dy) > 4) {
+        const nx = Math.max(0, Math.min(1, x / canvas.width));
+        const ny = Math.max(0, Math.min(1, y / canvas.height));
+        onNodeDragEnd(nodeId, nx, ny);
+      } else {
+        // Short movement = click: select the node.
+        onNodeClick(nodeId);
+      }
+
+      // Restore hover cursor.
+      const hoverNodeId = (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.getNodeAtPoint)(x, y, s.nodes, canvas.width, canvas.height);
+      setCursor(s.isEdgeMode ? 'crosshair' : hoverNodeId !== null ? 'grab' : 'default');
+      return;
+    }
+    const nodeId = (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.getNodeAtPoint)(x, y, s.nodes, canvas.width, canvas.height);
+    if (nodeId !== null) {
+      onNodeClick(nodeId);
+      return;
+    }
+    const edgeId = (0,_canvas__WEBPACK_IMPORTED_MODULE_1__.getEdgeAtPoint)(x, y, s.edges, s.nodes, canvas.width, canvas.height);
+    if (edgeId !== null) {
+      onEdgeClick(edgeId);
+      return;
+    }
+
+    // Empty canvas click — add node or cancel edge mode.
+    const nx = Math.max(0, Math.min(1, x / canvas.width));
+    const ny = Math.max(0, Math.min(1, y / canvas.height));
+    onCanvasClick(nx, ny);
+  }
+  function handleMouseLeave() {
+    mousePos.current = null;
+    if (!dragging.current) {
+      setCursor(stateRef.current.isEdgeMode ? 'crosshair' : 'default');
+    }
+  }
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("canvas", {
+    ref: canvasRef,
+    width: canvasW,
+    height: canvasH,
+    style: {
+      maxWidth: '100%',
+      height: 'auto',
+      display: 'block'
+    },
+    onMouseDown: handleMouseDown,
+    onMouseMove: handleMouseMove,
+    onMouseUp: handleMouseUp,
+    onMouseLeave: handleMouseLeave
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/canvas/canvas.ts"
+/*!************************************!*\
+  !*** ./src/admin/canvas/canvas.ts ***!
+  \************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   drawPendingEdge: () => (/* binding */ drawPendingEdge),
+/* harmony export */   drawStory: () => (/* binding */ drawStory),
+/* harmony export */   getEdgeAtPoint: () => (/* binding */ getEdgeAtPoint),
+/* harmony export */   getNodeAtPoint: () => (/* binding */ getNodeAtPoint),
+/* harmony export */   loadImage: () => (/* binding */ loadImage),
+/* harmony export */   preloadImages: () => (/* binding */ preloadImages)
+/* harmony export */ });
+// ── Image cache ───────────────────────────────────────────────────────────────
+
+const imageCache = new Map();
+function loadImage(url) {
+  if (imageCache.has(url)) return imageCache.get(url);
+  const img = new Image();
+  img.src = url;
+  imageCache.set(url, img);
+  return img;
+}
+function preloadImages(urls) {
+  urls.forEach(loadImage);
+}
+
+// ── Draw state ────────────────────────────────────────────────────────────────
+
+// ── Main draw entry ───────────────────────────────────────────────────────────
+
+function drawStory(ctx, W, H, state) {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx, W, H, state);
+  drawMapImage(ctx, W, H, state);
+  drawMapAreas(ctx, W, H, state);
+  drawMapObjects(ctx, W, H, state);
+  drawEdges(ctx, W, H, state);
+  drawNodes(ctx, W, H, state);
+}
+
+// ── Layer: background ─────────────────────────────────────────────────────────
+
+function drawBackground(ctx, W, H, state) {
+  const bg = state.mapData;
+  if (bg?.bgType === 'image' && bg.bgImageUrl) {
+    const img = loadImage(bg.bgImageUrl);
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, 0, 0, W, H);
+      return;
+    }
+    img.onload = () => {};
+  }
+  ctx.fillStyle = bg?.bgColor ?? '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ── Layer: map main image ─────────────────────────────────────────────────────
+
+function drawMapImage(ctx, W, H, state) {
+  const m = state.mapData;
+  if (!m?.imageUrl) return;
+  const img = loadImage(m.imageUrl);
+  if (!img.complete || !img.naturalWidth) return;
+  const iw = m.imageW * W;
+  const ih = iw / img.naturalWidth * img.naturalHeight;
+  ctx.drawImage(img, m.imageX * W, m.imageY * H, iw, ih);
+}
+
+// ── Layer: map areas (read-only, dimmed) ──────────────────────────────────────
+
+function drawMapAreas(ctx, W, H, state) {
+  if (!state.mapData) return;
+  ctx.save();
+  for (const area of state.mapAreas) {
+    const pts = area.nodes;
+    if (pts.length < 2) continue;
+    const s = area.canvasStyles;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * W, pts[0].y * H);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x * W, pts[i].y * H);
+    }
+    ctx.closePath();
+    ctx.globalAlpha = 0.15 * (s?.fillOpacity ?? 1);
+    ctx.fillStyle = s?.fill ?? '#888888';
+    ctx.fill();
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = s?.stroke ?? '#aaaaaa';
+    ctx.lineWidth = s?.strokeWidth ?? 1;
+    ctx.setLineDash([]);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── Layer: map objects (read-only, dimmed) ────────────────────────────────────
+
+function drawMapObjects(ctx, W, H, state) {
+  if (!state.mapData) return;
+  const {
+    width: mapW,
+    aspectRatio
+  } = state.mapData;
+  const mapH = mapW * aspectRatio;
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  for (const obj of state.mapObjects) {
+    const cx = obj.x / mapW * W;
+    const cy = obj.y / mapH * H;
+    const size = (obj.canvasStyles?.size ?? 32) * (W / mapW);
+    if (obj.iconUrl) {
+      const img = loadImage(obj.iconUrl);
+      if (img.complete && img.naturalWidth) {
+        ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+        continue;
+      }
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = obj.canvasStyles?.fillStyle ?? '#888888';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Layer: story edges ────────────────────────────────────────────────────────
+
+function drawEdges(ctx, W, H, state) {
+  if (!state.nodes.length || !state.edges.length) return;
+  const nodeMap = new Map(state.nodes.map(n => [n.id, n]));
+  ctx.save();
+  ctx.strokeStyle = state.lineColor;
+  ctx.lineWidth = state.lineWidth;
+  ctx.globalAlpha = state.lineOpacity;
+  if (state.lineStyle === 'dashed') {
+    ctx.setLineDash([10, 5]);
+  } else if (state.lineStyle === 'dotted') {
+    ctx.setLineDash([2, 5]);
+  } else {
+    ctx.setLineDash([]);
+  }
+  for (const edge of state.edges) {
+    const from = nodeMap.get(edge.fromNodeId);
+    const to = nodeMap.get(edge.toNodeId);
+    if (!from || !to) continue;
+    const fx = from.x * W;
+    const fy = from.y * H;
+    const tx = to.x * W;
+    const ty = to.y * H;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    drawArrowhead(ctx, fx, fy, tx, ty, state.lineWidth, state.lineColor, state.lineOpacity);
+  }
+  ctx.restore();
+}
+function drawArrowhead(ctx, fx, fy, tx, ty, lineWidth, color, alpha) {
+  const angle = Math.atan2(ty - fy, tx - fx);
+  const arrowSize = Math.max(10, lineWidth * 3);
+  const nodeRadius = 16;
+  const endX = tx - Math.cos(angle) * nodeRadius;
+  const endY = ty - Math.sin(angle) * nodeRadius;
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(endX, endY);
+  ctx.lineTo(endX - arrowSize * Math.cos(angle - Math.PI / 6), endY - arrowSize * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(endX - arrowSize * Math.cos(angle + Math.PI / 6), endY - arrowSize * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── Layer: story nodes ────────────────────────────────────────────────────────
+
+const NODE_BASE_RADIUS = 14;
+function drawNodes(ctx, W, H, state) {
+  for (const node of state.nodes) {
+    const cx = node.x * W;
+    const cy = node.y * H;
+    const isSelected = node.id === state.selectedNodeId;
+    const isEdgeSrc = node.id === state.edgeStartNodeId;
+    drawNode(ctx, cx, cy, node, isSelected, isEdgeSrc);
+  }
+}
+function drawNode(ctx, cx, cy, node, isSelected, isEdgeSrc) {
+  const r = NODE_BASE_RADIUS * node.iconSize;
+  if (isSelected || isEdgeSrc) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = isEdgeSrc ? '#ffcc00' : '#00aaff';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (node.iconType === 'icon' && node.iconUrl) {
+    const img = loadImage(node.iconUrl);
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+      return;
+    }
+  }
+  if (node.iconType === 'square') {
+    ctx.save();
+    ctx.fillStyle = node.iconColor;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.strokeRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = node.iconColor;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ── Hit testing ───────────────────────────────────────────────────────────────
+
+function getNodeAtPoint(mouseX, mouseY, nodes, W, H) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const cx = n.x * W;
+    const cy = n.y * H;
+    const r = NODE_BASE_RADIUS * n.iconSize + 5;
+    if ((mouseX - cx) ** 2 + (mouseY - cy) ** 2 <= r ** 2) {
+      return n.id;
+    }
+  }
+  return null;
+}
+function getEdgeAtPoint(mouseX, mouseY, edges, nodes, W, H, threshold = 8) {
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  for (const edge of edges) {
+    const from = nodeMap.get(edge.fromNodeId);
+    const to = nodeMap.get(edge.toNodeId);
+    if (!from || !to) continue;
+    const fx = from.x * W;
+    const fy = from.y * H;
+    const tx = to.x * W;
+    const ty = to.y * H;
+
+    // Distance from point to line segment.
+    const dx = tx - fx;
+    const dy = ty - fy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) continue;
+    const t = Math.max(0, Math.min(1, ((mouseX - fx) * dx + (mouseY - fy) * dy) / (len * len)));
+    const px = fx + t * dx;
+    const py = fy + t * dy;
+    const dist = Math.sqrt((mouseX - px) ** 2 + (mouseY - py) ** 2);
+    if (dist <= threshold) return edge.id;
+  }
+  return null;
+}
+
+// ── Edge-in-progress overlay ──────────────────────────────────────────────────
+
+function drawPendingEdge(ctx, W, H, fromNode, mouseX, mouseY, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(fromNode.x * W, fromNode.y * H);
+  ctx.lineTo(mouseX, mouseY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/***/ },
+
+/***/ "./src/admin/utils.ts"
+/*!****************************!*\
+  !*** ./src/admin/utils.ts ***!
+  \****************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   apiFetch: () => (/* binding */ apiFetch),
+/* harmony export */   mapApiFetch: () => (/* binding */ mapApiFetch)
+/* harmony export */ });
+function apiFetch(method, path, body) {
+  const g = window.cnsStorySuite;
+  const url = g.restUrl + path;
+  return fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-WP-Nonce': g.nonce
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+}
+function mapApiFetch(method, path, body) {
+  const g = window.cnsStorySuite;
+  const url = g.mapRestUrl + path;
+  return fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-WP-Nonce': g.nonce
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+}
+
+/***/ },
+
+/***/ "./src/admin/admin.scss"
+/*!******************************!*\
+  !*** ./src/admin/admin.scss ***!
+  \******************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+// extracted by mini-css-extract-plugin
+
+
+/***/ },
+
+/***/ "react/jsx-runtime"
+/*!**********************************!*\
+  !*** external "ReactJSXRuntime" ***!
+  \**********************************/
+(module) {
+
+module.exports = window["ReactJSXRuntime"];
+
+/***/ },
+
+/***/ "@wordpress/element"
+/*!*********************************!*\
+  !*** external ["wp","element"] ***!
+  \*********************************/
+(module) {
+
+module.exports = window["wp"]["element"];
+
+/***/ }
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		if (!(moduleId in __webpack_modules__)) {
+/******/ 			delete __webpack_module_cache__[moduleId];
+/******/ 			var e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 			e.code = 'MODULE_NOT_FOUND';
+/******/ 			throw e;
+/******/ 		}
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
+/*!*****************************!*\
+  !*** ./src/admin/index.tsx ***!
+  \*****************************/
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _admin_scss__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./admin.scss */ "./src/admin/admin.scss");
+/* harmony import */ var _app_StoryEditorApp__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./app/StoryEditorApp */ "./src/admin/app/StoryEditorApp.tsx");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__);
+
+
+
+
+const root = document.getElementById('cns-admin-root');
+if (root) {
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createRoot)(root).render(/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(_app_StoryEditorApp__WEBPACK_IMPORTED_MODULE_2__["default"], {}));
+}
+})();
+
+/******/ })()
+;
+//# sourceMappingURL=index.js.map
