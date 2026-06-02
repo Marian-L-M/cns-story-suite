@@ -12,6 +12,25 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 		onChange( { ...settings, [ key ]: value } );
 	}
 
+	function openThumbnailPicker() {
+		const frame = window.wp?.media?.( {
+			title:    'Select Story Thumbnail',
+			button:   { text: 'Use as thumbnail' },
+			multiple: false,
+			library:  { type: 'image' },
+		} );
+		if ( ! frame ) return;
+		frame.on( 'select', () => {
+			const att = frame.state().get( 'selection' ).first().toJSON();
+			onChange( { ...settings, thumbnailId: att.id, thumbnailUrl: att.url } );
+		} );
+		frame.open();
+	}
+
+	function removeThumbnail() {
+		onChange( { ...settings, thumbnailId: null, thumbnailUrl: '' } );
+	}
+
 	return (
 		<div className="cns-panel cns-settings-panel">
 			<h2>Story Settings</h2>
@@ -29,6 +48,32 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 								value={ settings.title }
 								onChange={ ( e ) => set( 'title', e.target.value ) }
 							/>
+						</td>
+					</tr>
+
+					<tr>
+						<th scope="row"><label>Thumbnail</label></th>
+						<td>
+							{ settings.thumbnailUrl && (
+								<div style={ { marginBottom: 8 } }>
+									<img
+										src={ settings.thumbnailUrl }
+										alt=""
+										style={ { maxWidth: 120, maxHeight: 80, display: 'block', borderRadius: 4, border: '1px solid #ddd' } }
+									/>
+								</div>
+							) }
+							<div style={ { display: 'flex', gap: 8 } }>
+								<button type="button" className="button" onClick={ openThumbnailPicker }>
+									{ settings.thumbnailId ? 'Change thumbnail' : 'Set thumbnail' }
+								</button>
+								{ settings.thumbnailId && (
+									<button type="button" className="button" onClick={ removeThumbnail }>
+										Remove
+									</button>
+								) }
+							</div>
+							<p className="description">Used as the story&rsquo;s featured image.</p>
 						</td>
 					</tr>
 

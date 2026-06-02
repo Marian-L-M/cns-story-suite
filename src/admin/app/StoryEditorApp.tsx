@@ -7,11 +7,12 @@ import SettingsPanel from './panels/SettingsPanel';
 import NodesPanel from './panels/NodesPanel';
 import LinksPanel from './panels/LinksPanel';
 import NodeModal from './forms/NodeModal';
+import EdgeStyleModal from './forms/EdgeStyleModal';
 import { apiFetch } from '../utils';
 import type {
 	StorySettings, StoryNode, StoryEdge, StoryLink,
 	MapRenderData, MapObjectRef, MapAreaRef,
-	LineStyle, PostStatus, SaveStatus, StoryTab, NodeFormData,
+	LineStyle, PostStatus, SaveStatus, StoryTab, NodeFormData, EdgeFormData,
 } from '../../types';
 
 interface NodeModalState {
@@ -24,16 +25,18 @@ interface NodeModalState {
 function buildInitialSettings(): StorySettings {
 	const d = window.cnsStoryEditor || ( {} as typeof window.cnsStoryEditor );
 	return {
-		title:       d.title    ?? '',
-		status:      d.status   ?? 'draft',
-		mapId:       null,
-		mapTitle:    '',
-		lineColor:   '#ffffff',
-		lineWidth:   3,
-		lineStyle:   'solid',
-		lineOpacity: 1.0,
-		startNodeId: null,
-		viewUrl:     d.viewUrl  ?? '',
+		title:        d.title    ?? '',
+		status:       d.status   ?? 'draft',
+		mapId:        null,
+		mapTitle:     '',
+		lineColor:    '#ffffff',
+		lineWidth:    3,
+		lineStyle:    'solid',
+		lineOpacity:  1.0,
+		startNodeId:  null,
+		viewUrl:      d.viewUrl  ?? '',
+		thumbnailId:  null,
+		thumbnailUrl: '',
 	};
 }
 
@@ -55,6 +58,7 @@ export default function StoryEditorApp() {
 	const [ edgeStartNodeId, setEdgeStartNodeId ] = useState< number | null >( null );
 	const [ saveStatus,      setSaveStatus      ] = useState< SaveStatus >( { text: '', type: '' } );
 	const [ nodeModal,       setNodeModal       ] = useState< NodeModalState >( { open: false, nodeId: null, x: 0.5, y: 0.5 } );
+	const [ edgeModal,       setEdgeModal       ] = useState< { open: boolean; edgeId: number | null } >( { open: false, edgeId: null } );
 	const [ loading,         setLoading         ] = useState( ! isNew );
 
 	// ── Initial data load ─────────────────────────────────────────────────────
@@ -91,15 +95,16 @@ export default function StoryEditorApp() {
 		setSaveStatus( { text: 'Saving…', type: '' } );
 		try {
 			const res = await apiFetch( 'POST', '/stories', {
-				story_id:    storyId,
-				title:       settings.title,
-				status:      settings.status,
-				map_id:      settings.mapId ?? 0,
-				line_color:  settings.lineColor,
-				line_width:  settings.lineWidth,
-				line_style:  settings.lineStyle,
-				line_opacity: settings.lineOpacity,
+				story_id:      storyId,
+				title:         settings.title,
+				status:        settings.status,
+				map_id:        settings.mapId ?? 0,
+				line_color:    settings.lineColor,
+				line_width:    settings.lineWidth,
+				line_style:    settings.lineStyle,
+				line_opacity:  settings.lineOpacity,
 				start_node_id: settings.startNodeId ?? 0,
+				thumbnail_id:  settings.thumbnailId ?? 0,
 			} );
 			const data = await res.json() as { created?: boolean; editUrl?: string; viewUrl?: string; message?: string };
 			if ( ! res.ok ) throw new Error( data.message || 'Save failed.' );
@@ -146,13 +151,17 @@ export default function StoryEditorApp() {
 	async function handleNodeCreate( formData: NodeFormData, x: number, y: number ) {
 		const res = await apiFetch( 'POST', `/stories/${ storyId }/nodes`, {
 			x, y,
-			substory_id:      formData.substoryId ?? 0,
-			title_override:   formData.titleOverride   || null,
-			excerpt_override: formData.excerptOverride || null,
-			icon_type:        formData.iconType,
-			icon_id:          formData.iconId ?? 0,
-			icon_color:       formData.iconColor,
-			icon_size:        formData.iconSize,
+			substory_id:       formData.substoryId ?? 0,
+			title_override:    formData.titleOverride   || null,
+			excerpt_override:  formData.excerptOverride || null,
+			icon_type:         formData.iconType,
+			icon_id:           formData.iconId ?? 0,
+			icon_color:        formData.iconColor,
+			icon_size:         formData.iconSize,
+			icon_border_color: formData.iconBorderColor,
+			icon_border_width: formData.iconBorderWidth,
+			icon_bg_color:     formData.iconBgColor,
+			icon_bg_shape:     formData.iconBgShape,
 		} );
 		if ( res.ok ) {
 			const node = await res.json() as StoryNode;
@@ -163,15 +172,19 @@ export default function StoryEditorApp() {
 
 	async function handleNodeUpdate( nodeId: number, formData: NodeFormData ) {
 		const res = await apiFetch( 'PATCH', `/nodes/${ nodeId }`, {
-			x:                formData.x,
-			y:                formData.y,
-			substory_id:      formData.substoryId ?? 0,
-			title_override:   formData.titleOverride   || null,
-			excerpt_override: formData.excerptOverride || null,
-			icon_type:        formData.iconType,
-			icon_id:          formData.iconId ?? 0,
-			icon_color:       formData.iconColor,
-			icon_size:        formData.iconSize,
+			x:                 formData.x,
+			y:                 formData.y,
+			substory_id:       formData.substoryId ?? 0,
+			title_override:    formData.titleOverride   || null,
+			excerpt_override:  formData.excerptOverride || null,
+			icon_type:         formData.iconType,
+			icon_id:           formData.iconId ?? 0,
+			icon_color:        formData.iconColor,
+			icon_size:         formData.iconSize,
+			icon_border_color: formData.iconBorderColor,
+			icon_border_width: formData.iconBorderWidth,
+			icon_bg_color:     formData.iconBgColor,
+			icon_bg_shape:     formData.iconBgShape,
 		} );
 		if ( res.ok ) {
 			const updated = await res.json() as StoryNode;
@@ -218,6 +231,19 @@ export default function StoryEditorApp() {
 		const res = await apiFetch( 'DELETE', `/edges/${ edgeId }` );
 		if ( res.ok ) {
 			setEdges( ( p ) => p.filter( ( e ) => e.id !== edgeId ) );
+		}
+	}
+
+	async function handleEdgeUpdate( edgeId: number, formData: EdgeFormData ) {
+		const res = await apiFetch( 'PATCH', `/edges/${ edgeId }`, {
+			line_color:   formData.lineColor,
+			line_width:   formData.lineWidth,
+			line_style:   formData.lineStyle,
+			line_opacity: formData.lineOpacity,
+		} );
+		if ( res.ok ) {
+			const updated = await res.json() as StoryEdge;
+			setEdges( ( p ) => p.map( ( e ) => ( e.id === edgeId ? updated : e ) ) );
 		}
 	}
 
@@ -313,9 +339,7 @@ export default function StoryEditorApp() {
 	}
 
 	function handleEdgeClick( edgeId: number ) {
-		if ( window.confirm( 'Delete this connection?' ) ) {
-			handleEdgeDelete( edgeId );
-		}
+		setEdgeModal( { open: true, edgeId } );
 	}
 
 	function handleStartEdgeFrom( fromNodeId: number ) {
@@ -506,6 +530,7 @@ export default function StoryEditorApp() {
 											onEdgeReorder={ handleEdgeReorder }
 											onEdgeDelete={ handleEdgeDelete }
 											onStartEdgeFrom={ handleStartEdgeFrom }
+											onEditEdge={ ( edgeId ) => setEdgeModal( { open: true, edgeId } ) }
 										/>
 									</div>
 								</div>
@@ -525,6 +550,7 @@ export default function StoryEditorApp() {
 								onSetStartNode={ ( id ) => setSettings( ( p ) => ( { ...p, startNodeId: id } ) ) }
 								onEdgeReorder={ handleEdgeReorder }
 								onEdgeDelete={ handleEdgeDelete }
+								onEditEdge={ ( id ) => setEdgeModal( { open: true, edgeId: id } ) }
 							/>
 						) }
 
@@ -557,6 +583,22 @@ export default function StoryEditorApp() {
 					} }
 				/>
 			) }
+
+			{ edgeModal.open && ( () => {
+				const edge = edges.find( e => e.id === edgeModal.edgeId );
+				return edge ? (
+					<EdgeStyleModal
+						edge={ edge }
+						storyColor={ settings.lineColor }
+						storyWidth={ settings.lineWidth }
+						storyStyle={ settings.lineStyle }
+						storyOpacity={ settings.lineOpacity }
+						onSave={ handleEdgeUpdate }
+						onDelete={ handleEdgeDelete }
+						onClose={ () => setEdgeModal( { open: false, edgeId: null } ) }
+					/>
+				) : null;
+			} )() }
 		</div>
 	);
 }

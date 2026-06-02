@@ -145,41 +145,36 @@ function drawMapObjects( ctx: CanvasRenderingContext2D, W: number, H: number, st
 
 function drawEdges( ctx: CanvasRenderingContext2D, W: number, H: number, state: DrawState ): void {
 	if ( ! state.nodes.length || ! state.edges.length ) return;
-
-	const nodeMap = new Map( state.nodes.map( ( n ) => [ n.id, n ] ) );
-
-	ctx.save();
-	ctx.strokeStyle  = state.lineColor;
-	ctx.lineWidth    = state.lineWidth;
-	ctx.globalAlpha  = state.lineOpacity;
-
-	if ( state.lineStyle === 'dashed' ) {
-		ctx.setLineDash( [ 10, 5 ] );
-	} else if ( state.lineStyle === 'dotted' ) {
-		ctx.setLineDash( [ 2, 5 ] );
-	} else {
-		ctx.setLineDash( [] );
-	}
+	const nodeMap = new Map( state.nodes.map( n => [ n.id, n ] ) );
 
 	for ( const edge of state.edges ) {
+		const color   = edge.lineColor   ?? state.lineColor;
+		const width   = edge.lineWidth   ?? state.lineWidth;
+		const lstyle  = edge.lineStyle   ?? state.lineStyle;
+		const opacity = edge.lineOpacity ?? state.lineOpacity;
+
 		const from = nodeMap.get( edge.fromNodeId );
 		const to   = nodeMap.get( edge.toNodeId );
 		if ( ! from || ! to ) continue;
 
-		const fx = from.x * W;
-		const fy = from.y * H;
-		const tx = to.x * W;
-		const ty = to.y * H;
+		const fx = from.x * W, fy = from.y * H;
+		const tx = to.x   * W, ty = to.y   * H;
 
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth   = width;
+		ctx.globalAlpha = opacity;
+		if      ( lstyle === 'dashed' ) ctx.setLineDash( [ 10, 5 ] );
+		else if ( lstyle === 'dotted' ) ctx.setLineDash( [ 2,  5 ] );
+		else                            ctx.setLineDash( [] );
 		ctx.beginPath();
 		ctx.moveTo( fx, fy );
 		ctx.lineTo( tx, ty );
 		ctx.stroke();
+		ctx.restore();
 
-		drawArrowhead( ctx, fx, fy, tx, ty, state.lineWidth, state.lineColor, state.lineOpacity );
+		drawArrowhead( ctx, fx, fy, tx, ty, width, color, opacity );
 	}
-
-	ctx.restore();
 }
 
 function drawArrowhead(
@@ -238,8 +233,11 @@ function drawNode(
 	isSelected: boolean,
 	isEdgeSrc: boolean
 ): void {
-	const r = NODE_BASE_RADIUS * node.iconSize;
+	const r           = NODE_BASE_RADIUS * node.iconSize;
+	const borderColor = node.iconBorderColor || '#000000';
+	const borderWidth = node.iconBorderWidth ?? 2;
 
+	// Selection / edge-source ring
 	if ( isSelected || isEdgeSrc ) {
 		ctx.save();
 		ctx.beginPath();
@@ -252,35 +250,133 @@ function drawNode(
 		ctx.restore();
 	}
 
+	// ── Thumbnail ────────────────────────────────────────────────────────────
+	if ( node.iconType === 'thumbnail' && node.substoryThumbnailUrl ) {
+		const img = loadImage( node.substoryThumbnailUrl );
+		if ( img.complete && img.naturalWidth ) {
+			const useSquare = node.iconBgShape === 'square';
+			ctx.save();
+			if ( useSquare ) {
+				if ( node.iconBgColor ) {
+					ctx.fillStyle = node.iconBgColor;
+					ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
+				}
+				ctx.beginPath();
+				ctx.rect( cx - r, cy - r, r * 2, r * 2 );
+				ctx.clip();
+				ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
+			} else {
+				// round (default)
+				if ( node.iconBgColor ) {
+					ctx.beginPath();
+					ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+					ctx.fillStyle = node.iconBgColor;
+					ctx.fill();
+				}
+				ctx.beginPath();
+				ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+				ctx.clip();
+				ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
+			}
+			ctx.restore();
+			if ( borderWidth > 0 ) {
+				ctx.save();
+				ctx.beginPath();
+				if ( useSquare ) ctx.rect( cx - r, cy - r, r * 2, r * 2 );
+				else             ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+				ctx.strokeStyle = borderColor;
+				ctx.lineWidth   = borderWidth;
+				ctx.setLineDash( [] );
+				ctx.stroke();
+				ctx.restore();
+			}
+			return;
+		}
+	}
+
+	// ── Icon (image from library) ────────────────────────────────────────────
 	if ( node.iconType === 'icon' && node.iconUrl ) {
 		const img = loadImage( node.iconUrl );
 		if ( img.complete && img.naturalWidth ) {
+			if ( node.iconBgShape !== 'none' ) {
+				ctx.save();
+				if ( node.iconBgShape === 'square' ) {
+					ctx.fillStyle = node.iconBgColor || '#ffffff';
+					ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
+					if ( borderWidth > 0 ) {
+						ctx.strokeStyle = borderColor;
+						ctx.lineWidth   = borderWidth;
+						ctx.setLineDash( [] );
+						ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
+					}
+				} else {
+					ctx.beginPath();
+					ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+					ctx.fillStyle = node.iconBgColor || '#ffffff';
+					ctx.fill();
+					if ( borderWidth > 0 ) {
+						ctx.strokeStyle = borderColor;
+						ctx.lineWidth   = borderWidth;
+						ctx.setLineDash( [] );
+						ctx.stroke();
+					}
+				}
+				ctx.restore();
+			}
 			ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
 			return;
 		}
 	}
 
-	if ( node.iconType === 'square' ) {
-		ctx.save();
-		ctx.fillStyle   = node.iconColor;
-		ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-		ctx.lineWidth   = 2;
-		ctx.setLineDash( [] );
-		ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
-		ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
-		ctx.restore();
-	} else {
+	// ── Diamond ──────────────────────────────────────────────────────────────
+	if ( node.iconType === 'diamond' ) {
 		ctx.save();
 		ctx.beginPath();
-		ctx.arc( cx, cy, r, 0, Math.PI * 2 );
-		ctx.fillStyle   = node.iconColor;
-		ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-		ctx.lineWidth   = 2;
-		ctx.setLineDash( [] );
+		ctx.moveTo( cx,     cy - r );
+		ctx.lineTo( cx + r, cy     );
+		ctx.lineTo( cx,     cy + r );
+		ctx.lineTo( cx - r, cy     );
+		ctx.closePath();
+		ctx.fillStyle = node.iconColor;
 		ctx.fill();
-		ctx.stroke();
+		if ( borderWidth > 0 ) {
+			ctx.strokeStyle = borderColor;
+			ctx.lineWidth   = borderWidth;
+			ctx.setLineDash( [] );
+			ctx.stroke();
+		}
 		ctx.restore();
+		return;
 	}
+
+	// ── Square ───────────────────────────────────────────────────────────────
+	if ( node.iconType === 'square' ) {
+		ctx.save();
+		ctx.fillStyle = node.iconColor;
+		ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
+		if ( borderWidth > 0 ) {
+			ctx.strokeStyle = borderColor;
+			ctx.lineWidth   = borderWidth;
+			ctx.setLineDash( [] );
+			ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
+		}
+		ctx.restore();
+		return;
+	}
+
+	// ── Round (default / thumbnail fallback) ─────────────────────────────────
+	ctx.save();
+	ctx.beginPath();
+	ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+	ctx.fillStyle = node.iconColor;
+	ctx.fill();
+	if ( borderWidth > 0 ) {
+		ctx.strokeStyle = borderColor;
+		ctx.lineWidth   = borderWidth;
+		ctx.setLineDash( [] );
+		ctx.stroke();
+	}
+	ctx.restore();
 }
 
 // ── Hit testing ───────────────────────────────────────────────────────────────

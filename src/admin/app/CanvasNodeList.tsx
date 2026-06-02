@@ -20,6 +20,7 @@ interface Props {
 	onEdgeReorder:   ( edgeId: number, sortOrder: number ) => void;
 	onEdgeDelete:    ( edgeId: number ) => void;
 	onStartEdgeFrom: ( fromNodeId: number ) => void;
+	onEditEdge:      ( edgeId: number ) => void;
 }
 
 function formatStep( num: number[] | null ): string {
@@ -29,110 +30,131 @@ function formatStep( num: number[] | null ): string {
 /**
  * Numbering rules
  * ───────────────
- * • The start (root) node is unnumbered.
- * • Each direct child of root starts a new top-level path: child 1 → [1,1], child 2 → [2,1] …
- * • Linear continuation (parent has exactly 1 outgoing edge):
- *     – if the parent's number was assigned via branching (fromBranch=true): append 1   → [1,2,1] → [1,2,1,1]
- *     – otherwise increment the last segment                               → [1,1] → [1,2] → [1,3]
- * • Branching (parent has ≥2 outgoing edges): each child i → [...parent, i+1], fromBranch=true
+ * • Each component root (startNodeId, then other in-degree-0 nodes in creation order) is unnumbered.
+ * • Roots are assigned consecutive top-level sections: root 1 uses section 1, root 2 uses section 2, …
+ *   (a root with N branches uses N sections; a root with 0 or 1 child uses exactly 1 section)
+ * • Direct children of a root → [section, 1], [section+1, 1] … for multiple branches.
+ * • Linear continuation: [s,1] → [s,2] → [s,3]; after a branch: append 1 → [s,2,1]
+ * • Branching (≥2 outgoing): each child i → [...parent, i+1], fromBranch=true
  */
 function buildTree(
 	nodes:       StoryNode[],
 	edges:       StoryEdge[],
 	startNodeId: number | null,
 ): TreeItem[] {
-	const result:        TreeItem[]           = [];
-	const visited      = new Set< number >();
-	const reachable    = new Set< number >();
-	const stepNums     = new Map< number, number[] >();
-	const fromBranchOf = new Map< number, boolean >();
-
-	// Flood-fill reachability from start
-	function markReachable( id: number ) {
-		if ( reachable.has( id ) ) return;
-		reachable.add( id );
-		for ( const e of edges ) {
-			if ( e.fromNodeId === id ) markReachable( e.toNodeId );
-		}
-	}
+	const result        = [] as TreeItem[];
+	const visited       = new Set< number >();
+	const stepNums      = new Map< number, number[] >();
+	const fromBranchOf  = new Map< number, boolean >();
 
 	const startId = startNodeId ?? nodes[ 0 ]?.id ?? null;
-	if ( startId !== null ) markReachable( startId );
 
-	function assignChildNumbers(
-		nodeId:     number,
-		parentNum:  number[] | null,
-		fromBranch: boolean,
-		isRoot:     boolean,
-	) {
-		const out = edges
-			.filter( ( e ) => e.fromNodeId === nodeId )
-			.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+	// Reachable set from a given node (DFS).
+	function computeReachable( fromId: number ): Set< number > {
+		const r = new Set< number >();
+		function dfs( id: number ) {
+			if ( r.has( id ) ) return;
+			r.add( id );
+			for ( const e of edges ) { if ( e.fromNodeId === id ) dfs( e.toNodeId ); }
+		}
+		dfs( fromId );
+		return r;
+	}
 
-		if ( isRoot ) {
-			// Root's children each start a new path [pathIndex, 1]
-			out.forEach( ( edge, i ) => {
-				if ( reachable.has( edge.toNodeId ) && ! stepNums.has( edge.toNodeId ) ) {
-					stepNums.set( edge.toNodeId, [ i + 1, 1 ] );
-					fromBranchOf.set( edge.toNodeId, false );
-				}
-			} );
-		} else if ( parentNum !== null ) {
-			if ( out.length === 1 ) {
-				const childId = out[ 0 ].toNodeId;
-				if ( reachable.has( childId ) && ! stepNums.has( childId ) ) {
-					const childNum = fromBranch
-						? [ ...parentNum, 1 ]
-						: [ ...parentNum.slice( 0, -1 ), parentNum[ parentNum.length - 1 ] + 1 ];
-					stepNums.set( childId, childNum );
-					fromBranchOf.set( childId, false );
-				}
-			} else if ( out.length > 1 ) {
+	// In-degree map (for finding component roots).
+	const inDegree = new Map< number, number >();
+	for ( const n of nodes ) inDegree.set( n.id, 0 );
+	for ( const e of edges ) inDegree.set( e.toNodeId, ( inDegree.get( e.toNodeId ) ?? 0 ) + 1 );
+
+	// Component roots: startId first, then any other in-degree-0 nodes (in node order = creation ASC).
+	const roots: number[] = [];
+	if ( startId !== null ) roots.push( startId );
+	for ( const n of nodes ) {
+		if ( n.id !== startId && inDegree.get( n.id ) === 0 ) roots.push( n.id );
+	}
+
+	// Global top-level section counter; increments as component roots are processed.
+	let nextSection = 1;
+
+	for ( const rootId of roots ) {
+		const reachable = computeReachable( rootId );
+
+		function assignChildNumbers(
+			nodeId:     number,
+			parentNum:  number[] | null,
+			fromBranch: boolean,
+			isRoot:     boolean,
+		) {
+			const out = edges
+				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
+				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+
+			if ( isRoot ) {
+				const used = Math.max( 1, out.length );
 				out.forEach( ( edge, i ) => {
-					if ( reachable.has( edge.toNodeId ) && ! stepNums.has( edge.toNodeId ) ) {
-						stepNums.set( edge.toNodeId, [ ...parentNum, i + 1 ] );
-						fromBranchOf.set( edge.toNodeId, true );
+					if ( ! stepNums.has( edge.toNodeId ) ) {
+						stepNums.set( edge.toNodeId, [ nextSection + i, 1 ] );
+						fromBranchOf.set( edge.toNodeId, false );
 					}
 				} );
+				nextSection += used;
+			} else if ( parentNum !== null ) {
+				if ( out.length === 1 ) {
+					const childId = out[ 0 ].toNodeId;
+					if ( ! stepNums.has( childId ) ) {
+						const childNum = fromBranch
+							? [ ...parentNum, 1 ]
+							: [ ...parentNum.slice( 0, -1 ), parentNum[ parentNum.length - 1 ] + 1 ];
+						stepNums.set( childId, childNum );
+						fromBranchOf.set( childId, false );
+					}
+				} else if ( out.length > 1 ) {
+					out.forEach( ( edge, i ) => {
+						if ( ! stepNums.has( edge.toNodeId ) ) {
+							stepNums.set( edge.toNodeId, [ ...parentNum, i + 1 ] );
+							fromBranchOf.set( edge.toNodeId, true );
+						}
+					} );
+				}
 			}
 		}
-	}
 
-	function visit(
-		nodeId:      number,
-		incomingEdge: StoryEdge | null,
-		siblings:    StoryEdge[],
-		depth:       number,
-		isRoot:      boolean,
-	) {
-		if ( visited.has( nodeId ) ) return;
-		visited.add( nodeId );
+		function visit(
+			nodeId:       number,
+			incomingEdge: StoryEdge | null,
+			siblings:     StoryEdge[],
+			depth:        number,
+			isRoot:       boolean,
+		) {
+			if ( visited.has( nodeId ) ) return;
+			visited.add( nodeId );
 
-		const node = nodes.find( ( n ) => n.id === nodeId );
-		if ( ! node ) return;
+			const node = nodes.find( ( n ) => n.id === nodeId );
+			if ( ! node ) return;
 
-		const stepNumber = ( ! isRoot && reachable.has( nodeId ) )
-			? ( stepNums.get( nodeId ) ?? null )
-			: null;
+			const stepNumber = isRoot ? null : ( stepNums.get( nodeId ) ?? null );
+			result.push( { node, incomingEdge, siblings, depth, stepNumber } );
 
-		result.push( { node, incomingEdge, siblings, depth, stepNumber } );
+			const outEdges = edges
+				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
+				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
 
-		const outEdges = edges
-			.filter( ( e ) => e.fromNodeId === nodeId )
-			.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+			assignChildNumbers( nodeId, stepNumber, fromBranchOf.get( nodeId ) ?? false, isRoot );
 
-		// Assign numbers to direct children before descending
-		assignChildNumbers( nodeId, stepNumber, fromBranchOf.get( nodeId ) ?? false, isRoot );
-
-		for ( const edge of outEdges ) {
-			visit( edge.toNodeId, edge, outEdges, depth + 1, false );
+			for ( const edge of outEdges ) {
+				visit( edge.toNodeId, edge, outEdges, depth + 1, false );
+			}
 		}
+
+		visit( rootId, null, [], 0, true );
 	}
 
-	if ( startId !== null ) visit( startId, null, [], 0, true );
-	// Orphaned nodes (not reachable from start)
+	// Nodes not reached from any root (cycles / unreachable) — show without numbers.
 	for ( const node of nodes ) {
-		if ( ! visited.has( node.id ) ) visit( node.id, null, [], 0, false );
+		if ( ! visited.has( node.id ) ) {
+			result.push( { node, incomingEdge: null, siblings: [], depth: 0, stepNumber: null } );
+			visited.add( node.id );
+		}
 	}
 
 	return result;
@@ -145,7 +167,7 @@ function getDisplayTitle( node: StoryNode ): string {
 export default function CanvasNodeList( {
 	nodes, edges, startNodeId, selectedNodeId,
 	onSelect, onEdit, onDelete, onSetStartNode,
-	onEdgeReorder, onEdgeDelete, onStartEdgeFrom,
+	onEdgeReorder, onEdgeDelete, onStartEdgeFrom, onEditEdge,
 }: Props ) {
 	if ( ! nodes.length ) {
 		return (
@@ -207,13 +229,25 @@ export default function CanvasNodeList( {
 						<span className="cns-canvas-node-list__step">
 							{ isStart ? '★' : formatStep( stepNumber ) }
 						</span>
-						<span
-							className="cns-node-swatch"
-							style={ {
-								background:   node.iconColor,
-								borderRadius: node.iconType === 'square' ? 2 : '50%',
-							} }
-						/>
+						{ node.iconType === 'thumbnail' && node.substoryThumbnailUrl ? (
+							<img
+								src={ node.substoryThumbnailUrl }
+								alt=""
+								className="cns-node-swatch"
+								style={ { borderRadius: '50%', objectFit: 'cover' } }
+							/>
+						) : (
+							<span
+								className="cns-node-swatch"
+								style={ {
+									background:   node.iconColor,
+									borderRadius: node.iconType === 'square' ? 2
+									            : node.iconType === 'diamond' ? 0
+									            : '50%',
+									transform:    node.iconType === 'diamond' ? 'rotate(45deg)' : undefined,
+								} }
+							/>
+						) }
 						<button
 							className="cns-canvas-node-list__title"
 							onClick={ () => onSelect( node.id ) }
@@ -237,6 +271,11 @@ export default function CanvasNodeList( {
 										disabled={ ! canDown }
 										onClick={ () => handleMoveDown( item ) }
 									>↓</button>
+									<button
+										className="cns-icon-btn"
+										title="Style this connection"
+										onClick={ () => onEditEdge( incomingEdge.id ) }
+									>&#x2261;</button>
 									<button
 										className="cns-icon-btn"
 										title="Remove this branch"

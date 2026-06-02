@@ -18,88 +18,106 @@ function loadImg( url ) {
 
 /**
  * Returns an ordered list of { node, depth, stepNumber } for display.
- * stepNumber is number[]|null — e.g. [1,2,1] → "1.2.1", null = orphan/root.
+ * stepNumber is number[]|null — e.g. [1,2,1] → "1.2.1", null = root.
  *
- * Rules:
- *   • Root is unnumbered; its children start paths [1,1], [2,1] …
- *   • Linear continuation (single outgoing): if the node was set by branching,
- *     append 1 → [1,2,1,1]; otherwise increment last → [1,2] → [1,3].
- *   • Branching (multiple outgoing): each child i → [...parent, i+1].
+ * Numbering:
+ *   • Each component root (startNodeId first, then other in-degree-0 nodes) is unnumbered.
+ *   • Top-level section numbers are allocated globally across all components.
+ *   • A root with N branches uses sections [nextSection … nextSection+N-1]; a leafless root uses 1 section.
+ *   • Children of a root → [section, 1]; linear → increment last; branch → append child index.
  */
 function buildOrderedNodes( nodes, edges, startNodeId ) {
-	const stepNums     = new Map(); // nodeId → number[]
-	const fromBranchOf = new Map(); // nodeId → bool
-	const reachable    = new Set();
-
-	function markReachable( id ) {
-		if ( reachable.has( id ) ) return;
-		reachable.add( id );
-		for ( const e of edges ) { if ( e.fromNodeId === id ) markReachable( e.toNodeId ); }
-	}
+	const stepNums     = new Map();
+	const fromBranchOf = new Map();
 
 	const startId = startNodeId ?? nodes[ 0 ]?.id ?? null;
-	if ( startId !== null ) markReachable( startId );
 
-	function assignChildren( nodeId, parentNum, fromBranch, isRoot ) {
-		const out = edges
-			.filter( ( e ) => e.fromNodeId === nodeId )
-			.sort( ( a, b ) => a.sortOrder - b.sortOrder );
-
-		if ( isRoot ) {
-			out.forEach( ( e, i ) => {
-				if ( reachable.has( e.toNodeId ) && ! stepNums.has( e.toNodeId ) ) {
-					stepNums.set( e.toNodeId, [ i + 1, 1 ] );
-					fromBranchOf.set( e.toNodeId, false );
-				}
-			} );
-		} else if ( parentNum ) {
-			if ( out.length === 1 ) {
-				const cid = out[ 0 ].toNodeId;
-				if ( reachable.has( cid ) && ! stepNums.has( cid ) ) {
-					const cn = fromBranch
-						? [ ...parentNum, 1 ]
-						: [ ...parentNum.slice( 0, -1 ), parentNum[ parentNum.length - 1 ] + 1 ];
-					stepNums.set( cid, cn );
-					fromBranchOf.set( cid, false );
-				}
-			} else if ( out.length > 1 ) {
-				out.forEach( ( e, i ) => {
-					if ( reachable.has( e.toNodeId ) && ! stepNums.has( e.toNodeId ) ) {
-						stepNums.set( e.toNodeId, [ ...parentNum, i + 1 ] );
-						fromBranchOf.set( e.toNodeId, true );
-					}
-				} );
-			}
+	function computeReachable( fromId ) {
+		const r = new Set();
+		function dfs( id ) {
+			if ( r.has( id ) ) return;
+			r.add( id );
+			for ( const e of edges ) { if ( e.fromNodeId === id ) dfs( e.toNodeId ); }
 		}
+		dfs( fromId );
+		return r;
+	}
+
+	const inDegree = new Map();
+	for ( const n of nodes ) inDegree.set( n.id, 0 );
+	for ( const e of edges ) inDegree.set( e.toNodeId, ( inDegree.get( e.toNodeId ) ?? 0 ) + 1 );
+
+	const roots = [];
+	if ( startId !== null ) roots.push( startId );
+	for ( const n of nodes ) {
+		if ( n.id !== startId && inDegree.get( n.id ) === 0 ) roots.push( n.id );
 	}
 
 	const result  = [];
 	const visited = new Set();
+	let nextSection = 1;
 
-	function visit( nodeId, depth, isRoot ) {
-		if ( visited.has( nodeId ) ) return;
-		visited.add( nodeId );
+	for ( const rootId of roots ) {
+		const reachable = computeReachable( rootId );
 
-		const node = nodes.find( ( n ) => n.id === nodeId );
-		if ( ! node ) return;
+		function assignChildren( nodeId, parentNum, fromBranch, isRoot ) {
+			const out = edges
+				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
+				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
 
-		const stepNumber = ( ! isRoot && reachable.has( nodeId ) )
-			? ( stepNums.get( nodeId ) ?? null )
-			: null;
+			if ( isRoot ) {
+				const used = Math.max( 1, out.length );
+				out.forEach( ( e, i ) => {
+					if ( ! stepNums.has( e.toNodeId ) ) {
+						stepNums.set( e.toNodeId, [ nextSection + i, 1 ] );
+						fromBranchOf.set( e.toNodeId, false );
+					}
+				} );
+				nextSection += used;
+			} else if ( parentNum ) {
+				if ( out.length === 1 ) {
+					const cid = out[ 0 ].toNodeId;
+					if ( ! stepNums.has( cid ) ) {
+						const cn = fromBranch
+							? [ ...parentNum, 1 ]
+							: [ ...parentNum.slice( 0, -1 ), parentNum[ parentNum.length - 1 ] + 1 ];
+						stepNums.set( cid, cn );
+						fromBranchOf.set( cid, false );
+					}
+				} else if ( out.length > 1 ) {
+					out.forEach( ( e, i ) => {
+						if ( ! stepNums.has( e.toNodeId ) ) {
+							stepNums.set( e.toNodeId, [ ...parentNum, i + 1 ] );
+							fromBranchOf.set( e.toNodeId, true );
+						}
+					} );
+				}
+			}
+		}
 
-		if ( ! isRoot ) result.push( { node, depth, stepNumber } );
+		function visit( nodeId, depth, isRoot ) {
+			if ( visited.has( nodeId ) ) return;
+			visited.add( nodeId );
 
-		const outEdges = edges
-			.filter( ( e ) => e.fromNodeId === nodeId )
-			.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+			const node = nodes.find( ( n ) => n.id === nodeId );
+			if ( ! node ) return;
 
-		assignChildren( nodeId, stepNumber, fromBranchOf.get( nodeId ) ?? false, isRoot );
+			const stepNumber = isRoot ? null : ( stepNums.get( nodeId ) ?? null );
+			if ( ! isRoot ) result.push( { node, depth, stepNumber } );
 
-		for ( const e of outEdges ) visit( e.toNodeId, depth + 1, false );
+			const outEdges = edges
+				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
+				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+
+			assignChildren( nodeId, stepNumber, fromBranchOf.get( nodeId ) ?? false, isRoot );
+
+			for ( const e of outEdges ) visit( e.toNodeId, depth + 1, false );
+		}
+
+		visit( rootId, 0, true );
 	}
 
-	if ( startId !== null ) visit( startId, 0, true );
-	for ( const n of nodes ) { if ( ! visited.has( n.id ) ) visit( n.id, 0, false ); }
+	for ( const n of nodes ) { if ( ! visited.has( n.id ) ) { result.push( { node: n, depth: 0, stepNumber: null } ); visited.add( n.id ); } }
 
 	return result;
 }
@@ -180,59 +198,151 @@ function drawStory( canvas, data, activeNodeId ) {
 	const story   = data.story;
 	const nodeMap = new Map( data.nodes.map( ( n ) => [ n.id, n ] ) );
 
-	ctx.save();
-	ctx.strokeStyle = story.lineColor;
-	ctx.lineWidth   = story.lineWidth;
-	ctx.globalAlpha = story.lineOpacity;
-	if      ( story.lineStyle === 'dashed' ) ctx.setLineDash( [ 10, 5 ] );
-	else if ( story.lineStyle === 'dotted' ) ctx.setLineDash( [ 2, 5 ] );
-	else                                     ctx.setLineDash( [] );
-
 	for ( const edge of data.edges ) {
+		const color   = edge.lineColor   ?? story.lineColor;
+		const width   = edge.lineWidth   ?? story.lineWidth;
+		const lstyle  = edge.lineStyle   ?? story.lineStyle;
+		const opacity = edge.lineOpacity ?? story.lineOpacity;
+
 		const from = nodeMap.get( edge.fromNodeId );
 		const to   = nodeMap.get( edge.toNodeId );
 		if ( ! from || ! to ) continue;
 		const fx = from.x * W, fy = from.y * H, tx = to.x * W, ty = to.y * H;
+
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth   = width;
+		ctx.globalAlpha = opacity;
+		if      ( lstyle === 'dashed' ) ctx.setLineDash( [ 10, 5 ] );
+		else if ( lstyle === 'dotted' ) ctx.setLineDash( [ 2, 5 ] );
+		else                            ctx.setLineDash( [] );
 		ctx.beginPath(); ctx.moveTo( fx, fy ); ctx.lineTo( tx, ty ); ctx.stroke();
+		ctx.restore();
+
 		const angle = Math.atan2( ty - fy, tx - fx );
-		const sz    = Math.max( 10, story.lineWidth * 3 );
+		const sz    = Math.max( 10, width * 3 );
 		const nr    = 16;
 		const ex    = tx - Math.cos( angle ) * nr;
 		const ey    = ty - Math.sin( angle ) * nr;
-		ctx.save(); ctx.setLineDash( [] ); ctx.fillStyle = story.lineColor; ctx.beginPath();
+		ctx.save();
+		ctx.setLineDash( [] );
+		ctx.globalAlpha = opacity;
+		ctx.fillStyle = color;
+		ctx.beginPath();
 		ctx.moveTo( ex, ey );
 		ctx.lineTo( ex - sz * Math.cos( angle - Math.PI / 6 ), ey - sz * Math.sin( angle - Math.PI / 6 ) );
 		ctx.lineTo( ex - sz * Math.cos( angle + Math.PI / 6 ), ey - sz * Math.sin( angle + Math.PI / 6 ) );
 		ctx.closePath(); ctx.fill(); ctx.restore();
 	}
-	ctx.restore();
 
 	const BASE_R = 14;
 	for ( const node of data.nodes ) {
-		const cx = node.x * W;
-		const cy = node.y * H;
-		const r  = BASE_R * node.iconSize;
-		const isActive = node.id === activeNodeId;
+		const cx          = node.x * W;
+		const cy          = node.y * H;
+		const r           = BASE_R * node.iconSize;
+		const isActive    = node.id === activeNodeId;
+		const borderColor = node.iconBorderColor || '#000000';
+		const borderWidth = node.iconBorderWidth ?? 2;
 
 		if ( isActive ) {
 			ctx.save(); ctx.beginPath(); ctx.arc( cx, cy, r + 5, 0, Math.PI * 2 );
-			ctx.strokeStyle = '#00aaff'; ctx.lineWidth = 3; ctx.setLineDash( [] ); ctx.stroke(); ctx.restore();
+			ctx.strokeStyle = '#00aaff'; ctx.lineWidth = 3; ctx.setLineDash( [] ); ctx.globalAlpha = 1; ctx.stroke(); ctx.restore();
 		}
 
+		// ── Thumbnail ──────────────────────────────────────────────────────
+		if ( node.iconType === 'thumbnail' && node.substoryThumbnailUrl ) {
+			const img = loadImg( node.substoryThumbnailUrl );
+			if ( img.complete && img.naturalWidth ) {
+				const useSquare = node.iconBgShape === 'square';
+				ctx.save();
+				if ( useSquare ) {
+					if ( node.iconBgColor ) { ctx.fillStyle = node.iconBgColor; ctx.fillRect( cx - r, cy - r, r * 2, r * 2 ); }
+					ctx.beginPath(); ctx.rect( cx - r, cy - r, r * 2, r * 2 ); ctx.clip();
+					ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
+				} else {
+					if ( node.iconBgColor ) {
+						ctx.beginPath(); ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+						ctx.fillStyle = node.iconBgColor; ctx.fill();
+					}
+					ctx.beginPath(); ctx.arc( cx, cy, r, 0, Math.PI * 2 ); ctx.clip();
+					ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
+				}
+				ctx.restore();
+				if ( borderWidth > 0 ) {
+					ctx.save();
+					ctx.beginPath();
+					if ( useSquare ) ctx.rect( cx - r, cy - r, r * 2, r * 2 );
+					else             ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+					ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] ); ctx.stroke();
+					ctx.restore();
+				}
+				continue;
+			}
+		}
+
+		// ── Icon ───────────────────────────────────────────────────────────
 		if ( node.iconType === 'icon' && node.iconUrl ) {
 			const img = loadImg( node.iconUrl );
-			if ( img.complete && img.naturalWidth ) { ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 ); continue; }
+			if ( img.complete && img.naturalWidth ) {
+				if ( node.iconBgShape !== 'none' ) {
+					ctx.save();
+					if ( node.iconBgShape === 'square' ) {
+						ctx.fillStyle = node.iconBgColor || '#ffffff';
+						ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
+						if ( borderWidth > 0 ) {
+							ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] );
+							ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
+						}
+					} else {
+						ctx.beginPath(); ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+						ctx.fillStyle = node.iconBgColor || '#ffffff'; ctx.fill();
+						if ( borderWidth > 0 ) {
+							ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] ); ctx.stroke();
+						}
+					}
+					ctx.restore();
+				}
+				ctx.drawImage( img, cx - r, cy - r, r * 2, r * 2 );
+				continue;
+			}
 		}
-		if ( node.iconType === 'square' ) {
-			ctx.save(); ctx.fillStyle = node.iconColor; ctx.strokeStyle = 'rgba(0,0,0,.45)';
-			ctx.lineWidth = 2; ctx.setLineDash( [] );
-			ctx.fillRect( cx - r, cy - r, r * 2, r * 2 ); ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
+
+		// ── Diamond ────────────────────────────────────────────────────────
+		if ( node.iconType === 'diamond' ) {
+			ctx.save();
+			ctx.beginPath();
+			ctx.moveTo( cx, cy - r ); ctx.lineTo( cx + r, cy );
+			ctx.lineTo( cx, cy + r ); ctx.lineTo( cx - r, cy );
+			ctx.closePath();
+			ctx.fillStyle = node.iconColor; ctx.fill();
+			if ( borderWidth > 0 ) {
+				ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] ); ctx.stroke();
+			}
 			ctx.restore();
-		} else {
-			ctx.save(); ctx.beginPath(); ctx.arc( cx, cy, r, 0, Math.PI * 2 );
-			ctx.fillStyle = node.iconColor; ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 2; ctx.setLineDash( [] );
-			ctx.fill(); ctx.stroke(); ctx.restore();
+			continue;
 		}
+
+		// ── Square ─────────────────────────────────────────────────────────
+		if ( node.iconType === 'square' ) {
+			ctx.save();
+			ctx.fillStyle = node.iconColor;
+			ctx.fillRect( cx - r, cy - r, r * 2, r * 2 );
+			if ( borderWidth > 0 ) {
+				ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] );
+				ctx.strokeRect( cx - r, cy - r, r * 2, r * 2 );
+			}
+			ctx.restore();
+			continue;
+		}
+
+		// ── Round (default) ────────────────────────────────────────────────
+		ctx.save();
+		ctx.beginPath(); ctx.arc( cx, cy, r, 0, Math.PI * 2 );
+		ctx.fillStyle = node.iconColor; ctx.fill();
+		if ( borderWidth > 0 ) {
+			ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidth; ctx.setLineDash( [] ); ctx.stroke();
+		}
+		ctx.restore();
 	}
 }
 
@@ -251,13 +361,15 @@ function renderWindow( windowEl, data, activeNodeId, expandedIds ) {
 		const isActive = node.id === activeNodeId;
 		const isOpen   = expandedIds.has( node.id );
 		const indent   = 8 + Math.min( depth, 4 ) * 14;
-		const dotR     = node.iconType === 'square' ? '2px' : '50%';
+		const dotR        = node.iconType === 'square' ? '2px' : '0';
+		const dotTransform = node.iconType === 'diamond' ? 'rotate(45deg)' : '';
+		const dotBorderR   = node.iconType === 'round' || node.iconType === 'thumbnail' || node.iconType === 'icon' ? '50%' : dotR;
 		const hasDetail = excerpt || node.substoryUrl;
 
 		return `<div class="cns-sw-item${ isActive ? ' is-active' : '' }${ isOpen ? ' is-open' : '' }" data-node="${ node.id }" style="padding-left:${ indent }px">
 			<button class="cns-sw-item__head" type="button">
 				<span class="cns-sw-item__num">${ esc( numStr ) }</span>
-				<span class="cns-sw-item__dot" style="background:${ esc( node.iconColor ) };border-radius:${ dotR }"></span>
+				<span class="cns-sw-item__dot" style="background:${ esc( node.iconColor ) };border-radius:${ dotBorderR };transform:${ dotTransform }"></span>
 				<span class="cns-sw-item__title">${ esc( title ) }</span>
 			</button>
 			${ hasDetail ? `<div class="cns-sw-item__detail">
@@ -328,7 +440,10 @@ function initBlock( blockEl ) {
 	if ( m?.bgImageUrl ) urls.push( m.bgImageUrl );
 	if ( m?.imageUrl   ) urls.push( m.imageUrl   );
 	( m?.objects ?? [] ).forEach( ( o ) => { if ( o.iconUrl ) urls.push( o.iconUrl ); } );
-	data.nodes.forEach( ( n ) => { if ( n.iconUrl ) urls.push( n.iconUrl ); } );
+	data.nodes.forEach( ( n ) => {
+		if ( n.iconUrl ) urls.push( n.iconUrl );
+		if ( n.substoryThumbnailUrl ) urls.push( n.substoryThumbnailUrl );
+	} );
 
 	requestAnimationFrame( function loop() { redraw(); requestAnimationFrame( loop ); } );
 

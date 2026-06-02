@@ -1,7 +1,7 @@
 import { useState, useEffect } from '@wordpress/element';
 import SubstoryPicker from '../shared/SubstoryPicker';
 import { apiFetch } from '../../utils';
-import type { StoryNode, NodeFormData, IconType } from '../../../types';
+import type { StoryNode, NodeFormData, IconType, IconBgShape } from '../../../types';
 
 interface Props {
 	nodeId:       number | null; // null = new node
@@ -24,6 +24,10 @@ function buildInitialForm( node: StoryNode | null, initialX: number, initialY: n
 		iconId:          node?.iconId         ?? null,
 		iconColor:       node?.iconColor      ?? '#ffffff',
 		iconSize:        node?.iconSize       ?? 1.0,
+		iconBorderColor: node?.iconBorderColor ?? '#000000',
+		iconBorderWidth: node?.iconBorderWidth ?? 2,
+		iconBgColor:     node?.iconBgColor     ?? '#ffffff',
+		iconBgShape:     node?.iconBgShape     ?? 'none',
 	};
 }
 
@@ -209,19 +213,33 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, o
 							<div className="cns-form-row cns-form-row--full">
 								<label>Shape</label>
 								<div className="cns-radio-toggle">
-									{ ( [ 'round', 'square', 'icon' ] as IconType[] ).map( ( t ) => (
-										<label key={ t }>
-											<input
-												type="radio"
-												name="icon-type"
-												value={ t }
-												checked={ form.iconType === t }
-												onChange={ () => set( 'iconType', t ) }
-											/>
-											{ ' ' }{ t.charAt( 0 ).toUpperCase() + t.slice( 1 ) }
-										</label>
-									) ) }
+									{ ( [ 'round', 'square', 'diamond', 'icon', 'thumbnail' ] as IconType[] ).map( ( t ) => {
+										const isDisabled = t === 'thumbnail' && ! form.substoryId;
+										return (
+											<label key={ t } style={ isDisabled ? { opacity: 0.5 } : undefined }>
+												<input
+													type="radio"
+													name="icon-type"
+													value={ t }
+													checked={ form.iconType === t }
+													disabled={ isDisabled }
+													onChange={ () => set( 'iconType', t ) }
+												/>
+												{ ' ' }{ t === 'thumbnail' ? 'Thumbnail' : t.charAt( 0 ).toUpperCase() + t.slice( 1 ) }
+											</label>
+										);
+									} ) }
 								</div>
+								{ form.iconType === 'thumbnail' && (
+									<p className="description" style={ { marginTop: 6 } }>
+										Uses the substory&rsquo;s featured image, clipped to a circle.
+									</p>
+								) }
+								{ ! form.substoryId && (
+									<p className="description" style={ { marginTop: 6, color: '#888' } }>
+										Link a substory above to enable the Thumbnail option.
+									</p>
+								) }
 							</div>
 
 							{ form.iconType === 'icon' && (
@@ -259,14 +277,59 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, o
 								</div>
 							) }
 
+							{ /* Background (for icon and thumbnail) */ }
+							{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && (
+								<div className="cns-form-row cns-form-row--full">
+									<label>Background shape</label>
+									<div className="cns-radio-toggle">
+										{ ( form.iconType === 'thumbnail'
+											? ( [ 'round', 'square' ] as const )
+											: ( [ 'none', 'round', 'square' ] as const )
+										).map( ( s ) => (
+											<label key={ s }>
+												<input type="radio" name="icon-bg-shape" value={ s }
+													checked={ form.iconBgShape === s }
+													onChange={ () => set( 'iconBgShape', s as IconBgShape ) }
+												/>
+												{ ' ' }{ s.charAt( 0 ).toUpperCase() + s.slice( 1 ) }
+											</label>
+										) ) }
+									</div>
+								</div>
+							) }
+							{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && form.iconBgShape !== 'none' && (
+								<div className="cns-form-row">
+									<label>Background color</label>
+									<input type="color" value={ form.iconBgColor }
+										onChange={ e => set( 'iconBgColor', e.target.value ) } />
+								</div>
+							) }
+
+							{ ! [ 'icon', 'thumbnail' ].includes( form.iconType ) && (
+								<div className="cns-form-row">
+									<label>Fill color</label>
+									<div>
+										<input
+											type="color"
+											value={ form.iconColor }
+											onChange={ ( e ) => set( 'iconColor', e.target.value ) }
+										/>
+									</div>
+								</div>
+							) }
+
 							<div className="cns-form-row">
-								<label>Color</label>
-								<div>
-									<input
-										type="color"
-										value={ form.iconColor }
-										onChange={ ( e ) => set( 'iconColor', e.target.value ) }
-									/>
+								<label>Border color</label>
+								<input type="color" value={ form.iconBorderColor }
+									onChange={ e => set( 'iconBorderColor', e.target.value ) } />
+							</div>
+							<div className="cns-form-row">
+								<label>Border width</label>
+								<div className="cns-range-wrap">
+									<input type="range" min="0" max="10" step="0.5"
+										value={ form.iconBorderWidth }
+										onChange={ e => set( 'iconBorderWidth', parseFloat( e.target.value ) ) } />
+									<span className="cns-range-value">{ form.iconBorderWidth }px</span>
 								</div>
 							</div>
 

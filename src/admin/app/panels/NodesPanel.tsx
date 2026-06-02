@@ -9,6 +9,7 @@ interface Props {
 	onSetStartNode: ( nodeId: number ) => void;
 	onEdgeReorder:  ( edgeId: number, sortOrder: number ) => void;
 	onEdgeDelete:   ( edgeId: number ) => void;
+	onEditEdge:     ( edgeId: number ) => void;
 }
 
 function getDisplayTitle( node: StoryNode ): string {
@@ -18,7 +19,7 @@ function getDisplayTitle( node: StoryNode ): string {
 export default function NodesPanel( {
 	nodes, edges, startNodeId,
 	onEditNode, onDeleteNode, onSetStartNode,
-	onEdgeReorder, onEdgeDelete,
+	onEdgeReorder, onEdgeDelete, onEditEdge,
 }: Props ) {
 	if ( ! nodes.length ) {
 		return (
@@ -58,10 +59,11 @@ export default function NodesPanel( {
 									<span
 										className="cns-node-swatch"
 										style={ {
-											background: node.iconColor,
+											background:   node.iconType === 'thumbnail' || node.iconType === 'icon' ? 'transparent' : node.iconColor,
 											width: 18, height: 18,
 											display: 'inline-block',
-											borderRadius: node.iconType === 'square' ? 2 : '50%',
+											borderRadius: node.iconType === 'square' || node.iconType === 'diamond' ? 2 : '50%',
+											transform:    node.iconType === 'diamond' ? 'rotate(45deg)' : undefined,
 											border: '1px solid rgba(0,0,0,0.3)',
 										} }
 									/>
@@ -102,6 +104,11 @@ export default function NodesPanel( {
 													title="Sort order (lower = higher priority)"
 												/>
 												<span>→ { toNode ? getDisplayTitle( toNode ) : `#${ edge.toNodeId }` }</span>
+												<button
+													className="cns-icon-btn"
+													title="Style this connection"
+													onClick={ () => onEditEdge( edge.id ) }
+												>&#x2261;</button>
 												<button
 													className="cns-icon-btn"
 													title="Delete connection"

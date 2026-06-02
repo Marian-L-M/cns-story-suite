@@ -1,7 +1,8 @@
 // ── Primitive unions ──────────────────────────────────────────────────────────
 
 export type PostStatus   = 'publish' | 'draft' | 'private';
-export type IconType     = 'round' | 'square' | 'icon';
+export type IconType     = 'round' | 'square' | 'icon' | 'thumbnail' | 'diamond';
+export type IconBgShape  = 'none' | 'round' | 'square';
 export type LineStyle    = 'solid' | 'dashed' | 'dotted';
 export type SaveStatusKind = '' | 'ok' | 'error';
 export type StoryTab     = 'settings' | 'canvas' | 'nodes' | 'links';
@@ -33,6 +34,13 @@ declare global {
 		cnsStoryEditor: CnsStoryEditorGlobal;
 		cnsStorySuite:  CnsStorySuiteGlobal;
 		cnsMapEditorExtensions?: { hasStorySuite?: boolean; storySuiteOverviewUrl?: string };
+		wp?: {
+			media?: ( options: object ) => {
+				on:    ( event: string, cb: () => void ) => void;
+				open:  () => void;
+				state: () => { get: ( k: string ) => { first: () => { toJSON: () => { id: number; url: string } } } };
+			};
+		};
 	}
 }
 
@@ -51,6 +59,10 @@ export interface StoryNode {
 	iconUrl:              string | null;
 	iconColor:            string;
 	iconSize:             number;
+	iconBorderColor:      string;
+	iconBorderWidth:      number;
+	iconBgColor:          string;
+	iconBgShape:          IconBgShape;
 	createdAt:            string;
 	substoryTitle:        string | null;
 	substoryExcerpt:      string | null;
@@ -67,6 +79,10 @@ export interface StoryEdge {
 	fromNodeId: number;
 	toNodeId:   number;
 	sortOrder:  number;
+	lineColor:   string | null;
+	lineWidth:   number | null;
+	lineStyle:   LineStyle | null;
+	lineOpacity: number | null;
 }
 
 // ── Domain: StoryLink ─────────────────────────────────────────────────────────
@@ -82,16 +98,18 @@ export interface StoryLink {
 // ── Domain: StorySettings ─────────────────────────────────────────────────────
 
 export interface StorySettings {
-	title:       string;
-	status:      PostStatus;
-	mapId:       number | null;
-	mapTitle:    string;
-	lineColor:   string;
-	lineWidth:   number;
-	lineStyle:   LineStyle;
-	lineOpacity: number;
-	startNodeId: number | null;
-	viewUrl:     string;
+	title:        string;
+	status:       PostStatus;
+	mapId:        number | null;
+	mapTitle:     string;
+	lineColor:    string;
+	lineWidth:    number;
+	lineStyle:    LineStyle;
+	lineOpacity:  number;
+	startNodeId:  number | null;
+	viewUrl:      string;
+	thumbnailId:  number | null;
+	thumbnailUrl: string;
 }
 
 // ── Domain: Map render data (from API) ────────────────────────────────────────
@@ -167,4 +185,15 @@ export interface NodeFormData {
 	iconId:          number | null;
 	iconColor:       string;
 	iconSize:        number;
+	iconBorderColor: string;
+	iconBorderWidth: number;
+	iconBgColor:     string;
+	iconBgShape:     IconBgShape;
+}
+
+export interface EdgeFormData {
+	lineColor:   string | null;
+	lineWidth:   number | null;
+	lineStyle:   LineStyle | null;
+	lineOpacity: number | null;
 }
