@@ -15,9 +15,15 @@ $delete_on_uninstall = (bool) get_option('cns_story_suite_delete_on_uninstall', 
 ?>
 <div class="cns-stories-overview">
 
-	<?php if (isset($_GET['deleted'])) : ?>
+	<?php if (isset($_GET['deleted']) && $_GET['deleted'] === '1') : ?>
 		<div class="notice notice-success is-dismissible">
 			<p><?php esc_html_e('Story deleted.', 'cns-story-suite'); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php if (isset($_GET['settings-saved']) && $_GET['settings-saved'] === '1') : ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e('Settings saved.', 'cns-story-suite'); ?></p>
 		</div>
 	<?php endif; ?>
 
@@ -168,14 +174,3 @@ $delete_on_uninstall = (bool) get_option('cns_story_suite_delete_on_uninstall', 
 	</div>
 
 </div>
-<?php
-// Handle settings save.
-if (
-	isset($_POST['cns_story_action']) &&
-	$_POST['cns_story_action'] === 'save_settings' &&
-	check_admin_referer('cns_story_save_settings')
-) {
-	update_option('cns_story_suite_delete_on_uninstall', ! empty($_POST['delete_on_uninstall']));
-	wp_safe_redirect(add_query_arg(['page' => $return_page, 'settings-saved' => '1'], admin_url('admin.php')));
-	exit;
-}

@@ -259,7 +259,8 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, p
 											type="button"
 											className="button"
 											onClick={ () => {
-												const frame = window.wp?.media( {
+												if ( ! window.wp?.media ) return;
+												const frame = window.wp.media( {
 													title:    'Select Icon',
 													button:   { text: 'Use this icon' },
 													multiple: false,

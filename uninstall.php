@@ -20,6 +20,7 @@ $tables = [
 	$wpdb->prefix . 'cns_story_links',
 	$wpdb->prefix . 'cns_story_edges',
 	$wpdb->prefix . 'cns_story_nodes',
+	$wpdb->prefix . 'cns_story_paths',
 ];
 
 foreach ($tables as $table) {

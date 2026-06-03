@@ -159,7 +159,22 @@ function cns_story_suite_render_substories(): void {
 	include CNS_STORY_SUITE_DIR . 'includes/admin/views/substories-overview.php';
 }
 
-// ── Handle overview actions (delete story) ────────────────────────────────────
+// ── Handle overview actions ───────────────────────────────────────────────────
+
+add_action('admin_init', function (): void {
+	// Settings save — must run in admin_init so headers aren't yet sent.
+	if (
+		isset($_POST['cns_story_action']) &&
+		$_POST['cns_story_action'] === 'save_settings' &&
+		check_admin_referer('cns_story_save_settings') &&
+		current_user_can('manage_stories')
+	) {
+		update_option('cns_story_suite_delete_on_uninstall', ! empty($_POST['delete_on_uninstall']));
+		$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_STORIES);
+		wp_safe_redirect(add_query_arg(['page' => $return_page, 'settings-saved' => '1'], admin_url('admin.php')));
+		exit;
+	}
+});
 
 add_action('admin_init', function (): void {
 	$page   = sanitize_key($_GET['page'] ?? '');
@@ -194,6 +209,7 @@ add_action('admin_init', function (): void {
 		}
 		$wpdb->delete($wpdb->prefix . 'cns_story_nodes', ['story_id' => $story_id], ['%d']);
 		$wpdb->delete($wpdb->prefix . 'cns_story_links', ['story_id' => $story_id], ['%d']);
+		$wpdb->delete($wpdb->prefix . 'cns_story_paths', ['story_id' => $story_id], ['%d']);
 		wp_delete_post($story_id, true);
 	}
 

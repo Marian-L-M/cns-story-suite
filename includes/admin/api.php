@@ -361,7 +361,10 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 			return new WP_Error('not_found', __('Story not found.', 'cns-story-suite'), ['status' => 404]);
 		}
 		$post_data['ID'] = $story_id;
-		wp_update_post($post_data);
+		$result = wp_update_post($post_data, true);
+		if (is_wp_error($result)) {
+			return $result;
+		}
 	}
 
 	update_post_meta($story_id, '_cns_story_map_id',             $map_id);
@@ -606,6 +609,10 @@ function cns_story_suite_api_create_node(WP_REST_Request $req): WP_REST_Response
 		],
 		['%d', '%d', '%d', '%s', '%s', '%f', '%f', '%s', '%d', '%s', '%f', '%s', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
 	);
+
+	if ($wpdb->last_error || ! $wpdb->insert_id) {
+		return new WP_Error('db_error', __('Could not create node.', 'cns-story-suite'), ['status' => 500]);
+	}
 
 	$node_id = (int) $wpdb->insert_id;
 	$row     = $wpdb->get_row(
@@ -1004,16 +1011,20 @@ function cns_story_suite_api_create_link(WP_REST_Request $req): WP_REST_Response
 		return new WP_Error('not_found', __('Story not found.', 'cns-story-suite'), ['status' => 404]);
 	}
 
-	$wpdb->insert(
+	$inserted = $wpdb->insert(
 		$wpdb->prefix . 'cns_story_links',
 		['story_id' => $story_id, 'link_type' => $link_type, 'link_id' => $link_id],
 		['%d', '%s', '%d']
 	);
 
+	if ($inserted === false) {
+		return new WP_Error('db_error', __('Could not create link.', 'cns-story-suite'), ['status' => 500]);
+	}
+
 	$insert_id = (int) $wpdb->insert_id;
 
 	if (! $insert_id) {
-		// Duplicate unique key — fetch existing.
+		// Duplicate unique key — fetch existing row.
 		$existing = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}cns_story_links WHERE story_id = %d AND link_type = %s AND link_id = %d",
@@ -1021,6 +1032,9 @@ function cns_story_suite_api_create_link(WP_REST_Request $req): WP_REST_Response
 			),
 			ARRAY_A
 		);
+		if (! $existing) {
+			return new WP_Error('db_error', __('Could not create link.', 'cns-story-suite'), ['status' => 500]);
+		}
 		return new WP_REST_Response([
 			'id'        => (int) $existing['id'],
 			'storyId'   => $story_id,
@@ -1108,6 +1122,10 @@ function cns_story_suite_api_create_path(WP_REST_Request $req): WP_REST_Response
 		],
 		['%d', '%s', '%s', '%f', '%s', '%d', '%f', '%f']
 	);
+
+	if ($wpdb->last_error || ! $wpdb->insert_id) {
+		return new WP_Error('db_error', __('Could not create path.', 'cns-story-suite'), ['status' => 500]);
+	}
 
 	$row = $wpdb->get_row(
 		$wpdb->prepare("SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE id = %d", $wpdb->insert_id),
