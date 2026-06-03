@@ -4,8 +4,11 @@ export type PostStatus   = 'publish' | 'draft' | 'private';
 export type IconType     = 'round' | 'square' | 'icon' | 'thumbnail' | 'diamond';
 export type IconBgShape  = 'none' | 'round' | 'square';
 export type LineStyle    = 'solid' | 'dashed' | 'dotted';
+export type MarkerType   = 'ring' | 'icon';
+export type NodeMarkerType = 'inherit' | 'ring' | 'icon';
+export type CanvasMode   = 'select' | 'add' | 'connect';
 export type SaveStatusKind = '' | 'ok' | 'error';
-export type StoryTab     = 'settings' | 'canvas' | 'nodes' | 'links';
+export type StoryTab     = 'settings' | 'canvas' | 'nodes' | 'paths' | 'links';
 export type LinkType     = 'map_object' | 'map_area' | 'hierarchy';
 
 // ── Window globals ────────────────────────────────────────────────────────────
@@ -44,11 +47,39 @@ declare global {
 	}
 }
 
+// ── Domain: StoryPath ─────────────────────────────────────────────────────────
+
+export interface StoryPath {
+	id:                number;
+	storyId:           number;
+	label:             string;
+	sortOrder:         number;
+	markerColor:       string;
+	markerSize:        number;
+	markerType:        MarkerType;
+	markerIconId:      number | null;
+	markerIconUrl:     string;
+	markerIconOffsetX: number;
+	markerIconOffsetY: number;
+}
+
+export interface PathFormData {
+	label:             string;
+	markerColor:       string;
+	markerSize:        number;
+	markerType:        MarkerType;
+	markerIconId:      number | null;
+	markerIconUrl:     string;
+	markerIconOffsetX: number;
+	markerIconOffsetY: number;
+}
+
 // ── Domain: StoryNode ─────────────────────────────────────────────────────────
 
 export interface StoryNode {
 	id:                   number;
 	storyId:              number;
+	pathId:               number | null;
 	substoryId:           number | null;
 	titleOverride:        string | null;
 	excerptOverride:      string | null;
@@ -63,6 +94,13 @@ export interface StoryNode {
 	iconBorderWidth:      number;
 	iconBgColor:          string;
 	iconBgShape:          IconBgShape;
+	markerType:           NodeMarkerType;
+	markerIconId:         number | null;
+	markerIconUrl:        string | null;
+	markerColor:          string | null; // null = inherit from path/global
+	markerSize:           number | null; // null = inherit
+	markerIconOffsetX:    number | null; // null = inherit
+	markerIconOffsetY:    number | null; // null = inherit
 	createdAt:            string;
 	substoryTitle:        string | null;
 	substoryExcerpt:      string | null;
@@ -98,18 +136,26 @@ export interface StoryLink {
 // ── Domain: StorySettings ─────────────────────────────────────────────────────
 
 export interface StorySettings {
-	title:        string;
-	status:       PostStatus;
-	mapId:        number | null;
-	mapTitle:     string;
-	lineColor:    string;
-	lineWidth:    number;
-	lineStyle:    LineStyle;
-	lineOpacity:  number;
-	startNodeId:  number | null;
-	viewUrl:      string;
-	thumbnailId:  number | null;
-	thumbnailUrl: string;
+	title:           string;
+	status:          PostStatus;
+	mapId:           number | null;
+	mapTitle:        string;
+	lineColor:       string;
+	lineWidth:       number;
+	lineStyle:       LineStyle;
+	lineOpacity:     number;
+	startNodeId:     number | null;
+	viewUrl:         string;
+	thumbnailId:     number | null;
+	thumbnailUrl:    string;
+	description:     string;
+	markerColor:       string;
+	markerSize:        number;
+	markerType:        MarkerType;
+	markerIconId:      number | null;
+	markerIconUrl:     string;
+	markerIconOffsetX: number;
+	markerIconOffsetY: number;
 }
 
 // ── Domain: Map render data (from API) ────────────────────────────────────────
@@ -175,20 +221,27 @@ export interface SaveStatus {
 // ── Form payloads ─────────────────────────────────────────────────────────────
 
 export interface NodeFormData {
-	x:               number; // 0–1 normalised
-	y:               number;
-	substoryId:      number | null;
-	substoryLabel:   string;
-	titleOverride:   string;
-	excerptOverride: string;
-	iconType:        IconType;
-	iconId:          number | null;
-	iconColor:       string;
-	iconSize:        number;
-	iconBorderColor: string;
-	iconBorderWidth: number;
-	iconBgColor:     string;
-	iconBgShape:     IconBgShape;
+	x:                  number; // 0–1 normalised
+	y:                  number;
+	pathId:             number | null;
+	substoryId:         number | null;
+	substoryLabel:      string;
+	titleOverride:      string;
+	excerptOverride:    string;
+	iconType:           IconType;
+	iconId:             number | null;
+	iconColor:          string;
+	iconSize:           number;
+	iconBorderColor:    string;
+	iconBorderWidth:    number;
+	iconBgColor:        string;
+	iconBgShape:        IconBgShape;
+	markerType:         NodeMarkerType;
+	markerIconId:       number | null;
+	markerColor:        string | null;
+	markerSize:         number | null;
+	markerIconOffsetX:  number | null;
+	markerIconOffsetY:  number | null;
 }
 
 export interface EdgeFormData {

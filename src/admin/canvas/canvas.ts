@@ -1,4 +1,4 @@
-import type { StoryNode, StoryEdge, MapRenderData, MapObjectRef, MapAreaRef, LineStyle } from '../../types';
+import type { StoryNode, StoryEdge, StoryPath, MapRenderData, MapObjectRef, MapAreaRef, LineStyle, MarkerType } from '../../types';
 
 // ── Image cache ───────────────────────────────────────────────────────────────
 
@@ -19,17 +19,24 @@ export function preloadImages( urls: string[] ): void {
 // ── Draw state ────────────────────────────────────────────────────────────────
 
 export interface DrawState {
-	mapData:         MapRenderData | null;
-	mapObjects:      MapObjectRef[];
-	mapAreas:        MapAreaRef[];
-	nodes:           StoryNode[];
-	edges:           StoryEdge[];
-	selectedNodeId:  number | null;
-	edgeStartNodeId: number | null;
-	lineColor:       string;
-	lineWidth:       number;
-	lineStyle:       LineStyle;
-	lineOpacity:     number;
+	mapData:            MapRenderData | null;
+	mapObjects:         MapObjectRef[];
+	mapAreas:           MapAreaRef[];
+	nodes:              StoryNode[];
+	edges:              StoryEdge[];
+	paths:              StoryPath[];
+	selectedNodeId:     number | null;
+	edgeStartNodeId:    number | null;
+	lineColor:          string;
+	lineWidth:          number;
+	lineStyle:          LineStyle;
+	lineOpacity:        number;
+	markerColor:        string;
+	markerSize:         number;
+	markerType:         MarkerType;
+	markerIconUrl:      string;
+	markerIconOffsetX:  number;
+	markerIconOffsetY:  number;
 }
 
 // ── Main draw entry ───────────────────────────────────────────────────────────
@@ -221,7 +228,7 @@ function drawNodes( ctx: CanvasRenderingContext2D, W: number, H: number, state: 
 		const cy         = node.y * H;
 		const isSelected = node.id === state.selectedNodeId;
 		const isEdgeSrc  = node.id === state.edgeStartNodeId;
-		drawNode( ctx, cx, cy, node, isSelected, isEdgeSrc );
+		drawNode( ctx, cx, cy, node, isSelected, isEdgeSrc, state );
 	}
 }
 
@@ -231,23 +238,51 @@ function drawNode(
 	cy: number,
 	node: StoryNode,
 	isSelected: boolean,
-	isEdgeSrc: boolean
+	isEdgeSrc: boolean,
+	state: DrawState
 ): void {
 	const r           = NODE_BASE_RADIUS * node.iconSize;
 	const borderColor = node.iconBorderColor || '#000000';
 	const borderWidth = node.iconBorderWidth ?? 2;
 
-	// Selection / edge-source ring
+	// Resolve marker settings: node > path > global
+	const path        = node.pathId ? state.paths.find( ( p ) => p.id === node.pathId ) ?? null : null;
+	const markerColor = node.markerColor     ?? path?.markerColor     ?? state.markerColor;
+	const markerSize  = node.markerSize      ?? path?.markerSize      ?? state.markerSize;
+	const mOffX       = node.markerIconOffsetX ?? path?.markerIconOffsetX ?? state.markerIconOffsetX;
+	const mOffY       = node.markerIconOffsetY ?? path?.markerIconOffsetY ?? state.markerIconOffsetY;
+	const mType = node.markerType !== 'inherit'
+		? node.markerType
+		: ( path?.markerType ?? state.markerType );
+	const mIconUrl = node.markerType === 'icon'
+		? ( node.markerIconUrl || path?.markerIconUrl || state.markerIconUrl )
+		: node.markerType === 'inherit'
+			? ( path?.markerType === 'icon' ? ( path.markerIconUrl || state.markerIconUrl )
+				: ( state.markerType === 'icon' ? state.markerIconUrl : '' ) )
+			: '';
+
+	// Selection / edge-source marker
 	if ( isSelected || isEdgeSrc ) {
-		ctx.save();
-		ctx.beginPath();
-		ctx.arc( cx, cy, r + 5, 0, Math.PI * 2 );
-		ctx.strokeStyle = isEdgeSrc ? '#ffcc00' : '#00aaff';
-		ctx.lineWidth   = 3;
-		ctx.setLineDash( [] );
-		ctx.globalAlpha = 1;
-		ctx.stroke();
-		ctx.restore();
+		if ( ! isEdgeSrc && mType === 'icon' && mIconUrl ) {
+			const img = loadImage( mIconUrl );
+			if ( img.complete && img.naturalWidth ) {
+				const mR = r * 0.8;
+				ctx.save();
+				ctx.globalAlpha = 1;
+				ctx.drawImage( img, cx + mOffX - mR, cy + mOffY - mR, mR * 2, mR * 2 );
+				ctx.restore();
+			}
+		} else {
+			ctx.save();
+			ctx.beginPath();
+			ctx.arc( cx, cy, r + markerSize, 0, Math.PI * 2 );
+			ctx.strokeStyle = isEdgeSrc ? '#ffcc00' : markerColor;
+			ctx.lineWidth   = 3;
+			ctx.setLineDash( [] );
+			ctx.globalAlpha = 1;
+			ctx.stroke();
+			ctx.restore();
+		}
 	}
 
 	// ── Thumbnail ────────────────────────────────────────────────────────────

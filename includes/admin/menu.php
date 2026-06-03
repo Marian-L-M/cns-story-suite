@@ -121,7 +121,7 @@ function cns_story_suite_enqueue_admin_assets(): void {
 	wp_enqueue_script(
 		'cns-story-admin',
 		CNS_STORY_SUITE_URL . 'build/admin/index.js',
-		array_merge(['wp-color-picker'], $asset['dependencies']),
+		array_merge(['wp-color-picker', 'cns-toast'], $asset['dependencies']),
 		$asset['version'],
 		true
 	);

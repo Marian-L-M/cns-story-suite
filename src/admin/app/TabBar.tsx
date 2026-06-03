@@ -4,6 +4,7 @@ const TABS: { id: StoryTab; label: string }[] = [
 	{ id: 'settings', label: 'Settings' },
 	{ id: 'canvas',   label: 'Canvas'   },
 	{ id: 'nodes',    label: 'Nodes'    },
+	{ id: 'paths',    label: 'Paths'    },
 	{ id: 'links',    label: 'Links'    },
 ];
 

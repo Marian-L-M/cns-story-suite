@@ -1,38 +1,47 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { drawStory, drawPendingEdge, getNodeAtPoint, getEdgeAtPoint, preloadImages } from './canvas';
-import type { StoryNode, StoryEdge, MapRenderData, MapObjectRef, MapAreaRef, LineStyle } from '../../types';
+import type { StoryNode, StoryEdge, StoryPath, MapRenderData, MapObjectRef, MapAreaRef, LineStyle, MarkerType } from '../../types';
 
 interface Props {
-	mapData:         MapRenderData | null;
-	mapObjects:      MapObjectRef[];
-	mapAreas:        MapAreaRef[];
-	nodes:           StoryNode[];
-	edges:           StoryEdge[];
-	selectedNodeId:  number | null;
-	edgeStartNodeId: number | null;
-	isEdgeMode:      boolean;
-	lineColor:       string;
-	lineWidth:       number;
-	lineStyle:       LineStyle;
-	lineOpacity:     number;
-	onNodeClick:     ( nodeId: number ) => void;
-	onCanvasClick:   ( x: number, y: number ) => void;
-	onEdgeClick:     ( edgeId: number ) => void;
-	onNodeDragEnd:   ( nodeId: number, x: number, y: number ) => void;
+	mapData:           MapRenderData | null;
+	mapObjects:        MapObjectRef[];
+	mapAreas:          MapAreaRef[];
+	nodes:             StoryNode[];
+	edges:             StoryEdge[];
+	paths:             StoryPath[];
+	selectedNodeId:    number | null;
+	edgeStartNodeId:   number | null;
+	isEdgeMode:        boolean;
+	lineColor:         string;
+	lineWidth:         number;
+	lineStyle:         LineStyle;
+	lineOpacity:       number;
+	markerColor:       string;
+	markerSize:        number;
+	markerType:        MarkerType;
+	markerIconUrl:     string;
+	markerIconOffsetX: number;
+	markerIconOffsetY: number;
+	onNodeClick:       ( nodeId: number ) => void;
+	onCanvasClick:     ( x: number, y: number ) => void;
+	onEdgeClick:       ( edgeId: number ) => void;
+	onNodeDragEnd:     ( nodeId: number, x: number, y: number ) => void;
 }
 
 export default function StoryCanvas( {
 	mapData, mapObjects, mapAreas,
-	nodes, edges,
+	nodes, edges, paths,
 	selectedNodeId, edgeStartNodeId, isEdgeMode,
 	lineColor, lineWidth, lineStyle, lineOpacity,
+	markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 	onNodeClick, onCanvasClick, onEdgeClick, onNodeDragEnd,
 }: Props ) {
 	const canvasRef  = useRef< HTMLCanvasElement >( null );
 	const stateRef   = useRef( {
-		mapData, mapObjects, mapAreas, nodes, edges,
+		mapData, mapObjects, mapAreas, nodes, edges, paths,
 		selectedNodeId, edgeStartNodeId, isEdgeMode,
 		lineColor, lineWidth, lineStyle, lineOpacity,
+		markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 	} );
 	const dragging   = useRef< { nodeId: number; startX: number; startY: number } | null >( null );
 	const mousePos   = useRef< { x: number; y: number } | null >( null );
@@ -44,9 +53,10 @@ export default function StoryCanvas( {
 	// Keep stateRef current and sync cursor whenever isEdgeMode changes.
 	useEffect( () => {
 		stateRef.current = {
-			mapData, mapObjects, mapAreas, nodes, edges,
+			mapData, mapObjects, mapAreas, nodes, edges, paths,
 			selectedNodeId, edgeStartNodeId, isEdgeMode,
 			lineColor, lineWidth, lineStyle, lineOpacity,
+			markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 		};
 		if ( canvasRef.current && ! dragging.current ) {
 			canvasRef.current.style.cursor = isEdgeMode ? 'crosshair' : 'default';
@@ -59,9 +69,14 @@ export default function StoryCanvas( {
 		if ( mapData?.bgImageUrl )  urls.push( mapData.bgImageUrl );
 		if ( mapData?.imageUrl )    urls.push( mapData.imageUrl );
 		mapObjects.forEach( ( o ) => { if ( o.iconUrl ) urls.push( o.iconUrl ); } );
-		nodes.forEach( ( n ) => { if ( n.iconUrl ) urls.push( n.iconUrl ); } );
+		nodes.forEach( ( n ) => {
+			if ( n.iconUrl )         urls.push( n.iconUrl );
+			if ( n.markerIconUrl )   urls.push( n.markerIconUrl );
+		} );
+		paths.forEach( ( p ) => { if ( p.markerIconUrl ) urls.push( p.markerIconUrl ); } );
+		if ( markerIconUrl ) urls.push( markerIconUrl );
 		preloadImages( urls );
-	}, [ mapData, mapObjects, nodes ] );
+	}, [ mapData, mapObjects, nodes, paths, markerIconUrl ] );
 
 	// Render loop.
 	const render = useCallback( () => {

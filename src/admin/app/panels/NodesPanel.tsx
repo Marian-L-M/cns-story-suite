@@ -1,8 +1,9 @@
-import type { StoryNode, StoryEdge } from '../../../types';
+import type { StoryNode, StoryEdge, StoryPath } from '../../../types';
 
 interface Props {
 	nodes:          StoryNode[];
 	edges:          StoryEdge[];
+	paths:          StoryPath[];
 	startNodeId:    number | null;
 	onEditNode:     ( nodeId: number ) => void;
 	onDeleteNode:   ( nodeId: number ) => void;
@@ -17,10 +18,11 @@ function getDisplayTitle( node: StoryNode ): string {
 }
 
 export default function NodesPanel( {
-	nodes, edges, startNodeId,
+	nodes, edges, paths, startNodeId,
 	onEditNode, onDeleteNode, onSetStartNode,
 	onEdgeReorder, onEdgeDelete, onEditEdge,
 }: Props ) {
+	const pathMap = new Map( paths.map( ( p ) => [ p.id, p ] ) );
 	if ( ! nodes.length ) {
 		return (
 			<div className="cns-panel">
@@ -73,6 +75,18 @@ export default function NodesPanel( {
 									{ node.id === startNodeId && (
 										<span className="cns-badge cns-badge--featured" style={ { marginLeft: 6 } }>
 											Start
+										</span>
+									) }
+									{ node.pathId && pathMap.has( node.pathId ) && (
+										<span className="cns-badge" style={ {
+											marginLeft: 6,
+											background: pathMap.get( node.pathId )!.markerColor,
+											color: '#fff',
+											fontSize: 10,
+											padding: '1px 5px',
+											borderRadius: 10,
+										} }>
+											{ pathMap.get( node.pathId )!.label || `Path #${ node.pathId }` }
 										</span>
 									) }
 								</td>

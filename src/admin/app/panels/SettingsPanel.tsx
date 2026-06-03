@@ -1,5 +1,6 @@
 import type { StorySettings } from '../../../types';
 import MapPicker from '../shared/MapPicker';
+import MarkerControls from '../shared/MarkerControls';
 
 interface Props {
 	settings:     StorySettings;
@@ -78,6 +79,20 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 					</tr>
 
 					<tr>
+						<th scope="row"><label htmlFor="story-description">Description</label></th>
+						<td>
+							<textarea
+								id="story-description"
+								className="large-text"
+								rows={ 3 }
+								value={ settings.description }
+								onChange={ ( e ) => set( 'description', e.target.value ) }
+							/>
+							<p className="description">Short summary shown in story listings.</p>
+						</td>
+					</tr>
+
+					<tr>
 						<th scope="row"><label>Map</label></th>
 						<td>
 							<MapPicker
@@ -87,6 +102,25 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 							/>
 							<p className="description">
 								The story canvas overlays this map. Objects and areas are shown read-only.
+							</p>
+						</td>
+					</tr>
+
+					<tr>
+						<th scope="row">Active node marker</th>
+						<td>
+							<MarkerControls
+								markerType={ settings.markerType }
+								markerColor={ settings.markerColor }
+								markerSize={ settings.markerSize }
+								markerIconId={ settings.markerIconId }
+								markerIconUrl={ settings.markerIconUrl }
+								markerIconOffsetX={ settings.markerIconOffsetX }
+								markerIconOffsetY={ settings.markerIconOffsetY }
+								onChange={ ( updates ) => onChange( { ...settings, ...updates } ) }
+							/>
+							<p className="description" style={ { marginTop: 8 } }>
+								Global default. Overridden per-path and per-node.
 							</p>
 						</td>
 					</tr>

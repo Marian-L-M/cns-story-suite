@@ -13,10 +13,28 @@ function cns_story_suite_create_tables(): void {
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+	// Story paths: named node groups with shared marker settings.
+	dbDelta("CREATE TABLE {$wpdb->prefix}cns_story_paths (
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		story_id BIGINT UNSIGNED NOT NULL,
+		label VARCHAR(255) NOT NULL DEFAULT '',
+		sort_order INT NOT NULL DEFAULT 0,
+		marker_color VARCHAR(7) NOT NULL DEFAULT '#00aaff',
+		marker_size FLOAT NOT NULL DEFAULT 5.0,
+		marker_type VARCHAR(10) NOT NULL DEFAULT 'ring',
+		marker_icon_id BIGINT UNSIGNED NULL DEFAULT NULL,
+		marker_icon_offset_x FLOAT NOT NULL DEFAULT 0.0,
+		marker_icon_offset_y FLOAT NOT NULL DEFAULT -30.0,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id),
+		KEY idx_story_id (story_id)
+	) $charset_collate;");
+
 	// Story nodes: one row per canvas node, optionally linked to a substory post.
 	dbDelta("CREATE TABLE {$wpdb->prefix}cns_story_nodes (
 		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 		story_id BIGINT UNSIGNED NOT NULL,
+		path_id BIGINT UNSIGNED NULL DEFAULT NULL,
 		substory_id BIGINT UNSIGNED NULL DEFAULT NULL,
 		title_override VARCHAR(255) NULL DEFAULT NULL,
 		excerpt_override TEXT NULL DEFAULT NULL,
@@ -30,10 +48,17 @@ function cns_story_suite_create_tables(): void {
 		icon_border_width FLOAT NOT NULL DEFAULT 2.0,
 		icon_bg_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',
 		icon_bg_shape VARCHAR(10) NOT NULL DEFAULT 'none',
+		marker_type VARCHAR(10) NOT NULL DEFAULT 'inherit',
+		marker_icon_id BIGINT UNSIGNED NULL DEFAULT NULL,
+		marker_color VARCHAR(7) NULL DEFAULT NULL,
+		marker_size FLOAT NULL DEFAULT NULL,
+		marker_icon_offset_x FLOAT NULL DEFAULT NULL,
+		marker_icon_offset_y FLOAT NULL DEFAULT NULL,
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		PRIMARY KEY (id),
 		KEY idx_story_id (story_id),
+		KEY idx_path_id (path_id),
 		KEY idx_substory_id (substory_id)
 	) $charset_collate;");
 

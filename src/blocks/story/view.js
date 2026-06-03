@@ -14,6 +14,68 @@ function loadImg( url ) {
 	return img;
 }
 
+// ── Infobox drawer (shared / reuses map drawer element if present) ────────────
+
+function escHtml( str ) {
+	return String( str )
+		.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' )
+		.replace( />/g, '&gt;' ).replace( /"/g, '&quot;' );
+}
+
+function getOrCreateDrawer() {
+	let drawer = document.getElementById( 'cns-map-drawer' );
+	if ( ! drawer ) {
+		drawer = document.createElement( 'div' );
+		drawer.id        = 'cns-map-drawer';
+		drawer.className = 'cns-map-drawer';
+		drawer.setAttribute( 'role', 'dialog' );
+		drawer.setAttribute( 'aria-modal', 'true' );
+		drawer.innerHTML =
+			'<div class="cns-map-drawer__backdrop"></div>' +
+			'<div class="cns-map-drawer__panel">' +
+				'<div class="cns-map-drawer__header">' +
+					'<button class="cns-map-drawer__close" aria-label="Close">&times;</button>' +
+				'</div>' +
+				'<div class="cns-map-drawer__body"></div>' +
+			'</div>';
+		document.body.appendChild( drawer );
+		drawer.querySelector( '.cns-map-drawer__backdrop' ).addEventListener( 'click', () => {
+			drawer.classList.remove( 'is-open' );
+			document.body.classList.remove( 'cns-map-drawer-open' );
+		} );
+		drawer.querySelector( '.cns-map-drawer__close' ).addEventListener( 'click', () => {
+			drawer.classList.remove( 'is-open' );
+			document.body.classList.remove( 'cns-map-drawer-open' );
+		} );
+		document.addEventListener( 'keydown', ( e ) => {
+			if ( e.key === 'Escape' && drawer.classList.contains( 'is-open' ) ) {
+				drawer.classList.remove( 'is-open' );
+				document.body.classList.remove( 'cns-map-drawer-open' );
+			}
+		} );
+	}
+	return drawer;
+}
+
+function showInfobox( item ) {
+	const drawer   = getOrCreateDrawer();
+	const body     = drawer.querySelector( '.cns-map-drawer__body' );
+	const resolved = item.infoboxResolved || {};
+	const title    = resolved.title    || item.title || '';
+	const content  = resolved.content  || '';
+	const imgUrl   = resolved.imageUrl || '';
+	const postUrl  = resolved.postUrl  || '';
+	let html = '';
+	if ( imgUrl  ) html += '<img class="cns-map-drawer__image" src="' + encodeURI( imgUrl ) + '" alt="" />';
+	if ( title   ) html += '<h2 class="cns-map-drawer__title">' + escHtml( title ) + '</h2>';
+	if ( content ) html += '<div class="cns-map-drawer__content">' + content + '</div>';
+	if ( postUrl ) html += '<a class="cns-map-drawer__link" href="' + encodeURI( postUrl ) + '">View full post &rarr;</a>';
+	body.innerHTML = html;
+	drawer.classList.add( 'is-open' );
+	document.body.classList.add( 'cns-map-drawer-open' );
+	drawer.querySelector( '.cns-map-drawer__close' ).focus();
+}
+
 // ── Path numbering (mirrors CanvasNodeList algorithm) ─────────────────────────
 
 /**
@@ -245,8 +307,38 @@ function drawStory( canvas, data, activeNodeId ) {
 		const borderWidth = node.iconBorderWidth ?? 2;
 
 		if ( isActive ) {
-			ctx.save(); ctx.beginPath(); ctx.arc( cx, cy, r + 5, 0, Math.PI * 2 );
-			ctx.strokeStyle = '#00aaff'; ctx.lineWidth = 3; ctx.setLineDash( [] ); ctx.globalAlpha = 1; ctx.stroke(); ctx.restore();
+			// Cascade: node > path > global
+			const story   = data.story;
+			const pathMap = data._pathMap;
+			const path    = node.pathId ? pathMap.get( node.pathId ) : null;
+
+			const mColor = node.markerColor     ?? path?.markerColor     ?? story.markerColor ?? '#00aaff';
+			const mSize  = node.markerSize      ?? path?.markerSize      ?? story.markerSize  ?? 5;
+			const mOffX  = node.markerIconOffsetX ?? path?.markerIconOffsetX ?? story.markerIconOffsetX ?? 0;
+			const mOffY  = node.markerIconOffsetY ?? path?.markerIconOffsetY ?? story.markerIconOffsetY ?? -30;
+			const mType  = node.markerType !== 'inherit'
+				? node.markerType
+				: ( path?.markerType ?? story.markerType ?? 'ring' );
+			const mIconUrl = node.markerType === 'icon'
+				? ( node.markerIconUrl || path?.markerIconUrl || story.markerIconUrl )
+				: node.markerType === 'inherit'
+					? ( path?.markerType === 'icon' ? ( path.markerIconUrl || story.markerIconUrl )
+						: ( story.markerType === 'icon' ? story.markerIconUrl : '' ) )
+					: '';
+
+			if ( mType === 'icon' && mIconUrl ) {
+				const mImg = loadImg( mIconUrl );
+				if ( mImg.complete && mImg.naturalWidth ) {
+					const mR = r * 0.8;
+					ctx.save();
+					ctx.globalAlpha = 1;
+					ctx.drawImage( mImg, cx + mOffX - mR, cy + mOffY - mR, mR * 2, mR * 2 );
+					ctx.restore();
+				}
+			} else {
+				ctx.save(); ctx.beginPath(); ctx.arc( cx, cy, r + mSize, 0, Math.PI * 2 );
+				ctx.strokeStyle = mColor; ctx.lineWidth = 3; ctx.setLineDash( [] ); ctx.globalAlpha = 1; ctx.stroke(); ctx.restore();
+			}
 		}
 
 		// ── Thumbnail ──────────────────────────────────────────────────────
@@ -429,6 +521,9 @@ function initBlock( blockEl ) {
 	canvas.height = canH;
 	canvas.style.cssText = 'max-width:100%;height:auto;display:block;';
 
+	// Build a Map of pathId → path for O(1) lookup during drawing.
+	data._pathMap = new Map( ( data.paths ?? [] ).map( ( p ) => [ p.id, p ] ) );
+
 	let activeNodeId = data.story.startNodeId ?? ( data.nodes[ 0 ]?.id ?? null );
 	const expandedIds = new Set();
 
@@ -440,22 +535,60 @@ function initBlock( blockEl ) {
 	if ( m?.bgImageUrl ) urls.push( m.bgImageUrl );
 	if ( m?.imageUrl   ) urls.push( m.imageUrl   );
 	( m?.objects ?? [] ).forEach( ( o ) => { if ( o.iconUrl ) urls.push( o.iconUrl ); } );
+	if ( data.story.markerIconUrl ) urls.push( data.story.markerIconUrl );
+	( data.paths ?? [] ).forEach( ( p ) => { if ( p.markerIconUrl ) urls.push( p.markerIconUrl ); } );
 	data.nodes.forEach( ( n ) => {
 		if ( n.iconUrl ) urls.push( n.iconUrl );
 		if ( n.substoryThumbnailUrl ) urls.push( n.substoryThumbnailUrl );
+		if ( n.markerIconUrl ) urls.push( n.markerIconUrl );
 	} );
 
 	requestAnimationFrame( function loop() { redraw(); requestAnimationFrame( loop ); } );
 
 	urls.forEach( ( url ) => { loadImg( url ); } );
 
-	// Canvas click — select node.
+	// Canvas click — check map objects/areas first, then select story node.
 	canvas.addEventListener( 'click', ( e ) => {
 		const rect   = canvas.getBoundingClientRect();
 		const scaleX = canvas.width  / rect.width;
 		const scaleY = canvas.height / rect.height;
 		const mx = ( e.clientX - rect.left ) * scaleX;
 		const my = ( e.clientY - rect.top  ) * scaleY;
+
+		if ( m?.objects ) {
+			const mapW = m.width;
+			const mapH = mapW * m.aspectRatio;
+			for ( const obj of m.objects ) {
+				if ( ! obj.infoboxResolved ) continue;
+				const cx   = ( obj.x / mapW ) * canvas.width;
+				const cy   = ( obj.y / mapH ) * canvas.height;
+				const r    = ( ( obj.canvasStyles?.size ?? 32 ) * ( canvas.width / mapW ) ) / 2;
+				if ( ( mx - cx ) ** 2 + ( my - cy ) ** 2 <= r ** 2 ) {
+					showInfobox( obj );
+					return;
+				}
+			}
+		}
+
+		if ( m?.areas ) {
+			const ctx2 = canvas.getContext( '2d' );
+			for ( const area of m.areas ) {
+				if ( ! area.infoboxResolved ) continue;
+				const pts = area.nodes;
+				if ( pts.length < 2 ) continue;
+				ctx2.beginPath();
+				ctx2.moveTo( pts[ 0 ].x * canvas.width, pts[ 0 ].y * canvas.height );
+				for ( let i = 1; i < pts.length; i++ ) {
+					ctx2.lineTo( pts[ i ].x * canvas.width, pts[ i ].y * canvas.height );
+				}
+				ctx2.closePath();
+				if ( ctx2.isPointInPath( mx, my ) ) {
+					showInfobox( area );
+					return;
+				}
+			}
+		}
+
 		const BASE_R = 14;
 		for ( let i = data.nodes.length - 1; i >= 0; i-- ) {
 			const n = data.nodes[ i ];

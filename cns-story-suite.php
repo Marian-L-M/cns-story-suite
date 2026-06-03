@@ -19,7 +19,7 @@ if (! defined('ABSPATH')) {
 }
 
 define('CNS_STORY_SUITE_VERSION',    '0.1.0');
-define('CNS_STORY_SUITE_DB_VERSION', '1.1.0');
+define('CNS_STORY_SUITE_DB_VERSION', '1.3.0');
 define('CNS_STORY_SUITE_DIR',        plugin_dir_path(__FILE__));
 define('CNS_STORY_SUITE_URL',        plugin_dir_url(__FILE__));
 define('CNS_STORY_SUITE_BASENAME',   plugin_basename(__FILE__));

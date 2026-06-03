@@ -96,6 +96,32 @@ function cns_story_suite_register_routes(): void {
 		'callback'            => 'cns_story_suite_api_delete_link',
 		'permission_callback' => 'cns_story_suite_api_can_manage',
 	]);
+
+	register_rest_route($ns, '/stories/(?P<id>\d+)/paths', [
+		[
+			'methods'             => 'GET',
+			'callback'            => 'cns_story_suite_api_get_paths',
+			'permission_callback' => 'cns_story_suite_api_can_manage',
+		],
+		[
+			'methods'             => 'POST',
+			'callback'            => 'cns_story_suite_api_create_path',
+			'permission_callback' => 'cns_story_suite_api_can_manage',
+		],
+	]);
+
+	register_rest_route($ns, '/paths/(?P<id>\d+)', [
+		[
+			'methods'             => 'PATCH',
+			'callback'            => 'cns_story_suite_api_update_path',
+			'permission_callback' => 'cns_story_suite_api_can_manage',
+		],
+		[
+			'methods'             => 'DELETE',
+			'callback'            => 'cns_story_suite_api_delete_path',
+			'permission_callback' => 'cns_story_suite_api_can_manage',
+		],
+	]);
 }
 
 function cns_story_suite_api_can_manage(): bool {
@@ -120,10 +146,30 @@ function cns_story_suite_resolve_icon_url(int $icon_id): string {
 	return (string) (wp_get_attachment_url($icon_id) ?: '');
 }
 
+function cns_story_suite_format_path(array $row): array {
+	$icon_url = !empty($row['marker_icon_id'])
+		? (wp_get_attachment_url((int) $row['marker_icon_id']) ?: '')
+		: '';
+	return [
+		'id'                => (int) $row['id'],
+		'storyId'           => (int) $row['story_id'],
+		'label'             => $row['label'],
+		'sortOrder'         => (int) $row['sort_order'],
+		'markerColor'       => $row['marker_color'],
+		'markerSize'        => (float) $row['marker_size'],
+		'markerType'        => $row['marker_type'],
+		'markerIconId'      => !empty($row['marker_icon_id']) ? (int) $row['marker_icon_id'] : null,
+		'markerIconUrl'     => $icon_url,
+		'markerIconOffsetX' => (float) ($row['marker_icon_offset_x'] ?? 0.0),
+		'markerIconOffsetY' => (float) ($row['marker_icon_offset_y'] ?? -30.0),
+	];
+}
+
 function cns_story_suite_format_node(array $row): array {
 	$node = [
 		'id'               => (int) $row['id'],
 		'storyId'          => (int) $row['story_id'],
+		'pathId'           => !empty($row['path_id']) ? (int) $row['path_id'] : null,
 		'substoryId'       => $row['substory_id'] ? (int) $row['substory_id'] : null,
 		'titleOverride'    => $row['title_override'],
 		'excerptOverride'  => $row['excerpt_override'],
@@ -138,6 +184,13 @@ function cns_story_suite_format_node(array $row): array {
 		'iconBorderWidth'  => (float) ($row['icon_border_width'] ?? 2.0),
 		'iconBgColor'      => $row['icon_bg_color'] ?? '#ffffff',
 		'iconBgShape'      => $row['icon_bg_shape'] ?? 'none',
+		'markerType'       => $row['marker_type'] ?? 'inherit',
+		'markerIconId'     => !empty($row['marker_icon_id']) ? (int) $row['marker_icon_id'] : null,
+		'markerIconUrl'    => !empty($row['marker_icon_id']) ? cns_story_suite_resolve_icon_url((int) $row['marker_icon_id']) : null,
+		'markerColor'      => isset($row['marker_color'])        ? ($row['marker_color'] ?: null) : null,
+		'markerSize'       => isset($row['marker_size'])         ? ($row['marker_size'] !== null ? (float) $row['marker_size'] : null) : null,
+		'markerIconOffsetX' => isset($row['marker_icon_offset_x']) ? ($row['marker_icon_offset_x'] !== null ? (float) $row['marker_icon_offset_x'] : null) : null,
+		'markerIconOffsetY' => isset($row['marker_icon_offset_y']) ? ($row['marker_icon_offset_y'] !== null ? (float) $row['marker_icon_offset_y'] : null) : null,
 		'createdAt'        => $row['created_at'],
 		'substoryTitle'         => null,
 		'substoryExcerpt'       => null,
@@ -257,16 +310,23 @@ function cns_story_suite_get_map_render_data(int $map_id): ?array {
 // ── Story endpoints ───────────────────────────────────────────────────────────
 
 function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|WP_Error {
-	$story_id     = (int)    ($req->get_param('story_id')    ?? 0);
-	$title        = (string) ($req->get_param('title')       ?? '');
-	$status       = (string) ($req->get_param('status')      ?? 'draft');
-	$map_id       = (int)    ($req->get_param('map_id')      ?? 0);
-	$line_color   = (string) ($req->get_param('line_color')  ?? '#ffffff');
-	$line_width   = (float)  ($req->get_param('line_width')  ?? 3.0);
-	$line_style   = (string) ($req->get_param('line_style')  ?? 'solid');
-	$line_opacity = (float)  ($req->get_param('line_opacity') ?? 1.0);
-	$start_node   = $req->get_param('start_node_id');
-	$thumbnail_id = (int)    ($req->get_param('thumbnail_id') ?? 0);
+	$story_id        = (int)    ($req->get_param('story_id')       ?? 0);
+	$title           = (string) ($req->get_param('title')          ?? '');
+	$description     = (string) ($req->get_param('description')    ?? '');
+	$status          = (string) ($req->get_param('status')         ?? 'draft');
+	$map_id          = (int)    ($req->get_param('map_id')         ?? 0);
+	$line_color      = (string) ($req->get_param('line_color')     ?? '#ffffff');
+	$line_width      = (float)  ($req->get_param('line_width')     ?? 3.0);
+	$line_style      = (string) ($req->get_param('line_style')     ?? 'solid');
+	$line_opacity    = (float)  ($req->get_param('line_opacity')   ?? 1.0);
+	$start_node      = $req->get_param('start_node_id');
+	$thumbnail_id    = (int)    ($req->get_param('thumbnail_id')   ?? 0);
+	$marker_color      = (string) ($req->get_param('marker_color')          ?? '#00aaff');
+	$marker_size       = (float)  ($req->get_param('marker_size')           ?? 5.0);
+	$marker_type       = (string) ($req->get_param('marker_type')           ?? 'ring');
+	$marker_icon_id    = (int)    ($req->get_param('marker_icon_id')        ?? 0);
+	$marker_icon_off_x = (float)  ($req->get_param('marker_icon_offset_x') ?? 0.0);
+	$marker_icon_off_y = (float)  ($req->get_param('marker_icon_offset_y') ?? -30.0);
 
 	$allowed_statuses = ['publish', 'draft', 'private'];
 	if (! in_array($status, $allowed_statuses, true)) {
@@ -278,10 +338,14 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 		$line_style = 'solid';
 	}
 
+	$allowed_marker_types = ['ring', 'icon'];
+	if (! in_array($marker_type, $allowed_marker_types, true)) $marker_type = 'ring';
+
 	$post_data = [
-		'post_title'  => sanitize_text_field($title),
-		'post_status' => $status,
-		'post_type'   => 'cns_story',
+		'post_title'   => sanitize_text_field($title),
+		'post_excerpt' => sanitize_textarea_field($description),
+		'post_status'  => $status,
+		'post_type'    => 'cns_story',
 	];
 
 	$is_new = (! $story_id);
@@ -300,11 +364,17 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 		wp_update_post($post_data);
 	}
 
-	update_post_meta($story_id, '_cns_story_map_id',        $map_id);
-	update_post_meta($story_id, '_cns_story_line_color',    sanitize_hex_color($line_color) ?: '#ffffff');
-	update_post_meta($story_id, '_cns_story_line_width',    max(0.5, min(20.0, $line_width)));
-	update_post_meta($story_id, '_cns_story_line_style',    $line_style);
-	update_post_meta($story_id, '_cns_story_line_opacity',  max(0.0, min(1.0, $line_opacity)));
+	update_post_meta($story_id, '_cns_story_map_id',             $map_id);
+	update_post_meta($story_id, '_cns_story_line_color',         sanitize_hex_color($line_color) ?: '#ffffff');
+	update_post_meta($story_id, '_cns_story_line_width',         max(0.5, min(20.0, $line_width)));
+	update_post_meta($story_id, '_cns_story_line_style',         $line_style);
+	update_post_meta($story_id, '_cns_story_line_opacity',       max(0.0, min(1.0, $line_opacity)));
+	update_post_meta($story_id, '_cns_story_marker_color',          sanitize_hex_color($marker_color) ?: '#00aaff');
+	update_post_meta($story_id, '_cns_story_marker_size',           max(0.0, min(30.0, $marker_size)));
+	update_post_meta($story_id, '_cns_story_marker_type',           $marker_type);
+	update_post_meta($story_id, '_cns_story_marker_icon_id',        $marker_icon_id);
+	update_post_meta($story_id, '_cns_story_marker_icon_offset_x',  $marker_icon_off_x);
+	update_post_meta($story_id, '_cns_story_marker_icon_offset_y',  $marker_icon_off_y);
 
 	if ($start_node !== null) {
 		update_post_meta($story_id, '_cns_story_start_node_id', (int) $start_node);
@@ -345,12 +415,23 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 		return new WP_Error('not_found', __('Story not found.', 'cns-story-suite'), ['status' => 404]);
 	}
 
-	$map_id       = (int)    get_post_meta($story_id, '_cns_story_map_id', true);
-	$line_color   = (string) (get_post_meta($story_id, '_cns_story_line_color', true)   ?: '#ffffff');
-	$line_width   = (float)  (get_post_meta($story_id, '_cns_story_line_width', true)   ?: 3.0);
-	$line_style   = (string) (get_post_meta($story_id, '_cns_story_line_style', true)   ?: 'solid');
-	$line_opacity = (float)  (get_post_meta($story_id, '_cns_story_line_opacity', true) ?: 1.0);
-	$start_node   = (int)    get_post_meta($story_id, '_cns_story_start_node_id', true);
+	$map_id             = (int)    get_post_meta($story_id, '_cns_story_map_id', true);
+	$line_color         = (string) (get_post_meta($story_id, '_cns_story_line_color', true)         ?: '#ffffff');
+	$line_width         = (float)  (get_post_meta($story_id, '_cns_story_line_width', true)         ?: 3.0);
+	$line_style         = (string) (get_post_meta($story_id, '_cns_story_line_style', true)         ?: 'solid');
+	$line_opacity       = (float)  (get_post_meta($story_id, '_cns_story_line_opacity', true)       ?: 1.0);
+	$start_node         = (int)    get_post_meta($story_id, '_cns_story_start_node_id', true);
+	$marker_color      = (string) (get_post_meta($story_id, '_cns_story_marker_color', true)          ?: '#00aaff');
+	$marker_size       = (float)  (get_post_meta($story_id, '_cns_story_marker_size', true)           ?: 5.0);
+	$marker_type       = (string) (get_post_meta($story_id, '_cns_story_marker_type', true)           ?: 'ring');
+	$marker_icon_id_v  = (int)    get_post_meta($story_id, '_cns_story_marker_icon_id', true);
+	$marker_icon_url   = $marker_icon_id_v ? (wp_get_attachment_url($marker_icon_id_v) ?: '') : '';
+	// X/Y offsets — fall back to legacy single-axis key for backward compat.
+	$legacy_off        = (float) (get_post_meta($story_id, '_cns_story_marker_icon_offset', true) ?: 0.0);
+	$marker_off_x_raw  = get_post_meta($story_id, '_cns_story_marker_icon_offset_x', true);
+	$marker_off_y_raw  = get_post_meta($story_id, '_cns_story_marker_icon_offset_y', true);
+	$marker_icon_off_x = $marker_off_x_raw !== '' && $marker_off_x_raw !== false ? (float) $marker_off_x_raw : 0.0;
+	$marker_icon_off_y = $marker_off_y_raw !== '' && $marker_off_y_raw !== false ? (float) $marker_off_y_raw : ($legacy_off ?: -30.0);
 
 	$raw_nodes = $wpdb->get_results(
 		$wpdb->prepare(
@@ -374,6 +455,15 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 
 	$map_data = $map_id ? cns_story_suite_get_map_render_data($map_id) : null;
 
+	$raw_paths = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
+			$story_id
+		),
+		ARRAY_A
+	) ?: [];
+	$paths = array_map('cns_story_suite_format_path', $raw_paths);
+
 	$view_url = in_array($story->post_status, ['publish', 'private'], true)
 		? (string) (get_permalink($story_id) ?: '')
 		: '';
@@ -385,23 +475,32 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 
 	return new WP_REST_Response([
 		'story' => [
-			'id'           => $story_id,
-			'title'        => $story->post_title,
-			'status'       => $story->post_status,
-			'mapId'        => $map_id ?: null,
-			'mapTitle'     => $map_data ? $map_data['title'] : '',
-			'lineColor'    => $line_color,
-			'lineWidth'    => $line_width,
-			'lineStyle'    => $line_style,
-			'lineOpacity'  => $line_opacity,
-			'startNodeId'  => $start_node ?: null,
-			'viewUrl'      => $view_url,
-			'thumbnailId'  => $thumb_id ?: null,
-			'thumbnailUrl' => $thumb_url,
+			'id'               => $story_id,
+			'title'            => $story->post_title,
+			'description'      => $story->post_excerpt,
+			'status'           => $story->post_status,
+			'mapId'            => $map_id ?: null,
+			'mapTitle'         => $map_data ? $map_data['title'] : '',
+			'lineColor'        => $line_color,
+			'lineWidth'        => $line_width,
+			'lineStyle'        => $line_style,
+			'lineOpacity'      => $line_opacity,
+			'startNodeId'      => $start_node ?: null,
+			'viewUrl'          => $view_url,
+			'thumbnailId'      => $thumb_id ?: null,
+			'thumbnailUrl'     => $thumb_url,
+			'markerColor'       => $marker_color,
+			'markerSize'        => $marker_size,
+			'markerType'        => $marker_type,
+			'markerIconId'      => $marker_icon_id_v ?: null,
+			'markerIconUrl'     => $marker_icon_url,
+			'markerIconOffsetX' => $marker_icon_off_x,
+			'markerIconOffsetY' => $marker_icon_off_y,
 		],
 		'mapData' => $map_data,
 		'nodes'   => $nodes,
 		'edges'   => $edges,
+		'paths'   => $paths,
 	], 200);
 }
 
@@ -458,37 +557,54 @@ function cns_story_suite_api_create_node(WP_REST_Request $req): WP_REST_Response
 	$icon_size        = (float)  ($req->get_param('icon_size')        ?? 1.0);
 	$icon_border_color = (string) ($req->get_param('icon_border_color') ?? '#000000');
 	$icon_border_width = (float)  ($req->get_param('icon_border_width') ?? 2.0);
-	$icon_bg_color    = (string) ($req->get_param('icon_bg_color')    ?? '#ffffff');
-	$icon_bg_shape    = (string) ($req->get_param('icon_bg_shape')    ?? 'none');
-	$substory_id      = (int)    ($req->get_param('substory_id')      ?? 0);
-	$title_ov         = $req->get_param('title_override');
-	$excerpt_ov       = $req->get_param('excerpt_override');
+	$icon_bg_color     = (string) ($req->get_param('icon_bg_color')    ?? '#ffffff');
+	$icon_bg_shape     = (string) ($req->get_param('icon_bg_shape')    ?? 'none');
+	$path_id           = (int)    ($req->get_param('path_id')         ?? 0);
+	$node_marker_type  = (string) ($req->get_param('marker_type')      ?? 'inherit');
+	$node_marker_icon  = (int)    ($req->get_param('marker_icon_id')   ?? 0);
+	$node_marker_color = $req->get_param('marker_color');
+	$node_marker_size  = $req->get_param('marker_size');
+	$node_off_x        = $req->get_param('marker_icon_offset_x');
+	$node_off_y        = $req->get_param('marker_icon_offset_y');
+	$substory_id       = (int)    ($req->get_param('substory_id')      ?? 0);
+	$title_ov          = $req->get_param('title_override');
+	$excerpt_ov        = $req->get_param('excerpt_override');
 
-	$allowed_icon_types = ['round', 'square', 'icon', 'thumbnail', 'diamond'];
+	$allowed_icon_types   = ['round', 'square', 'icon', 'thumbnail', 'diamond'];
 	if (! in_array($icon_type, $allowed_icon_types, true)) $icon_type = 'round';
 
-	$allowed_bg_shapes = ['none', 'round', 'square'];
+	$allowed_bg_shapes    = ['none', 'round', 'square'];
 	if (! in_array($icon_bg_shape, $allowed_bg_shapes, true)) $icon_bg_shape = 'none';
+
+	$allowed_marker_types = ['inherit', 'ring', 'icon'];
+	if (! in_array($node_marker_type, $allowed_marker_types, true)) $node_marker_type = 'inherit';
 
 	$wpdb->insert(
 		$wpdb->prefix . 'cns_story_nodes',
 		[
-			'story_id'          => $story_id,
-			'substory_id'       => $substory_id ?: null,
-			'title_override'    => $title_ov  ? sanitize_text_field($title_ov)  : null,
-			'excerpt_override'  => $excerpt_ov ? sanitize_textarea_field($excerpt_ov) : null,
-			'x'                 => max(0.0, min(1.0, $x)),
-			'y'                 => max(0.0, min(1.0, $y)),
-			'icon_type'         => $icon_type,
-			'icon_id'           => $icon_id ?: null,
-			'icon_color'        => sanitize_hex_color($icon_color) ?: '#ffffff',
-			'icon_size'         => max(0.25, min(4.0, $icon_size)),
-			'icon_border_color' => sanitize_hex_color($icon_border_color) ?: '#000000',
-			'icon_border_width' => max(0.0, min(20.0, $icon_border_width)),
-			'icon_bg_color'     => sanitize_hex_color($icon_bg_color) ?: '#ffffff',
-			'icon_bg_shape'     => $icon_bg_shape,
+			'story_id'             => $story_id,
+			'path_id'              => $path_id ?: null,
+			'substory_id'          => $substory_id ?: null,
+			'title_override'       => $title_ov  ? sanitize_text_field($title_ov)  : null,
+			'excerpt_override'     => $excerpt_ov ? sanitize_textarea_field($excerpt_ov) : null,
+			'x'                    => max(0.0, min(1.0, $x)),
+			'y'                    => max(0.0, min(1.0, $y)),
+			'icon_type'            => $icon_type,
+			'icon_id'              => $icon_id ?: null,
+			'icon_color'           => sanitize_hex_color($icon_color) ?: '#ffffff',
+			'icon_size'            => max(0.25, min(4.0, $icon_size)),
+			'icon_border_color'    => sanitize_hex_color($icon_border_color) ?: '#000000',
+			'icon_border_width'    => max(0.0, min(20.0, $icon_border_width)),
+			'icon_bg_color'        => sanitize_hex_color($icon_bg_color) ?: '#ffffff',
+			'icon_bg_shape'        => $icon_bg_shape,
+			'marker_type'          => $node_marker_type,
+			'marker_icon_id'       => $node_marker_icon ?: null,
+			'marker_color'         => ($node_marker_color !== null) ? (sanitize_hex_color($node_marker_color) ?: null) : null,
+			'marker_size'          => ($node_marker_size !== null)  ? max(0.0, min(30.0, (float) $node_marker_size)) : null,
+			'marker_icon_offset_x' => ($node_off_x !== null) ? (float) $node_off_x : null,
+			'marker_icon_offset_y' => ($node_off_y !== null) ? (float) $node_off_y : null,
 		],
-		['%d', '%d', '%s', '%s', '%f', '%f', '%s', '%d', '%s', '%f', '%s', '%f', '%s', '%s']
+		['%d', '%d', '%d', '%s', '%s', '%f', '%f', '%s', '%d', '%s', '%f', '%s', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
 	);
 
 	$node_id = (int) $wpdb->insert_id;
@@ -570,6 +686,40 @@ function cns_story_suite_api_update_node(WP_REST_Request $req): WP_REST_Response
 	if (($v = $req->get_param('icon_bg_shape')) !== null) {
 		$allowed_shapes = ['none', 'round', 'square'];
 		$updates['icon_bg_shape'] = in_array($v, $allowed_shapes, true) ? $v : 'none';
+		$formats[] = '%s';
+	}
+	if (($v = $req->get_param('marker_type')) !== null) {
+		$allowed_mt = ['inherit', 'ring', 'icon'];
+		$updates['marker_type'] = in_array($v, $allowed_mt, true) ? $v : 'inherit';
+		$formats[] = '%s';
+	}
+	if (($v = $req->get_param('marker_icon_id')) !== null) {
+		$updates['marker_icon_id'] = (int) $v ?: null;
+		$formats[] = '%d';
+	}
+	if (($v = $req->get_param('path_id')) !== null) {
+		$updates['path_id'] = (int) $v ?: null;
+		$formats[] = '%d';
+	}
+	// marker_color: explicitly null = clear override; string = set override.
+	if ($req->has_param('marker_color')) {
+		$v = $req->get_param('marker_color');
+		$updates['marker_color'] = ($v !== null && $v !== '') ? (sanitize_hex_color($v) ?: null) : null;
+		$formats[] = '%s';
+	}
+	if ($req->has_param('marker_size')) {
+		$v = $req->get_param('marker_size');
+		$updates['marker_size'] = ($v !== null && $v !== '') ? max(0.0, min(30.0, (float) $v)) : null;
+		$formats[] = '%s';
+	}
+	if ($req->has_param('marker_icon_offset_x')) {
+		$v = $req->get_param('marker_icon_offset_x');
+		$updates['marker_icon_offset_x'] = ($v !== null && $v !== '') ? (float) $v : null;
+		$formats[] = '%s';
+	}
+	if ($req->has_param('marker_icon_offset_y')) {
+		$v = $req->get_param('marker_icon_offset_y');
+		$updates['marker_icon_offset_y'] = ($v !== null && $v !== '') ? (float) $v : null;
 		$formats[] = '%s';
 	}
 
@@ -904,6 +1054,135 @@ function cns_story_suite_api_delete_link(WP_REST_Request $req): WP_REST_Response
 	$wpdb->delete($wpdb->prefix . 'cns_story_links', ['id' => $link_id], ['%d']);
 
 	return new WP_REST_Response(['deleted' => true, 'id' => $link_id], 200);
+}
+
+// ── Path endpoints ────────────────────────────────────────────────────────────
+
+function cns_story_suite_api_get_paths(WP_REST_Request $req): WP_REST_Response|WP_Error {
+	global $wpdb;
+	$story_id = (int) $req['id'];
+	$story    = get_post($story_id);
+	if (! $story || $story->post_type !== 'cns_story') {
+		return new WP_Error('not_found', __('Story not found.', 'cns-story-suite'), ['status' => 404]);
+	}
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
+			$story_id
+		),
+		ARRAY_A
+	) ?: [];
+	return new WP_REST_Response(array_map('cns_story_suite_format_path', $rows), 200);
+}
+
+function cns_story_suite_api_create_path(WP_REST_Request $req): WP_REST_Response|WP_Error {
+	global $wpdb;
+	$story_id = (int) $req['id'];
+	$story    = get_post($story_id);
+	if (! $story || $story->post_type !== 'cns_story') {
+		return new WP_Error('not_found', __('Story not found.', 'cns-story-suite'), ['status' => 404]);
+	}
+
+	$label    = sanitize_text_field($req->get_param('label') ?? '');
+	$m_color  = sanitize_hex_color($req->get_param('marker_color') ?? '#00aaff') ?: '#00aaff';
+	$m_size   = max(0.0, min(30.0, (float) ($req->get_param('marker_size') ?? 5.0)));
+	$m_type   = $req->get_param('marker_type') ?? 'ring';
+	$m_icon   = (int) ($req->get_param('marker_icon_id') ?? 0);
+	$m_off_x  = (float) ($req->get_param('marker_icon_offset_x') ?? 0.0);
+	$m_off_y  = (float) ($req->get_param('marker_icon_offset_y') ?? -30.0);
+
+	$allowed_types = ['ring', 'icon'];
+	if (! in_array($m_type, $allowed_types, true)) $m_type = 'ring';
+
+	$wpdb->insert(
+		$wpdb->prefix . 'cns_story_paths',
+		[
+			'story_id'             => $story_id,
+			'label'                => $label,
+			'marker_color'         => $m_color,
+			'marker_size'          => $m_size,
+			'marker_type'          => $m_type,
+			'marker_icon_id'       => $m_icon ?: null,
+			'marker_icon_offset_x' => $m_off_x,
+			'marker_icon_offset_y' => $m_off_y,
+		],
+		['%d', '%s', '%s', '%f', '%s', '%d', '%f', '%f']
+	);
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare("SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE id = %d", $wpdb->insert_id),
+		ARRAY_A
+	);
+	return new WP_REST_Response(cns_story_suite_format_path($row), 201);
+}
+
+function cns_story_suite_api_update_path(WP_REST_Request $req): WP_REST_Response|WP_Error {
+	global $wpdb;
+	$path_id = (int) $req['id'];
+	$row     = $wpdb->get_row(
+		$wpdb->prepare("SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE id = %d", $path_id),
+		ARRAY_A
+	);
+	if (! $row) {
+		return new WP_Error('not_found', __('Path not found.', 'cns-story-suite'), ['status' => 404]);
+	}
+
+	$updates = [];
+	$formats = [];
+
+	if (($v = $req->get_param('label')) !== null) {
+		$updates['label'] = sanitize_text_field($v);
+		$formats[] = '%s';
+	}
+	if (($v = $req->get_param('marker_color')) !== null) {
+		$updates['marker_color'] = sanitize_hex_color($v) ?: '#00aaff';
+		$formats[] = '%s';
+	}
+	if (($v = $req->get_param('marker_size')) !== null) {
+		$updates['marker_size'] = max(0.0, min(30.0, (float) $v));
+		$formats[] = '%f';
+	}
+	if (($v = $req->get_param('marker_type')) !== null) {
+		$updates['marker_type'] = in_array($v, ['ring', 'icon'], true) ? $v : 'ring';
+		$formats[] = '%s';
+	}
+	if (($v = $req->get_param('marker_icon_id')) !== null) {
+		$updates['marker_icon_id'] = (int) $v ?: null;
+		$formats[] = '%d';
+	}
+	if (($v = $req->get_param('marker_icon_offset_x')) !== null) {
+		$updates['marker_icon_offset_x'] = (float) $v;
+		$formats[] = '%f';
+	}
+	if (($v = $req->get_param('marker_icon_offset_y')) !== null) {
+		$updates['marker_icon_offset_y'] = (float) $v;
+		$formats[] = '%f';
+	}
+
+	if ($updates) {
+		$wpdb->update($wpdb->prefix . 'cns_story_paths', $updates, ['id' => $path_id], $formats, ['%d']);
+	}
+
+	$updated = $wpdb->get_row(
+		$wpdb->prepare("SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE id = %d", $path_id),
+		ARRAY_A
+	);
+	return new WP_REST_Response(cns_story_suite_format_path($updated), 200);
+}
+
+function cns_story_suite_api_delete_path(WP_REST_Request $req): WP_REST_Response|WP_Error {
+	global $wpdb;
+	$path_id = (int) $req['id'];
+	$row     = $wpdb->get_row(
+		$wpdb->prepare("SELECT id FROM {$wpdb->prefix}cns_story_paths WHERE id = %d", $path_id)
+	);
+	if (! $row) {
+		return new WP_Error('not_found', __('Path not found.', 'cns-story-suite'), ['status' => 404]);
+	}
+	// Clear path_id on any nodes that used this path.
+	$wpdb->update($wpdb->prefix . 'cns_story_nodes', ['path_id' => null], ['path_id' => $path_id], ['%d'], ['%d']);
+	$wpdb->delete($wpdb->prefix . 'cns_story_paths', ['id' => $path_id], ['%d']);
+	return new WP_REST_Response(['deleted' => true, 'id' => $path_id], 200);
 }
 
 function cns_story_suite_resolve_link_title(string $link_type, int $link_id): string {
