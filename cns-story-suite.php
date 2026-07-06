@@ -75,6 +75,7 @@ if (! defined('CNS_MAP_SUITE_VERSION')) {
 require_once CNS_STORY_SUITE_DIR . 'includes/capabilities.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/post-types.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/database.php';
+require_once CNS_STORY_SUITE_DIR . 'includes/serializers.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/admin/menu.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/admin/api.php';
 

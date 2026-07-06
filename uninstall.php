@@ -4,7 +4,7 @@
  * Runs when the plugin is deleted from the WordPress admin.
  *
  * Always removes:
- *  - Custom DB tables (story_nodes, story_edges, story_links)
+ *  - Custom DB tables (story_nodes, story_edges, story_links, story_paths)
  *  - Plugin options
  *  - manage_stories capability from all roles
  *

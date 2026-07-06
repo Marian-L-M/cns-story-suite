@@ -27,7 +27,7 @@ function cns_story_suite_register_post_types(): void {
 			'exclude_from_search' => false,
 			'has_archive'         => false,
 			'rewrite'             => ['slug' => 'stories'],
-			'supports'            => ['title', 'editor', 'excerpt', 'thumbnail', 'custom-fields', 'tags', 'categories'],
+			'supports'            => ['title', 'editor', 'excerpt', 'thumbnail', 'custom-fields'],
 			'taxonomies'          => ['post_tag', 'category'],
 			'capability_type'     => 'post',
 		]);
@@ -68,12 +68,18 @@ add_action('init', 'cns_story_suite_register_post_types');
 
 function cns_story_suite_register_post_meta(): void {
 	$story_fields = [
-		'_cns_story_map_id'       => 'integer',
-		'_cns_story_line_color'   => 'string',
-		'_cns_story_line_width'   => 'number',
-		'_cns_story_line_style'   => 'string',
-		'_cns_story_line_opacity' => 'number',
+		'_cns_story_map_id'        => 'integer',
+		'_cns_story_line_color'    => 'string',
+		'_cns_story_line_width'    => 'number',
+		'_cns_story_line_style'    => 'string',
+		'_cns_story_line_opacity'  => 'number',
 		'_cns_story_start_node_id' => 'integer',
+		'_cns_story_marker_color'          => 'string',
+		'_cns_story_marker_size'           => 'number',
+		'_cns_story_marker_type'           => 'string',
+		'_cns_story_marker_icon_id'        => 'integer',
+		'_cns_story_marker_icon_offset_x'  => 'number',
+		'_cns_story_marker_icon_offset_y'  => 'number',
 	];
 
 	foreach ($story_fields as $key => $type) {

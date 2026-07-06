@@ -19,6 +19,15 @@ if (! $story || $story->post_type !== 'cns_story') {
 	return '';
 }
 
+// Respect post status: private requires read_private_posts; draft/pending only
+// visible to story managers. Mirrors the gate in cns-map-suite's map render.php.
+if ($story->post_status === 'private' && ! current_user_can('read_private_posts')) {
+	return '';
+}
+if (! in_array($story->post_status, ['publish', 'private'], true) && ! current_user_can('manage_stories')) {
+	return '';
+}
+
 global $wpdb;
 
 $map_id           = (int)    get_post_meta($story_id, '_cns_story_map_id', true);
@@ -54,78 +63,19 @@ $raw_paths = $wpdb->get_results(
 	ARRAY_A
 ) ?: [];
 
-$paths = array_map(function (array $r): array {
-	$icon_url = !empty($r['marker_icon_id'])
-		? (wp_get_attachment_url((int) $r['marker_icon_id']) ?: '')
-		: '';
-	return [
-		'id'                => (int) $r['id'],
-		'markerColor'       => $r['marker_color'],
-		'markerSize'        => (float) $r['marker_size'],
-		'markerType'        => $r['marker_type'],
-		'markerIconUrl'     => $icon_url,
-		'markerIconOffsetX' => (float) ($r['marker_icon_offset_x'] ?? 0.0),
-		'markerIconOffsetY' => (float) ($r['marker_icon_offset_y'] ?? -30.0),
-	];
-}, $raw_paths);
+// Row shaping is shared with the REST API (includes/serializers.php);
+// $public = true gates unpublished substories and omits edit URLs.
+$paths = array_map(
+	fn(array $r): array => cns_story_suite_serialize_path($r, true),
+	$raw_paths
+);
 
-$paths_by_id = [];
-foreach ($paths as $p) { $paths_by_id[$p['id']] = $p; }
+cns_story_suite_prime_node_caches($raw_nodes);
 
-$nodes = array_map(function (array $row) use ($paths_by_id): array {
-	$node = [
-		'id'               => (int) $row['id'],
-		'pathId'           => !empty($row['path_id']) ? (int) $row['path_id'] : null,
-		'substoryId'       => $row['substory_id'] ? (int) $row['substory_id'] : null,
-		'titleOverride'    => $row['title_override'],
-		'excerptOverride'  => $row['excerpt_override'],
-		'x'                => (float) $row['x'],
-		'y'                => (float) $row['y'],
-		'iconType'         => $row['icon_type'],
-		'iconId'           => $row['icon_id'] ? (int) $row['icon_id'] : null,
-		'iconUrl'          => null,
-		'iconColor'        => $row['icon_color'],
-		'iconSize'         => (float) $row['icon_size'],
-		'iconBorderColor'  => $row['icon_border_color'] ?? '#000000',
-		'iconBorderWidth'  => (float) ($row['icon_border_width'] ?? 2.0),
-		'iconBgColor'      => $row['icon_bg_color'] ?? '#ffffff',
-		'iconBgShape'      => $row['icon_bg_shape'] ?? 'none',
-		'markerType'       => $row['marker_type'] ?? 'inherit',
-		'markerIconId'     => !empty($row['marker_icon_id']) ? (int) $row['marker_icon_id'] : null,
-		'markerIconUrl'    => null,
-		'markerColor'      => isset($row['marker_color'])        ? ($row['marker_color'] ?: null) : null,
-		'markerSize'       => isset($row['marker_size'])         ? ($row['marker_size'] !== null ? (float) $row['marker_size'] : null) : null,
-		'markerIconOffsetX' => isset($row['marker_icon_offset_x']) ? ($row['marker_icon_offset_x'] !== null ? (float) $row['marker_icon_offset_x'] : null) : null,
-		'markerIconOffsetY' => isset($row['marker_icon_offset_y']) ? ($row['marker_icon_offset_y'] !== null ? (float) $row['marker_icon_offset_y'] : null) : null,
-		'substoryTitle'    => null,
-		'substoryExcerpt'  => null,
-		'substoryThumbnailUrl' => null,
-		'substoryUrl'      => null,
-	];
-
-	if ($row['icon_id']) {
-		$node['iconUrl'] = (string) (wp_get_attachment_url((int) $row['icon_id']) ?: '');
-	}
-
-	if (!empty($row['marker_icon_id'])) {
-		$node['markerIconUrl'] = (string) (wp_get_attachment_url((int) $row['marker_icon_id']) ?: null);
-	}
-
-	if ($row['substory_id']) {
-		$sub = get_post((int) $row['substory_id']);
-		if ($sub && $sub->post_type === 'cns_substory') {
-			$node['substoryTitle']   = $sub->post_title;
-			$node['substoryExcerpt'] = $sub->post_excerpt ?: wp_trim_excerpt('', $sub);
-			$thumb_id = (int) get_post_thumbnail_id($sub->ID);
-			$node['substoryThumbnailUrl'] = $thumb_id
-				? (wp_get_attachment_image_url($thumb_id, 'medium') ?: null)
-				: null;
-			$node['substoryUrl'] = get_permalink($sub->ID) ?: null;
-		}
-	}
-
-	return $node;
-}, $raw_nodes);
+$nodes = array_map(
+	fn(array $row): array => cns_story_suite_serialize_node($row, true),
+	$raw_nodes
+);
 
 $raw_edges = $wpdb->get_results(
 	$wpdb->prepare(
@@ -146,73 +96,11 @@ $edges = array_map(fn(array $e): array => [
 	'lineOpacity' => isset($e['line_opacity']) ? (float) $e['line_opacity'] : null,
 ], $raw_edges);
 
-// Map render data.
+// Map render data, with infoboxes resolved for the frontend click handlers.
+// All map access goes through map-suite's public API (via the adapter in api.php).
 $map_data = null;
 if ($map_id && function_exists('cns_story_suite_get_map_render_data')) {
-	$map_data = cns_story_suite_get_map_render_data($map_id);
-}
-
-// Enrich map objects and areas with infobox data for frontend click handlers.
-if ($map_data && $map_id) {
-	$resolve = static function (array $row): array {
-		if (($row['infobox_source'] ?? '') === 'post' && !empty($row['linked_post_id'])) {
-			$linked = get_post((int) $row['linked_post_id']);
-			if ($linked) {
-				return [
-					'title'    => $linked->post_title,
-					'content'  => function_exists('cns_map_suite_infobox_content')
-						? cns_map_suite_infobox_content($linked)
-						: wp_trim_excerpt('', $linked),
-					'imageUrl' => get_the_post_thumbnail_url($linked->ID, 'medium') ?: '',
-					'postUrl'  => get_permalink($linked) ?: '',
-				];
-			}
-		}
-		$ib = [];
-		if (!empty($row['infobox_data'])) {
-			$ib = is_array($row['infobox_data']) ? $row['infobox_data'] : (json_decode($row['infobox_data'], true) ?: []);
-		}
-		return [
-			'title'    => $ib['title']       ?? '',
-			'content'  => $ib['description'] ?? '',
-			'imageUrl' => !empty($ib['image_id']) ? (wp_get_attachment_image_url((int) $ib['image_id'], 'medium') ?: '') : '',
-			'postUrl'  => '',
-		];
-	};
-
-	// Fetch full infobox columns for objects.
-	$raw_obj_ib = $wpdb->get_results(
-		$wpdb->prepare("SELECT id, infobox_source, infobox_data, linked_post_id FROM {$wpdb->prefix}cns_map_objects WHERE map_id = %d", $map_id),
-		ARRAY_A
-	) ?: [];
-	$obj_ib = [];
-	foreach ($raw_obj_ib as $r) { $obj_ib[(int) $r['id']] = $r; }
-
-	foreach ($map_data['objects'] as &$obj) {
-		$row = $obj_ib[$obj['id']] ?? [];
-		$resolved = $row ? $resolve($row) : ['title' => '', 'content' => '', 'imageUrl' => '', 'postUrl' => ''];
-		if ($resolved['title'] || $resolved['content'] || $resolved['imageUrl']) {
-			$obj['infoboxResolved'] = $resolved;
-		}
-	}
-	unset($obj);
-
-	// Fetch full infobox columns for areas.
-	$raw_area_ib = $wpdb->get_results(
-		$wpdb->prepare("SELECT id, infobox_source, infobox_data, linked_post_id FROM {$wpdb->prefix}cns_map_areas WHERE map_id = %d", $map_id),
-		ARRAY_A
-	) ?: [];
-	$area_ib = [];
-	foreach ($raw_area_ib as $r) { $area_ib[(int) $r['id']] = $r; }
-
-	foreach ($map_data['areas'] as &$area) {
-		$row = $area_ib[$area['id']] ?? [];
-		$resolved = $row ? $resolve($row) : ['title' => '', 'content' => '', 'imageUrl' => '', 'postUrl' => ''];
-		if ($resolved['title'] || $resolved['content'] || $resolved['imageUrl']) {
-			$area['infoboxResolved'] = $resolved;
-		}
-	}
-	unset($area);
+	$map_data = cns_story_suite_get_map_render_data($map_id, true);
 }
 
 $block_data = [

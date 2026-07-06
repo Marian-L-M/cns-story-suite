@@ -129,93 +129,16 @@ function cns_story_suite_api_can_manage(): bool {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function cns_story_suite_resolve_icon_url(int $icon_id): string {
-	if (! $icon_id) return '';
-	global $wpdb;
-	// Query map-suite icon library; falls back to WP attachment if not found.
-	$row = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT url FROM {$wpdb->prefix}cns_map_icons WHERE id = %d",
-			$icon_id
-		)
-	);
-	if ($row && ! empty($row->url)) {
-		return $row->url;
-	}
-	return (string) (wp_get_attachment_url($icon_id) ?: '');
-}
+// Row → JSON shaping lives in includes/serializers.php (shared with the
+// frontend block render). These wrappers keep the admin-shape callbacks
+// usable as array_map callables.
 
 function cns_story_suite_format_path(array $row): array {
-	$icon_url = !empty($row['marker_icon_id'])
-		? (wp_get_attachment_url((int) $row['marker_icon_id']) ?: '')
-		: '';
-	return [
-		'id'                => (int) $row['id'],
-		'storyId'           => (int) $row['story_id'],
-		'label'             => $row['label'],
-		'sortOrder'         => (int) $row['sort_order'],
-		'markerColor'       => $row['marker_color'],
-		'markerSize'        => (float) $row['marker_size'],
-		'markerType'        => $row['marker_type'],
-		'markerIconId'      => !empty($row['marker_icon_id']) ? (int) $row['marker_icon_id'] : null,
-		'markerIconUrl'     => $icon_url,
-		'markerIconOffsetX' => (float) ($row['marker_icon_offset_x'] ?? 0.0),
-		'markerIconOffsetY' => (float) ($row['marker_icon_offset_y'] ?? -30.0),
-	];
+	return cns_story_suite_serialize_path($row, false);
 }
 
 function cns_story_suite_format_node(array $row): array {
-	$node = [
-		'id'               => (int) $row['id'],
-		'storyId'          => (int) $row['story_id'],
-		'pathId'           => !empty($row['path_id']) ? (int) $row['path_id'] : null,
-		'substoryId'       => $row['substory_id'] ? (int) $row['substory_id'] : null,
-		'titleOverride'    => $row['title_override'],
-		'excerptOverride'  => $row['excerpt_override'],
-		'x'                => (float) $row['x'],
-		'y'                => (float) $row['y'],
-		'iconType'         => $row['icon_type'],
-		'iconId'           => $row['icon_id'] ? (int) $row['icon_id'] : null,
-		'iconUrl'          => $row['icon_id'] ? cns_story_suite_resolve_icon_url((int) $row['icon_id']) : null,
-		'iconColor'        => $row['icon_color'],
-		'iconSize'         => (float) $row['icon_size'],
-		'iconBorderColor'  => $row['icon_border_color'] ?? '#000000',
-		'iconBorderWidth'  => (float) ($row['icon_border_width'] ?? 2.0),
-		'iconBgColor'      => $row['icon_bg_color'] ?? '#ffffff',
-		'iconBgShape'      => $row['icon_bg_shape'] ?? 'none',
-		'markerType'       => $row['marker_type'] ?? 'inherit',
-		'markerIconId'     => !empty($row['marker_icon_id']) ? (int) $row['marker_icon_id'] : null,
-		'markerIconUrl'    => !empty($row['marker_icon_id']) ? cns_story_suite_resolve_icon_url((int) $row['marker_icon_id']) : null,
-		'markerColor'      => isset($row['marker_color'])        ? ($row['marker_color'] ?: null) : null,
-		'markerSize'       => isset($row['marker_size'])         ? ($row['marker_size'] !== null ? (float) $row['marker_size'] : null) : null,
-		'markerIconOffsetX' => isset($row['marker_icon_offset_x']) ? ($row['marker_icon_offset_x'] !== null ? (float) $row['marker_icon_offset_x'] : null) : null,
-		'markerIconOffsetY' => isset($row['marker_icon_offset_y']) ? ($row['marker_icon_offset_y'] !== null ? (float) $row['marker_icon_offset_y'] : null) : null,
-		'createdAt'        => $row['created_at'],
-		'substoryTitle'         => null,
-		'substoryExcerpt'       => null,
-		'substoryThumbnailUrl'  => null,
-		'substoryUrl'           => null,
-		'substoryEditUrl'       => null,
-	];
-
-	if ($row['substory_id']) {
-		$sub = get_post((int) $row['substory_id']);
-		if ($sub && $sub->post_type === 'cns_substory') {
-			$node['substoryTitle']   = $sub->post_title;
-			$node['substoryExcerpt'] = $sub->post_excerpt ?: wp_trim_excerpt('', $sub);
-			$thumb_id = (int) get_post_thumbnail_id($sub->ID);
-			$node['substoryThumbnailUrl'] = $thumb_id
-				? (wp_get_attachment_image_url($thumb_id, 'medium') ?: null)
-				: null;
-			$node['substoryUrl']     = in_array($sub->post_status, ['publish', 'private'], true)
-				? get_permalink($sub->ID)
-				: null;
-			$node['substoryEditUrl'] = get_edit_post_link($sub->ID, 'raw');
-		}
-	}
-
-	return $node;
+	return cns_story_suite_serialize_node($row, false);
 }
 
 function cns_story_suite_format_edge(array $row): array {
@@ -232,76 +155,88 @@ function cns_story_suite_format_edge(array $row): array {
 	];
 }
 
-function cns_story_suite_get_map_render_data(int $map_id): ?array {
-	$map = get_post($map_id);
-	if (! $map || $map->post_type !== 'maps') return null;
+/**
+ * Map render data in the story block's camelCase shape.
+ *
+ * Thin adapter over map-suite's public cns_map_suite_get_map_data() —
+ * story-suite no longer reads the cns_map_* tables or meta directly.
+ *
+ * @param bool $resolve_infoboxes Attach 'infoboxResolved' to clickable
+ *                                objects/areas (frontend rendering only).
+ */
+function cns_story_suite_get_map_render_data(int $map_id, bool $resolve_infoboxes = false): ?array {
+	if (! function_exists('cns_map_suite_get_map_data')) {
+		return null; // Map-suite missing or too old to provide the public API.
+	}
 
-	global $wpdb;
+	$map = cns_map_suite_get_map_data($map_id, [
+		'image_size'        => 'large',
+		'resolve_infoboxes' => $resolve_infoboxes,
+		'labels'            => false, // story canvas doesn't render map labels
+	]);
+	if (! $map) {
+		return null;
+	}
 
-	$width        = (int)    (get_post_meta($map_id, '_cns_map_width', true)        ?: 1000);
-	$aspect_ratio = (float)  (get_post_meta($map_id, '_cns_map_aspect_ratio', true) ?: 1.0);
-	$bg_type      = (string) (get_post_meta($map_id, '_cns_map_bg_type', true)      ?: 'color');
-	$bg_color     = (string) (get_post_meta($map_id, '_cns_map_bg_color', true)     ?: '#1a1a2e');
-	$bg_image_id  = (int)     get_post_meta($map_id, '_cns_map_bg_image_id', true);
-	$image_id     = (int)     get_post_meta($map_id, '_cns_map_image_id', true);
-	$image_x      = (float)   get_post_meta($map_id, '_cns_map_image_x', true);
-	$image_y      = (float)   get_post_meta($map_id, '_cns_map_image_y', true);
-	$image_w      = (float)  (get_post_meta($map_id, '_cns_map_image_width', true)  ?: 1.0);
-
-	$raw_objects = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT id, x, y, title, icon_image_id, canvas_styles FROM {$wpdb->prefix}cns_map_objects WHERE map_id = %d",
-			$map_id
-		),
-		ARRAY_A
-	) ?: [];
-
-	$objects = array_map(function (array $obj): array {
-		$icon_url  = '';
-		$icon_mime = '';
-		if ($obj['icon_image_id']) {
-			$icon_url  = (string) (wp_get_attachment_image_url((int) $obj['icon_image_id'], 'thumbnail') ?: '');
-			$icon_mime = (string) (get_post_mime_type((int) $obj['icon_image_id']) ?: '');
+	$to_infobox = static function (array $row): ?array {
+		$r = $row['infobox_resolved'] ?? null;
+		if (! $r || ! ($r['title'] || $r['content'] || $r['image_url'])) {
+			return null;
 		}
 		return [
-			'id'           => (int) $obj['id'],
-			'x'            => (int) $obj['x'],
-			'y'            => (int) $obj['y'],
-			'title'        => $obj['title'],
-			'iconUrl'      => $icon_url,
-			'iconMime'     => $icon_mime,
-			'canvasStyles' => $obj['canvas_styles'] ? json_decode($obj['canvas_styles'], true) : null,
+			'title'    => $r['title'],
+			'content'  => $r['content'],
+			'imageUrl' => $r['image_url'],
+			'postUrl'  => $r['post_url'],
 		];
-	}, $raw_objects);
+	};
 
-	$raw_areas = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT id, title, shape_type, nodes, canvas_styles FROM {$wpdb->prefix}cns_map_areas WHERE map_id = %d",
-			$map_id
-		),
-		ARRAY_A
-	) ?: [];
+	$objects = array_map(function (array $row) use ($to_infobox): array {
+		$icon_url = '';
+		if (! empty($row['icon_image_id'])) {
+			$icon_url = (string) (wp_get_attachment_image_url((int) $row['icon_image_id'], 'thumbnail') ?: '');
+		}
+		$obj = [
+			'id'           => (int) $row['id'],
+			'x'            => (int) $row['x'],
+			'y'            => (int) $row['y'],
+			'title'        => $row['title'],
+			'iconUrl'      => $icon_url,
+			'iconMime'     => $icon_url ? $row['icon_mime'] : '',
+			'canvasStyles' => $row['canvas_styles'] ?: null,
+		];
+		if ($ib = $to_infobox($row)) {
+			$obj['infoboxResolved'] = $ib;
+		}
+		return $obj;
+	}, $map['objects']);
 
-	$areas = array_map(fn(array $a): array => [
-		'id'           => (int) $a['id'],
-		'title'        => $a['title'],
-		'shapeType'    => $a['shape_type'],
-		'nodes'        => json_decode($a['nodes'], true) ?: [],
-		'canvasStyles' => $a['canvas_styles'] ? json_decode($a['canvas_styles'], true) : null,
-	], $raw_areas);
+	$areas = array_map(function (array $row) use ($to_infobox): array {
+		$area = [
+			'id'           => (int) $row['id'],
+			'title'        => $row['title'],
+			'shapeType'    => $row['shape_type'],
+			'nodes'        => $row['nodes'] ?: [],
+			'canvasStyles' => $row['canvas_styles'] ?: null,
+		];
+		if ($ib = $to_infobox($row)) {
+			$area['infoboxResolved'] = $ib;
+		}
+		return $area;
+	}, $map['areas']);
 
 	return [
 		'id'          => $map_id,
-		'title'       => $map->post_title,
-		'width'       => $width,
-		'aspectRatio' => $aspect_ratio,
-		'bgType'      => $bg_type,
-		'bgColor'     => $bg_color,
-		'bgImageUrl'  => $bg_image_id ? (wp_get_attachment_image_url($bg_image_id, 'large') ?: '') : '',
-		'imageUrl'    => $image_id    ? (wp_get_attachment_image_url($image_id, 'large')    ?: '') : '',
-		'imageX'      => $image_x,
-		'imageY'      => $image_y,
-		'imageW'      => $image_w,
+		'title'       => $map['title'],
+		'width'       => $map['width'],
+		'aspectRatio' => $map['aspect_ratio'],
+		'bgType'      => $map['bg_type'],
+		'bgColor'     => $map['bg_color'],
+		'bgImageUrl'  => $map['bg_image_url'],
+		'imageUrl'    => $map['image_url'],
+		'imageX'      => $map['image_x'],
+		'imageY'      => $map['image_y'],
+		'imageW'      => $map['image_w'],
 		'objects'     => $objects,
 		'areas'       => $areas,
 	];
@@ -340,6 +275,10 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 
 	$allowed_marker_types = ['ring', 'icon'];
 	if (! in_array($marker_type, $allowed_marker_types, true)) $marker_type = 'ring';
+
+	if ($map_id && (! get_post($map_id) || get_post_type($map_id) !== 'maps')) {
+		return new WP_Error('invalid_map', __('Map not found.', 'cns-story-suite'), ['status' => 400]);
+	}
 
 	$post_data = [
 		'post_title'   => sanitize_text_field($title),
@@ -444,6 +383,7 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 		ARRAY_A
 	) ?: [];
 
+	cns_story_suite_prime_node_caches($raw_nodes);
 	$nodes = array_map('cns_story_suite_format_node', $raw_nodes);
 
 	$raw_edges = $wpdb->get_results(
@@ -518,19 +458,30 @@ function cns_story_suite_api_get_map_stories(WP_REST_Request $req): WP_REST_Resp
 		],
 	]);
 
-	$result = array_map(function (WP_Post $s): array {
+	// One aggregated count query instead of one COUNT per story.
+	$node_counts = [];
+	if ($stories) {
 		global $wpdb;
-		$count = (int) $wpdb->get_var(
+		$story_ids    = array_map(fn(WP_Post $s): int => $s->ID, $stories);
+		$placeholders = implode(',', array_fill(0, count($story_ids), '%d'));
+		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d",
-				$s->ID
-			)
-		);
+				"SELECT story_id, COUNT(*) AS n FROM {$wpdb->prefix}cns_story_nodes WHERE story_id IN ($placeholders) GROUP BY story_id",
+				...$story_ids
+			),
+			ARRAY_A
+		) ?: [];
+		foreach ($rows as $row) {
+			$node_counts[(int) $row['story_id']] = (int) $row['n'];
+		}
+	}
+
+	$result = array_map(function (WP_Post $s) use ($node_counts): array {
 		return [
 			'id'         => $s->ID,
 			'title'      => $s->post_title ?: __('(no title)', 'cns-story-suite'),
 			'status'     => $s->post_status,
-			'nodeCount'  => $count,
+			'nodeCount'  => $node_counts[$s->ID] ?? 0,
 			'editUrl'    => add_query_arg(
 				['page' => CNS_STORY_PAGE_EDITOR, 'story_id' => $s->ID],
 				admin_url('admin.php')
@@ -754,7 +705,8 @@ function cns_story_suite_api_delete_node(WP_REST_Request $req): WP_REST_Response
 		return new WP_Error('not_found', __('Node not found.', 'cns-story-suite'), ['status' => 404]);
 	}
 
-	// Delete connected edges first.
+	// Edges + node removal must land together.
+	$wpdb->query('START TRANSACTION');
 	$wpdb->query(
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->prefix}cns_story_edges WHERE from_node_id = %d OR to_node_id = %d",
@@ -762,8 +714,12 @@ function cns_story_suite_api_delete_node(WP_REST_Request $req): WP_REST_Response
 			$node_id
 		)
 	);
+	$deleted = $wpdb->delete($wpdb->prefix . 'cns_story_nodes', ['id' => $node_id], ['%d']);
+	$wpdb->query($deleted === false ? 'ROLLBACK' : 'COMMIT');
 
-	$wpdb->delete($wpdb->prefix . 'cns_story_nodes', ['id' => $node_id], ['%d']);
+	if ($deleted === false) {
+		return new WP_Error('db_error', __('Could not delete node.', 'cns-story-suite'), ['status' => 500]);
+	}
 
 	return new WP_REST_Response(['deleted' => true, 'id' => $node_id], 200);
 }
@@ -1197,9 +1153,16 @@ function cns_story_suite_api_delete_path(WP_REST_Request $req): WP_REST_Response
 	if (! $row) {
 		return new WP_Error('not_found', __('Path not found.', 'cns-story-suite'), ['status' => 404]);
 	}
-	// Clear path_id on any nodes that used this path.
+	// Clearing node references and deleting the path must land together.
+	$wpdb->query('START TRANSACTION');
 	$wpdb->update($wpdb->prefix . 'cns_story_nodes', ['path_id' => null], ['path_id' => $path_id], ['%d'], ['%d']);
-	$wpdb->delete($wpdb->prefix . 'cns_story_paths', ['id' => $path_id], ['%d']);
+	$deleted = $wpdb->delete($wpdb->prefix . 'cns_story_paths', ['id' => $path_id], ['%d']);
+	$wpdb->query($deleted === false ? 'ROLLBACK' : 'COMMIT');
+
+	if ($deleted === false) {
+		return new WP_Error('db_error', __('Could not delete path.', 'cns-story-suite'), ['status' => 500]);
+	}
+
 	return new WP_REST_Response(['deleted' => true, 'id' => $path_id], 200);
 }
 

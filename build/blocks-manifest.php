@@ -30,8 +30,8 @@ return array(
 		),
 		'render' => 'file:./render.php',
 		'viewScript' => 'file:./view.js',
-		'style' => 'file:./style.scss',
+		'style' => 'file:./style-index.css',
 		'editorScript' => 'file:./index.js',
-		'editorStyle' => 'file:./editor.scss'
+		'editorStyle' => 'file:./index.css'
 	)
 );

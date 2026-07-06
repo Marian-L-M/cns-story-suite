@@ -6,11 +6,21 @@
 
 const imgCache = new Map();
 
-function loadImg( url ) {
-	if ( imgCache.has( url ) ) return imgCache.get( url );
-	const img = new Image();
-	img.src = url;
-	imgCache.set( url, img );
+/**
+ * Returns a (cached) Image for the URL. If the image hasn't finished loading
+ * yet and a callback is given, it fires once on load so the caller can redraw.
+ * Passing the same callback repeatedly is safe — addEventListener dedupes it.
+ */
+function loadImg( url, onLoad ) {
+	let img = imgCache.get( url );
+	if ( ! img ) {
+		img = new Image();
+		img.src = url;
+		imgCache.set( url, img );
+	}
+	if ( onLoad && ! img.complete ) {
+		img.addEventListener( 'load', onLoad, { once: true } );
+	}
 	return img;
 }
 
@@ -184,9 +194,63 @@ function buildOrderedNodes( nodes, edges, startNodeId ) {
 	return result;
 }
 
+// ── Area path builders (ported from cns-map-suite view.js so shapes match) ────
+
+function buildPolygonPath( ctx, nodes, W, H ) {
+	ctx.moveTo( nodes[ 0 ].x * W, nodes[ 0 ].y * H );
+	for ( let i = 1; i < nodes.length; i++ ) {
+		ctx.lineTo( nodes[ i ].x * W, nodes[ i ].y * H );
+	}
+	ctx.closePath();
+}
+
+function buildBezierPath( ctx, nodes, W, H ) {
+	const n      = nodes.length;
+	const startX = ( ( nodes[ n - 1 ].x + nodes[ 0 ].x ) / 2 ) * W;
+	const startY = ( ( nodes[ n - 1 ].y + nodes[ 0 ].y ) / 2 ) * H;
+	ctx.moveTo( startX, startY );
+	for ( let i = 0; i < n; i++ ) {
+		const cp   = nodes[ i ];
+		const next = nodes[ ( i + 1 ) % n ];
+		ctx.quadraticCurveTo( cp.x * W, cp.y * H, ( ( cp.x + next.x ) / 2 ) * W, ( ( cp.y + next.y ) / 2 ) * H );
+	}
+	ctx.closePath();
+}
+
+function buildCirclePath( ctx, nodes, W, H ) {
+	const cx = nodes[ 0 ].x * W;
+	const cy = nodes[ 0 ].y * H;
+	const rx = Math.max( Math.abs( nodes[ 1 ].x - nodes[ 0 ].x ) * W, 1 );
+	const ry = Math.max( Math.abs( nodes[ 1 ].y - nodes[ 0 ].y ) * H, 1 );
+	ctx.ellipse( cx, cy, rx, ry, 0, 0, Math.PI * 2 );
+}
+
+// Builds the area outline for the given shape type; returns false when the
+// node count is below the shape's minimum (2 for CIRCLE, 3 otherwise).
+function buildAreaPath( ctx, area, W, H ) {
+	const nodes     = area.nodes || [];
+	const shapeType = area.shapeType || 'POLYGON';
+	const minNodes  = shapeType === 'CIRCLE' ? 2 : 3;
+	if ( nodes.length < minNodes ) return false;
+
+	ctx.beginPath();
+	switch ( shapeType ) {
+		case 'BEZIER':
+			buildBezierPath( ctx, nodes, W, H );
+			break;
+		case 'CIRCLE':
+			buildCirclePath( ctx, nodes, W, H );
+			break;
+		default:
+			buildPolygonPath( ctx, nodes, W, H );
+			break;
+	}
+	return true;
+}
+
 // ── Canvas drawing ────────────────────────────────────────────────────────────
 
-function drawStory( canvas, data, activeNodeId ) {
+function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 	const ctx = canvas.getContext( '2d' );
 	if ( ! ctx ) return;
 
@@ -198,16 +262,21 @@ function drawStory( canvas, data, activeNodeId ) {
 	const m = data.mapData;
 
 	if ( m?.bgType === 'image' && m.bgImageUrl ) {
-		const bg = loadImg( m.bgImageUrl );
-		if ( bg.complete && bg.naturalWidth ) ctx.drawImage( bg, 0, 0, W, H );
-		else { ctx.fillStyle = m?.bgColor ?? '#1a1a2e'; ctx.fillRect( 0, 0, W, H ); }
+		const bg = loadImg( m.bgImageUrl, onImgLoad );
+		if ( bg.complete && bg.naturalWidth ) {
+			// Cover-fit, centered — matches cns-map-suite's background rendering.
+			const scale = Math.max( W / bg.naturalWidth, H / bg.naturalHeight );
+			const drawW = bg.naturalWidth  * scale;
+			const drawH = bg.naturalHeight * scale;
+			ctx.drawImage( bg, ( W - drawW ) / 2, ( H - drawH ) / 2, drawW, drawH );
+		} else { ctx.fillStyle = m?.bgColor ?? '#1a1a2e'; ctx.fillRect( 0, 0, W, H ); }
 	} else {
 		ctx.fillStyle = m?.bgColor ?? '#1a1a2e';
 		ctx.fillRect( 0, 0, W, H );
 	}
 
 	if ( m?.imageUrl ) {
-		const img = loadImg( m.imageUrl );
+		const img = loadImg( m.imageUrl, onImgLoad );
 		if ( img.complete && img.naturalWidth ) {
 			const iw = m.imageW * W;
 			ctx.drawImage( img, m.imageX * W, m.imageY * H, iw, ( iw / img.naturalWidth ) * img.naturalHeight );
@@ -217,13 +286,8 @@ function drawStory( canvas, data, activeNodeId ) {
 	if ( m?.areas ) {
 		ctx.save();
 		for ( const area of m.areas ) {
-			const pts = area.nodes;
-			if ( pts.length < 2 ) continue;
+			if ( ! buildAreaPath( ctx, area, W, H ) ) continue;
 			const s = area.canvasStyles;
-			ctx.beginPath();
-			ctx.moveTo( pts[ 0 ].x * W, pts[ 0 ].y * H );
-			for ( let i = 1; i < pts.length; i++ ) ctx.lineTo( pts[ i ].x * W, pts[ i ].y * H );
-			ctx.closePath();
 			ctx.globalAlpha = 0.15 * ( s?.fillOpacity ?? 1 );
 			ctx.fillStyle   = s?.fill ?? '#888888';
 			ctx.fill();
@@ -246,7 +310,7 @@ function drawStory( canvas, data, activeNodeId ) {
 			const cy   = ( obj.y / mapH ) * H;
 			const size = ( obj.canvasStyles?.size ?? 32 ) * ( W / mapW );
 			if ( obj.iconUrl ) {
-				const img = loadImg( obj.iconUrl );
+				const img = loadImg( obj.iconUrl, onImgLoad );
 				if ( img.complete && img.naturalWidth ) { ctx.drawImage( img, cx - size / 2, cy - size / 2, size, size ); continue; }
 			}
 			ctx.beginPath();
@@ -327,7 +391,7 @@ function drawStory( canvas, data, activeNodeId ) {
 					: '';
 
 			if ( mType === 'icon' && mIconUrl ) {
-				const mImg = loadImg( mIconUrl );
+				const mImg = loadImg( mIconUrl, onImgLoad );
 				if ( mImg.complete && mImg.naturalWidth ) {
 					const mR = r * 0.8;
 					ctx.save();
@@ -343,7 +407,7 @@ function drawStory( canvas, data, activeNodeId ) {
 
 		// ── Thumbnail ──────────────────────────────────────────────────────
 		if ( node.iconType === 'thumbnail' && node.substoryThumbnailUrl ) {
-			const img = loadImg( node.substoryThumbnailUrl );
+			const img = loadImg( node.substoryThumbnailUrl, onImgLoad );
 			if ( img.complete && img.naturalWidth ) {
 				const useSquare = node.iconBgShape === 'square';
 				ctx.save();
@@ -374,7 +438,7 @@ function drawStory( canvas, data, activeNodeId ) {
 
 		// ── Icon ───────────────────────────────────────────────────────────
 		if ( node.iconType === 'icon' && node.iconUrl ) {
-			const img = loadImg( node.iconUrl );
+			const img = loadImg( node.iconUrl, onImgLoad );
 			if ( img.complete && img.naturalWidth ) {
 				if ( node.iconBgShape !== 'none' ) {
 					ctx.save();
@@ -502,6 +566,79 @@ function esc( str ) {
 
 // ── Block init ────────────────────────────────────────────────────────────────
 
+// ── Zoom controls ─────────────────────────────────────────────────────────────
+// Same pattern as the cns-map-suite map block: zoom scales the canvas's
+// *display* width inside a scroll container; the canvas pixel coordinate
+// system is untouched, so the click hit-testing above (normalized by
+// getBoundingClientRect) keeps working. The canvas is moved into a dedicated
+// scroll div so the +/− buttons, absolutely positioned on the canvas wrap,
+// stay put while the zoomed canvas pans.
+
+function setupZoomControls( canvas ) {
+	const wrap = canvas.parentElement; // .cns-story-block__canvas-wrap
+	if ( ! wrap ) return;
+
+	const scroller = document.createElement( 'div' );
+	scroller.className = 'cns-story-canvas-scroll';
+	wrap.insertBefore( scroller, canvas );
+	scroller.appendChild( canvas );
+
+	const MIN = 1, MAX = 4, STEP = 0.1;
+	let zoom = 1;
+
+	const controls = document.createElement( 'div' );
+	controls.className = 'cns-story-zoom';
+	const zoomIn  = document.createElement( 'button' );
+	const zoomOut = document.createElement( 'button' );
+	const value   = document.createElement( 'span' );
+	zoomIn.type  = 'button';
+	zoomOut.type = 'button';
+	zoomIn.className  = 'cns-story-zoom__btn';
+	zoomOut.className = 'cns-story-zoom__btn';
+	zoomIn.textContent  = '+';
+	zoomOut.textContent = '−';
+	zoomIn.setAttribute( 'aria-label', 'Zoom map in' );
+	zoomOut.setAttribute( 'aria-label', 'Zoom map out' );
+	value.className = 'cns-story-zoom__value';
+	controls.appendChild( zoomIn );
+	controls.appendChild( value );
+	controls.appendChild( zoomOut );
+	wrap.appendChild( controls );
+
+	function render() {
+		value.textContent = Math.round( zoom * 100 ) + '%';
+		zoomIn.disabled  = zoom >= MAX;
+		zoomOut.disabled = zoom <= MIN;
+	}
+
+	function apply( next ) {
+		// Round to one decimal so repeated 0.1 steps don't accumulate
+		// float drift (1.7000000000000002).
+		next = Math.min( MAX, Math.max( MIN, Math.round( next * 10 ) / 10 ) );
+		if ( next === zoom ) return;
+		// Keep the viewport centered on the same map point.
+		const cx = ( scroller.scrollLeft + scroller.clientWidth / 2 ) / zoom;
+		const cy = ( scroller.scrollTop + scroller.clientHeight / 2 ) / zoom;
+		zoom = next;
+		if ( zoom > 1 ) {
+			canvas.style.maxWidth = 'none';
+			canvas.style.width    = ( zoom * 100 ) + '%';
+			scroller.classList.add( 'is-zoomed' );
+		} else {
+			canvas.style.maxWidth = '100%';
+			canvas.style.width    = '';
+			scroller.classList.remove( 'is-zoomed' );
+		}
+		render();
+		scroller.scrollLeft = cx * zoom - scroller.clientWidth / 2;
+		scroller.scrollTop  = cy * zoom - scroller.clientHeight / 2;
+	}
+
+	zoomIn.addEventListener( 'click', () => apply( zoom + STEP ) );
+	zoomOut.addEventListener( 'click', () => apply( zoom - STEP ) );
+	render();
+}
+
 function initBlock( blockEl ) {
 	const rawData = blockEl.dataset.storyData;
 	if ( ! rawData ) return;
@@ -521,13 +658,28 @@ function initBlock( blockEl ) {
 	canvas.height = canH;
 	canvas.style.cssText = 'max-width:100%;height:auto;display:block;';
 
+	setupZoomControls( canvas );
+
 	// Build a Map of pathId → path for O(1) lookup during drawing.
 	data._pathMap = new Map( ( data.paths ?? [] ).map( ( p ) => [ p.id, p ] ) );
 
 	let activeNodeId = data.story.startNodeId ?? ( data.nodes[ 0 ]?.id ?? null );
 	const expandedIds = new Set();
 
-	function redraw()   { drawStory( canvas, data, activeNodeId ); }
+	// Coalesce redraw requests into one paint per frame. Used as the image
+	// onload callback, so the canvas repaints exactly when assets arrive —
+	// no free-running animation loop.
+	let redrawQueued = false;
+	function scheduleRedraw() {
+		if ( redrawQueued ) return;
+		redrawQueued = true;
+		requestAnimationFrame( () => {
+			redrawQueued = false;
+			redraw();
+		} );
+	}
+
+	function redraw()   { drawStory( canvas, data, activeNodeId, scheduleRedraw ); }
 	function rerender() { renderWindow( windowEl, data, activeNodeId, expandedIds ); redraw(); }
 
 	// Preload images then start loop.
@@ -543,9 +695,7 @@ function initBlock( blockEl ) {
 		if ( n.markerIconUrl ) urls.push( n.markerIconUrl );
 	} );
 
-	requestAnimationFrame( function loop() { redraw(); requestAnimationFrame( loop ); } );
-
-	urls.forEach( ( url ) => { loadImg( url ); } );
+	urls.forEach( ( url ) => { loadImg( url, scheduleRedraw ); } );
 
 	// Canvas click — check map objects/areas first, then select story node.
 	canvas.addEventListener( 'click', ( e ) => {
@@ -574,14 +724,7 @@ function initBlock( blockEl ) {
 			const ctx2 = canvas.getContext( '2d' );
 			for ( const area of m.areas ) {
 				if ( ! area.infoboxResolved ) continue;
-				const pts = area.nodes;
-				if ( pts.length < 2 ) continue;
-				ctx2.beginPath();
-				ctx2.moveTo( pts[ 0 ].x * canvas.width, pts[ 0 ].y * canvas.height );
-				for ( let i = 1; i < pts.length; i++ ) {
-					ctx2.lineTo( pts[ i ].x * canvas.width, pts[ i ].y * canvas.height );
-				}
-				ctx2.closePath();
+				if ( ! buildAreaPath( ctx2, area, canvas.width, canvas.height ) ) continue;
 				if ( ctx2.isPointInPath( mx, my ) ) {
 					showInfobox( area );
 					return;
