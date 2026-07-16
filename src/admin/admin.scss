@@ -1,5 +1,110 @@
 // CNS Story Suite — Admin styles
 // Mirrors the cns-map-suite layout conventions so both editors share the same look.
+$space-05: 0.5rem;
+$space-10: 1rem;
+
+$bp-spc: 1200px;
+
+// ── Shared form grid (mirrors cns-map-suite's .cns-grid) ──────────────────────
+
+.cns-grid {
+	width: 100%;
+	display: grid;
+	gap: $space-10;
+	// Layout variants: __12 = 1 column → 2 at $bp-spc, __24 = 2 → 4.
+	&__12 {
+		grid-template-columns: 1fr;
+	}
+	&__24 {
+		grid-template-columns: 1fr 1fr;
+	}
+	// Elements
+	&__row,
+	&__group {
+		display: flex;
+		gap: $space-05;
+		width: 100%;
+	}
+	&__row {
+		grid-column: 1 / -1;
+		flex-wrap: wrap;
+	}
+	&__span-1 {
+		grid-column: span 1;
+	}
+	&__span-2 {
+		grid-column: span 2;
+	}
+	&__span-3 {
+		grid-column: span 3;
+	}
+	&__span-4 {
+		grid-column: span 4;
+	}
+	// Full-width cell that is safe in any column count (unlike span-N,
+	// which can create implicit columns on narrow grids).
+	&__span-full {
+		grid-column: 1 / -1;
+	}
+	&__group {
+		flex-direction: column;
+	}
+	// WP components fill their grid cell.
+	&__group > .components-base-control,
+	&__group > .components-card {
+		width: 100%;
+	}
+	@media screen and (min-width: $bp-spc) {
+		&__12 {
+			grid-template-columns: 1fr 1fr;
+		}
+		&__24 {
+			grid-template-columns: 1fr 1fr 1fr 1fr;
+		}
+	}
+}
+
+// Action-button rows inside tables / list items.
+.cns-actions-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+// Snackbar notices (wp/notices store) — pinned bottom-left like the editor.
+.cns-snackbar-list {
+	position: fixed;
+	bottom: 24px;
+	left: 200px;
+	z-index: 100010;
+
+	@media screen and (max-width: 782px) {
+		left: 16px;
+		right: 16px;
+	}
+}
+
+// Compact swatch-button color control (ColorField).
+.cns-color-field {
+	&__toggle.components-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 40px;
+		padding: 0 12px;
+		border: 1px solid #949494;
+		border-radius: 2px;
+		background: #fff;
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	&__value {
+		font-size: 12px;
+		font-variant-numeric: tabular-nums;
+		color: #50575e;
+	}
+}
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 
@@ -97,7 +202,7 @@ $thumb-size: 3em;
 	gap: 0;
 }
 
-.cns-editor-main {
+.cns-map-editor__main {
 	display: flex;
 	gap: 0;
 	width: 100%;
@@ -161,13 +266,7 @@ $thumb-size: 3em;
 	}
 }
 
-.cns-save-status {
-	font-size: 12px;
-	color: #646970;
-
-	&--ok    { color: #00a32a; }
-	&--error { color: #b32d2e; }
-}
+// (Save feedback now uses snackbar notices from the wp/notices store.)
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
@@ -211,52 +310,6 @@ $thumb-size: 3em;
 	grid-template-columns: minmax(380px, 1fr) minmax(260px, 1fr);
 	gap: 32px;
 	align-items: start;
-}
-
-.cns-form-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 20px 32px;
-}
-
-.cns-form-row {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-
-	&--full {
-		grid-column: 1 / -1;
-	}
-
-	label {
-		font-weight: 600;
-		font-size: 13px;
-	}
-
-	.description {
-		font-size: 12px;
-		color: #646970;
-		margin: 0;
-	}
-}
-
-.cns-range-wrap {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-
-	input[type='range'] {
-		flex: 1;
-		cursor: pointer;
-	}
-}
-
-.cns-range-value {
-	font-size: 12px;
-	color: #1d2327;
-	font-variant-numeric: tabular-nums;
-	min-width: 3ch;
-	text-align: right;
 }
 
 .cns-row-group {
@@ -319,93 +372,9 @@ $thumb-size: 3em;
 	}
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-
-body.cns-modal-open {
-	overflow: hidden;
-}
-
-.cns-modal {
-	&[hidden] {
-		display: none !important;
-	}
-
-	position: fixed;
-	inset: 0;
-	z-index: 100000;
-
-	&:not([hidden]) {
-		display: flex;
-		align-items: flex-start;
-		justify-content: center;
-		padding: 40px 20px;
-	}
-
-	&__backdrop {
-		position: absolute;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.6);
-	}
-
-	&__dialog {
-		position: relative;
-		background: #fff;
-		border-radius: 4px;
-		width: 100%;
-		max-width: 640px;
-		max-height: calc(100vh - 80px);
-		display: flex;
-		flex-direction: column;
-		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
-	}
-
-	&__header {
-		display: flex;
-		align-items: center;
-		padding: 16px 20px;
-		border-bottom: 1px solid #e0e0e0;
-		flex-shrink: 0;
-	}
-
-	&__title {
-		margin: 0;
-		flex: 1;
-		font-size: 16px;
-		font-weight: 600;
-	}
-
-	&__close {
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 4px;
-		color: #646970;
-		font-size: 20px;
-		line-height: 1;
-		border-radius: 3px;
-
-		&:hover {
-			color: #1d2327;
-			background: #f0f0f1;
-		}
-	}
-
-	&__body {
-		flex: 1;
-		overflow-y: auto;
-		padding: 0;
-	}
-
-	&__footer {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 10px;
-		padding: 14px 20px;
-		border-top: 1px solid #e0e0e0;
-		flex-shrink: 0;
-	}
-}
+// ── Modal sections ────────────────────────────────────────────────────────────
+// The modal chrome itself comes from @wordpress/components' <Modal>; only the
+// section layout inside modal bodies is custom.
 
 .cns-modal-section {
 	padding: 20px;
@@ -423,124 +392,10 @@ body.cns-modal-open {
 		letter-spacing: 0.04em;
 		color: #646970;
 	}
-
-	.cns-form-grid {
-		grid-template-columns: 1fr 1fr;
-	}
 }
 
-// ── Radio / checkbox toggles ──────────────────────────────────────────────────
-
-.cns-radio-toggle {
-	display: flex;
-	gap: 16px;
-	margin-bottom: 12px;
-
-	label {
-		font-weight: normal;
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		cursor: pointer;
-	}
-}
-
-// ── Icon picker grid ──────────────────────────────────────────────────────────
-
-.cns-icon-picker-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-	gap: 6px;
-	max-height: 180px;
-	overflow-y: auto;
-	padding: 4px;
-	border: 1px solid #e0e0e0;
-	border-radius: 3px;
-	background: #f6f7f7;
-}
-
-.cns-icon-item {
-	all: unset;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 48px;
-	height: 48px;
-	border: 2px solid transparent;
-	border-radius: 4px;
-	cursor: pointer;
-	background: #fff;
-	box-sizing: border-box;
-	transition: border-color 0.12s;
-
-	&:hover     { border-color: #2271b1; }
-	&--active   { border-color: #2271b1; background: #e8f0fb; }
-
-	img {
-		width: 32px;
-		height: 32px;
-		object-fit: contain;
-		display: block;
-	}
-}
-
-// ── Post search ───────────────────────────────────────────────────────────────
-
-.cns-post-search-wrap {
-	position: relative;
-}
-
-.cns-post-results {
-	position: absolute;
-	top: 100%;
-	left: 0;
-	right: 0;
-	background: #fff;
-	border: 1px solid #e0e0e0;
-	border-top: none;
-	border-radius: 0 0 3px 3px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	z-index: 10;
-	max-height: 200px;
-	overflow-y: auto;
-}
-
-.cns-post-result {
-	all: unset;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	width: 100%;
-	padding: 8px 12px;
-	cursor: pointer;
-	font-size: 13px;
-	box-sizing: border-box;
-	border-bottom: 1px solid #f0f0f1;
-
-	&:last-child { border-bottom: none; }
-	&:hover      { background: #f0f6fc; }
-
-	&__type {
-		font-size: 11px;
-		color: #646970;
-		background: #f0f0f1;
-		padding: 1px 5px;
-		border-radius: 3px;
-	}
-}
-
-.cns-post-selected {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 10px;
-	background: #f0f6fc;
-	border: 1px solid #c3d9f0;
-	border-radius: 3px;
-	font-size: 13px;
-
-	span { flex: 1; }
-}
+// (Radio toggles, icon grids, and post-search dropdowns now come from
+// @wordpress/components — RadioControl / ComboboxControl.)
 
 // ── Nodes table (NodesPanel) ──────────────────────────────────────────────────
 
@@ -882,29 +737,35 @@ body.cns-modal-open {
 		font-weight: 600;
 	}
 
+	// Compact inline WP controls: label sits beside the input.
 	&__line-style {
-		label {
-			display: flex;
-			align-items: center;
-			gap: 5px;
+		align-items: flex-end;
+
+		.components-base-control {
+			margin-bottom: 0;
+		}
+
+		.cns-color-field .cns-color-field__toggle.components-button {
+			height: 32px;
+			width: auto;
+		}
+	}
+
+	&__opacity {
+		display: flex;
+		align-items: flex-end;
+		gap: 6px;
+		min-width: 160px;
+
+		.components-base-control {
+			flex: 1;
+		}
+
+		> span {
 			font-size: 12px;
 			color: #50575e;
-			font-weight: normal;
-		}
-
-		input[type='number'] {
-			height: 26px;
-			padding: 0 4px;
-		}
-
-		select {
-			height: 26px;
-			font-size: 12px;
-		}
-
-		input[type='range'] {
-			height: 4px;
-			accent-color: #2271b1;
+			font-variant-numeric: tabular-nums;
+			padding-bottom: 4px;
 		}
 	}
 }
@@ -1015,37 +876,4 @@ body.cns-modal-open {
 	flex-shrink: 0;
 }
 
-// ── Icon action buttons ───────────────────────────────────────────────────────
-
-.cns-icon-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 22px;
-	height: 22px;
-	padding: 0;
-	background: #f6f7f7;
-	border: 1px solid #ddd;
-	border-radius: 3px;
-	cursor: pointer;
-	font-size: 12px;
-	color: #50575e;
-	line-height: 1;
-
-	&:hover:not(:disabled) {
-		background: #fff;
-		color: #1d2327;
-		border-color: #aaa;
-	}
-
-	&:disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	&--danger:hover:not(:disabled) {
-		color: #b32d2e;
-		border-color: #b32d2e;
-		background: #fcf0f1;
-	}
-}
+// (Icon action buttons now use @wordpress/components' <Button size="small" icon>.)

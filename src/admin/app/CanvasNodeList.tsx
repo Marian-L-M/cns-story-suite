@@ -1,3 +1,6 @@
+import { Button } from '@wordpress/components';
+import { arrowDown, arrowUp, brush, linkOff, pencil, plusCircle, starFilled, trash } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import type { StoryNode, StoryEdge } from '../../types';
 
 interface TreeItem {
@@ -259,60 +262,69 @@ export default function CanvasNodeList( {
 						<div className="cns-canvas-node-list__actions">
 							{ incomingEdge && (
 								<>
-									<button
-										className="cns-icon-btn"
-										title="Move up in sequence"
+									<Button
+										size="small"
+										icon={ arrowUp }
+										label={ __( 'Move up in sequence', 'cns-story-suite' ) }
 										disabled={ ! canUp }
 										onClick={ () => handleMoveUp( item ) }
-									>↑</button>
-									<button
-										className="cns-icon-btn"
-										title="Move down in sequence"
+									/>
+									<Button
+										size="small"
+										icon={ arrowDown }
+										label={ __( 'Move down in sequence', 'cns-story-suite' ) }
 										disabled={ ! canDown }
 										onClick={ () => handleMoveDown( item ) }
-									>↓</button>
-									<button
-										className="cns-icon-btn"
-										title="Style this connection"
+									/>
+									<Button
+										size="small"
+										icon={ brush }
+										label={ __( 'Style this connection', 'cns-story-suite' ) }
 										onClick={ () => onEditEdge( incomingEdge.id ) }
-									>&#x2261;</button>
-									<button
-										className="cns-icon-btn"
-										title="Remove this branch"
+									/>
+									<Button
+										size="small"
+										icon={ linkOff }
+										label={ __( 'Remove this branch', 'cns-story-suite' ) }
 										onClick={ () => {
 											if ( window.confirm( 'Remove the connection to this node?' ) ) {
 												onEdgeDelete( incomingEdge.id );
 											}
 										} }
-									>←</button>
-									<button
-										className="cns-icon-btn"
-										title="Split route: add a parallel branch from the same parent"
+									/>
+									<Button
+										size="small"
+										icon={ plusCircle }
+										label={ __( 'Split route: add a parallel branch from the same parent', 'cns-story-suite' ) }
 										onClick={ () => onStartEdgeFrom( incomingEdge.fromNodeId ) }
-									>→</button>
+									/>
 								</>
 							) }
 							{ ! incomingEdge && ! isStart && (
-								<button
-									className="cns-icon-btn"
-									title="Set as start node"
+								<Button
+									size="small"
+									icon={ starFilled }
+									label={ __( 'Set as start node', 'cns-story-suite' ) }
 									onClick={ () => onSetStartNode( node.id ) }
-								>★</button>
+								/>
 							) }
-							<button
-								className="cns-icon-btn"
-								title="Edit node"
+							<Button
+								size="small"
+								icon={ pencil }
+								label={ __( 'Edit node', 'cns-story-suite' ) }
 								onClick={ () => onEdit( node.id ) }
-							>✎</button>
-							<button
-								className="cns-icon-btn cns-icon-btn--danger"
-								title="Delete node"
+							/>
+							<Button
+								size="small"
+								icon={ trash }
+								isDestructive
+								label={ __( 'Delete node', 'cns-story-suite' ) }
 								onClick={ () => {
 									if ( window.confirm( 'Delete this node and all its connections?' ) ) {
 										onDelete( node.id );
 									}
 								} }
-							>✕</button>
+							/>
 						</div>
 					</div>
 				);

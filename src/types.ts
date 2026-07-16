@@ -7,7 +7,6 @@ export type LineStyle    = 'solid' | 'dashed' | 'dotted';
 export type MarkerType   = 'ring' | 'icon';
 export type NodeMarkerType = 'inherit' | 'ring' | 'icon';
 export type CanvasMode   = 'select' | 'add' | 'connect';
-export type SaveStatusKind = '' | 'ok' | 'error';
 export type StoryTab     = 'settings' | 'canvas' | 'nodes' | 'paths' | 'links';
 export type LinkType     = 'map_object' | 'map_area' | 'hierarchy';
 
@@ -212,11 +211,6 @@ export interface MapSearchResult {
 }
 
 // ── Editor state ──────────────────────────────────────────────────────────────
-
-export interface SaveStatus {
-	text: string;
-	type: SaveStatusKind;
-}
 
 // ── Form payloads ─────────────────────────────────────────────────────────────
 

@@ -1,4 +1,6 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useRef, useEffect } from '@wordpress/element';
+import { ComboboxControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { apiFetch } from '../../utils';
 import type { SubstorySearchResult } from '../../../types';
 
@@ -8,89 +10,75 @@ interface Props {
 	onChange:      ( id: number | null, label: string ) => void;
 }
 
+/**
+ * Async substory picker on top of ComboboxControl: typing queries the
+ * plugin's /substories endpoint (debounced); clearing resets the link.
+ */
 export default function SubstoryPicker( { substoryId, substoryLabel, onChange }: Props ) {
-	const [ query,   setQuery   ] = useState( '' );
 	const [ results, setResults ] = useState< SubstorySearchResult[] >( [] );
-	const [ loading, setLoading ] = useState( false );
-	const [ open,    setOpen    ] = useState( false );
+	const timer = useRef< number | null >( null );
 
-	useEffect( () => {
-		if ( ! open ) return;
-		const timeout = setTimeout( search, 300 );
-		return () => clearTimeout( timeout );
-	}, [ query, open ] );
+	useEffect(
+		() => () => {
+			if ( timer.current ) window.clearTimeout( timer.current );
+		},
+		[]
+	);
 
-	async function search() {
-		setLoading( true );
-		try {
-			const res  = await apiFetch( 'GET', `/substories?search=${ encodeURIComponent( query ) }&per_page=20` );
-			const data = await res.json() as SubstorySearchResult[];
-			if ( res.ok ) setResults( data );
-		} finally {
-			setLoading( false );
-		}
-	}
+	const options = [
+		...( substoryId
+			? [
+					{
+						value: String( substoryId ),
+						label: substoryLabel || `Substory #${ substoryId }`,
+					},
+			  ]
+			: [] ),
+		...results
+			.filter( ( r ) => r.id !== substoryId )
+			.map( ( r ) => ( {
+				value: String( r.id ),
+				label:
+					r.status && r.status !== 'publish'
+						? `${ r.title } (${ r.status })`
+						: r.title,
+			} ) ),
+	];
 
-	function handleSelect( item: SubstorySearchResult ) {
-		onChange( item.id, item.title );
-		setOpen( false );
-		setQuery( '' );
-	}
-
-	function handleClear() {
-		onChange( null, '' );
+	function handleFilterValueChange( input: string ) {
+		if ( timer.current ) window.clearTimeout( timer.current );
+		timer.current = window.setTimeout( async () => {
+			try {
+				const data = await apiFetch< SubstorySearchResult[] >(
+					'GET',
+					`/substories?search=${ encodeURIComponent( input ) }&per_page=20`
+				);
+				if ( Array.isArray( data ) ) setResults( data );
+			} catch {
+				/* silent */
+			}
+		}, 300 );
 	}
 
 	return (
-		<div className="cns-substory-picker">
-			{ substoryId ? (
-				<div className="cns-picker-selected">
-					<span>{ substoryLabel || `Substory #${ substoryId }` }</span>
-					<button type="button" className="button button-small" onClick={ handleClear }>
-						Remove
-					</button>
-				</div>
-			) : (
-				<>
-					<button
-						type="button"
-						className="button"
-						onClick={ () => { setOpen( ( p ) => ! p ); if ( ! open ) setQuery( '' ); } }
-					>
-						{ open ? 'Close' : '+ Connect Substory Post' }
-					</button>
-
-					{ open && (
-						<div className="cns-picker-dropdown">
-							<input
-								type="search"
-								placeholder="Search substories…"
-								value={ query }
-								onChange={ ( e ) => setQuery( e.target.value ) }
-								autoFocus
-								className="regular-text"
-							/>
-							{ loading && <div className="cns-picker-loading">Searching…</div> }
-							<ul className="cns-picker-results">
-								{ results.map( ( item ) => (
-									<li key={ item.id }>
-										<button type="button" onClick={ () => handleSelect( item ) }>
-											{ item.thumbnailUrl && (
-												<img src={ item.thumbnailUrl } alt="" width="32" height="32" />
-											) }
-											<span>{ item.title }</span>
-											<small>{ item.status }</small>
-										</button>
-									</li>
-								) ) }
-								{ ! loading && results.length === 0 && query && (
-									<li className="cns-picker-empty">No substories found.</li>
-								) }
-							</ul>
-						</div>
-					) }
-				</>
-			) }
-		</div>
+		<ComboboxControl
+			__next40pxDefaultSize
+			__nextHasNoMarginBottom
+			label={ __( 'Substory post', 'cns-story-suite' ) }
+			hideLabelFromVision
+			placeholder={ __( 'Search substories…', 'cns-story-suite' ) }
+			value={ substoryId ? String( substoryId ) : null }
+			options={ options }
+			onFilterValueChange={ handleFilterValueChange }
+			onChange={ ( value ) => {
+				if ( ! value ) {
+					onChange( null, '' );
+					return;
+				}
+				const opt = options.find( ( o ) => o.value === value );
+				onChange( parseInt( value, 10 ), opt?.label || '' );
+			} }
+			allowReset
+		/>
 	);
 }

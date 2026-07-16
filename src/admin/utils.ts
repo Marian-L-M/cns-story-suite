@@ -1,33 +1,32 @@
-export function apiFetch(
+import wpApiFetch from '@wordpress/api-fetch';
+
+/**
+ * Thin wrappers over @wordpress/api-fetch pinned to the plugin namespaces.
+ * Nonce and REST root come from core's api-fetch middleware. They resolve
+ * with the parsed JSON body and reject with the REST error object
+ * ({ code, message, data }) on any non-2xx response — callers read
+ * `.message` off the rejection.
+ */
+export function apiFetch< T = unknown >(
 	method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
 	path: string,
-	body?: Record< string, unknown >
-): Promise< Response > {
-	const g = window.cnsStorySuite;
-	const url = g.restUrl + path;
-	return fetch( url, {
+	data?: Record< string, unknown >
+): Promise< T > {
+	return wpApiFetch< T >( {
+		path: '/cns-story-suite/v1' + path,
 		method,
-		headers: {
-			'Content-Type': 'application/json',
-			'X-WP-Nonce':   g.nonce,
-		},
-		body: body ? JSON.stringify( body ) : undefined,
+		data,
 	} );
 }
 
-export function mapApiFetch(
+export function mapApiFetch< T = unknown >(
 	method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
 	path: string,
-	body?: Record< string, unknown >
-): Promise< Response > {
-	const g = window.cnsStorySuite;
-	const url = g.mapRestUrl + path;
-	return fetch( url, {
+	data?: Record< string, unknown >
+): Promise< T > {
+	return wpApiFetch< T >( {
+		path: '/cns-map-suite/v1' + path,
 		method,
-		headers: {
-			'Content-Type': 'application/json',
-			'X-WP-Nonce':   g.nonce,
-		},
-		body: body ? JSON.stringify( body ) : undefined,
+		data,
 	} );
 }

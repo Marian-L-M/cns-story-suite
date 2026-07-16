@@ -141,6 +141,9 @@ function cns_story_suite_enqueue_admin_assets(): void {
 	if ($page === CNS_STORY_PAGE_EDITOR) {
 		wp_enqueue_media();
 		wp_enqueue_style('wp-color-picker');
+		// Styles for @wordpress/components (the script dep comes from the
+		// generated asset file, but the stylesheet must be enqueued manually).
+		wp_enqueue_style('wp-components');
 	}
 }
 add_action('admin_enqueue_scripts', 'cns_story_suite_enqueue_admin_assets');

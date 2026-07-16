@@ -1,3 +1,6 @@
+import { Button, __experimentalNumberControl as NumberControl } from '@wordpress/components';
+import { brush, closeSmall, pencil, starEmpty, trash } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import type { StoryNode, StoryEdge, StoryPath } from '../../../types';
 
 interface Props {
@@ -105,64 +108,69 @@ export default function NodesPanel( {
 								</td>
 								<td>
 									{ outEdges.length === 0 && <span className="description">None</span> }
-									{ outEdges.map( ( edge, i ) => {
+									{ outEdges.map( ( edge ) => {
 										const toNode = nodes.find( ( n ) => n.id === edge.toNodeId );
 										return (
 											<div key={ edge.id } className="cns-edge-row">
-												<input
-													type="number"
-													min="0"
+												<NumberControl
+													size="small"
+													label={ __( 'Sort order (lower = higher priority)', 'cns-story-suite' ) }
+													hideLabelFromVision
+													min={ 0 }
 													value={ edge.sortOrder }
-													onChange={ ( e ) => onEdgeReorder( edge.id, parseInt( e.target.value ) ) }
-													style={ { width: 44 } }
-													title="Sort order (lower = higher priority)"
+													onChange={ ( v ) => onEdgeReorder( edge.id, parseInt( v ?? '', 10 ) || 0 ) }
+													style={ { width: 60 } }
 												/>
 												<span>→ { toNode ? getDisplayTitle( toNode ) : `#${ edge.toNodeId }` }</span>
-												<button
-													className="cns-icon-btn"
-													title="Style this connection"
+												<Button
+													size="small"
+													icon={ brush }
+													label={ __( 'Style this connection', 'cns-story-suite' ) }
 													onClick={ () => onEditEdge( edge.id ) }
-												>&#x2261;</button>
-												<button
-													className="cns-icon-btn"
-													title="Delete connection"
+												/>
+												<Button
+													size="small"
+													icon={ closeSmall }
+													isDestructive
+													label={ __( 'Delete connection', 'cns-story-suite' ) }
 													onClick={ () => {
 														if ( window.confirm( 'Delete this connection?' ) ) onEdgeDelete( edge.id );
 													} }
-												>
-													✕
-												</button>
+												/>
 											</div>
 										);
 									} ) }
 								</td>
 								<td className="cns-maps-actions">
-									{ node.id !== startNodeId && (
-										<button
-											className="button button-small"
-											onClick={ () => onSetStartNode( node.id ) }
-										>
-											Set Start
-										</button>
-									) }
-									{ ' ' }
-									<button
-										className="button button-small"
-										onClick={ () => onEditNode( node.id ) }
-									>
-										Edit
-									</button>
-									{ ' ' }
-									<button
-										className="button button-small cns-delete-link"
-										onClick={ () => {
-											if ( window.confirm( 'Delete this node and all its connections?' ) ) {
-												onDeleteNode( node.id );
-											}
-										} }
-									>
-										Delete
-									</button>
+									<div className="cns-actions-row">
+										{ node.id !== startNodeId && (
+											<Button
+												size="small"
+												icon={ starEmpty }
+												label={ __( 'Set as start node', 'cns-story-suite' ) }
+												onClick={ () => onSetStartNode( node.id ) }
+											>
+												{ __( 'Set Start', 'cns-story-suite' ) }
+											</Button>
+										) }
+										<Button
+											size="small"
+											icon={ pencil }
+											label={ __( 'Edit', 'cns-story-suite' ) }
+											onClick={ () => onEditNode( node.id ) }
+										/>
+										<Button
+											size="small"
+											icon={ trash }
+											isDestructive
+											label={ __( 'Delete', 'cns-story-suite' ) }
+											onClick={ () => {
+												if ( window.confirm( 'Delete this node and all its connections?' ) ) {
+													onDeleteNode( node.id );
+												}
+											} }
+										/>
+									</div>
 								</td>
 							</tr>
 						);

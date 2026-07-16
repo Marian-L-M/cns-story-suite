@@ -1,3 +1,14 @@
+import {
+	BaseControl,
+	Button,
+	RadioControl,
+	RangeControl,
+	__experimentalNumberControl as NumberControl,
+} from '@wordpress/components';
+import { image as imageIcon, trash } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
+import ColorField from './ColorField';
+import MediaSelectButton from './MediaSelectButton';
 import type { MarkerType } from '../../../types';
 
 interface MarkerValues {
@@ -28,129 +39,136 @@ export default function MarkerControls( {
 	markerIconOffsetX, markerIconOffsetY,
 	onChange,
 }: Props ) {
-	function openIconPicker() {
-		const frame = window.wp?.media?.( {
-			title:    'Select Marker Icon',
-			button:   { text: 'Use as marker' },
-			multiple: false,
-			library:  { type: 'image' },
-		} );
-		if ( ! frame ) return;
-		frame.on( 'select', () => {
-			const att = frame.state().get( 'selection' ).first().toJSON();
-			onChange( { markerIconId: att.id, markerIconUrl: att.url } );
-		} );
-		frame.open();
-	}
-
 	return (
-		<div className="cns-marker-controls">
-			{ /* Type */ }
-			<div className="cns-form-row cns-form-row--full">
-				<label>Type</label>
-				<div className="cns-radio-toggle">
-					{ ( [ 'ring', 'icon' ] as MarkerType[] ).map( ( t ) => (
-						<label key={ t }>
-							<input type="radio" name="mc-type" value={ t }
-								checked={ markerType === t }
-								onChange={ () => onChange( { markerType: t } ) }
-							/>
-							{ ' ' }{ t === 'ring' ? 'Ring outline' : 'Icon image' }
-						</label>
-					) ) }
-				</div>
-			</div>
-
-			{ /* Color + Size */ }
-			<div className="cns-form-row">
-				<label>Color</label>
-				<input type="color" value={ markerColor }
-					onChange={ ( e ) => onChange( { markerColor: e.target.value } ) }
+		<div className="cns-marker-controls cns-grid cns-grid__12">
+			<div className="cns-grid__group cns-grid__span-full">
+				<RadioControl
+					label={ __( 'Type', 'cns-story-suite' ) }
+					selected={ markerType }
+					options={ [
+						{ label: __( 'Ring outline', 'cns-story-suite' ), value: 'ring' },
+						{ label: __( 'Icon image', 'cns-story-suite' ), value: 'icon' },
+					] }
+					onChange={ ( v ) => onChange( { markerType: v as MarkerType } ) }
 				/>
 			</div>
-			{ markerType === 'ring' && (
-				<div className="cns-form-row">
-					<label>Ring size</label>
-					<div className="cns-range-wrap">
-						<input type="range" min="1" max="30" step="1"
-							value={ markerSize }
-							onChange={ ( e ) => onChange( { markerSize: parseFloat( e.target.value ) } ) }
-						/>
-						<span className="cns-range-value">{ markerSize }px</span>
-					</div>
-				</div>
-			) }
 
-			{ /* Icon picker */ }
+			<div className="cns-grid__group">
+				<ColorField
+					label={ __( 'Color', 'cns-story-suite' ) }
+					value={ markerColor }
+					onChange={ ( v ) => onChange( { markerColor: v } ) }
+				/>
+			</div>
+			<div className="cns-grid__group">
+				<RangeControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={
+						markerType === 'ring'
+							? __( 'Ring size (px)', 'cns-story-suite' )
+							: __( 'Icon size (px)', 'cns-story-suite' )
+					}
+					min={ 1 } max={ 30 } step={ 1 }
+					withInputField
+					value={ markerSize }
+					onChange={ ( v ) => onChange( { markerSize: v ?? 5 } ) }
+				/>
+			</div>
+
 			{ markerType === 'icon' && (
 				<>
-					<div className="cns-form-row cns-form-row--full">
-						<label>Icon image</label>
-						<div style={ { display: 'flex', gap: 8, alignItems: 'center' } }>
-							{ markerIconUrl && (
-								<img src={ markerIconUrl } alt=""
-									style={ { width: 32, height: 32, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 } }
-								/>
-							) }
-							<button type="button" className="button" onClick={ openIconPicker }>
-								{ markerIconId ? 'Change icon' : 'Select icon' }
-							</button>
-							{ markerIconId && (
-								<button type="button" className="button"
-									onClick={ () => onChange( { markerIconId: null, markerIconUrl: '' } ) }
-								>Remove</button>
-							) }
-						</div>
-					</div>
-
-					{ /* Icon size */ }
-					<div className="cns-form-row">
-						<label>Icon size</label>
-						<div className="cns-range-wrap">
-							<input type="range" min="1" max="30" step="1"
-								value={ markerSize }
-								onChange={ ( e ) => onChange( { markerSize: parseFloat( e.target.value ) } ) }
-							/>
-							<span className="cns-range-value">{ markerSize }px</span>
-						</div>
-					</div>
-
-					{ /* Offset presets */ }
-					<div className="cns-form-row cns-form-row--full">
-						<label>Position preset</label>
-						<div style={ { display: 'flex', gap: 6, flexWrap: 'wrap' } }>
-							{ PRESETS.map( ( preset ) => (
-								<button key={ preset.label } type="button" className="button button-small"
-									style={ {
-										fontWeight:
-											markerIconOffsetX === preset.x && markerIconOffsetY === preset.y
-												? 'bold'
-												: undefined,
-									} }
-									onClick={ () => onChange( { markerIconOffsetX: preset.x, markerIconOffsetY: preset.y } ) }
+					<div className="cns-grid__group cns-grid__span-full">
+						<BaseControl
+							__nextHasNoMarginBottom
+							id="cns-marker-icon"
+							label={ __( 'Icon image', 'cns-story-suite' ) }
+						>
+							<div className="cns-actions-row">
+								{ markerIconUrl && (
+									<img
+										src={ markerIconUrl }
+										alt=""
+										style={ { width: 32, height: 32, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 } }
+									/>
+								) }
+								<MediaSelectButton
+									title={ __( 'Select Marker Icon', 'cns-story-suite' ) }
+									value={ markerIconId }
+									allowedTypes={ [ 'image' ] }
+									icon={ imageIcon }
+									onSelect={ ( att ) =>
+										onChange( { markerIconId: att.id, markerIconUrl: att.url } )
+									}
 								>
-									{ preset.label }
-								</button>
-							) ) }
-						</div>
+									{ markerIconId
+										? __( 'Change icon', 'cns-story-suite' )
+										: __( 'Select icon', 'cns-story-suite' ) }
+								</MediaSelectButton>
+								{ markerIconId && (
+									<Button
+										variant="tertiary"
+										isDestructive
+										icon={ trash }
+										label={ __( 'Remove icon', 'cns-story-suite' ) }
+										onClick={ () => onChange( { markerIconId: null, markerIconUrl: '' } ) }
+									/>
+								) }
+							</div>
+						</BaseControl>
 					</div>
 
-					{ /* Manual offset */ }
-					<div className="cns-form-row">
-						<label>Offset X</label>
-						<input type="number" min="-100" max="100" step="1" style={ { width: 60 } }
-							value={ markerIconOffsetX }
-							onChange={ ( e ) => onChange( { markerIconOffsetX: parseFloat( e.target.value ) || 0 } ) }
-						/>
-						<span style={ { marginLeft: 4 } }>px</span>
+					<div className="cns-grid__group cns-grid__span-full">
+						<BaseControl
+							__nextHasNoMarginBottom
+							id="cns-marker-presets"
+							label={ __( 'Position preset', 'cns-story-suite' ) }
+						>
+							<div className="cns-actions-row">
+								{ PRESETS.map( ( preset ) => (
+									<Button
+										key={ preset.label }
+										variant="secondary"
+										size="small"
+										isPressed={
+											markerIconOffsetX === preset.x &&
+											markerIconOffsetY === preset.y
+										}
+										onClick={ () =>
+											onChange( {
+												markerIconOffsetX: preset.x,
+												markerIconOffsetY: preset.y,
+											} )
+										}
+									>
+										{ preset.label }
+									</Button>
+								) ) }
+							</div>
+						</BaseControl>
 					</div>
-					<div className="cns-form-row">
-						<label>Offset Y</label>
-						<input type="number" min="-100" max="100" step="1" style={ { width: 60 } }
-							value={ markerIconOffsetY }
-							onChange={ ( e ) => onChange( { markerIconOffsetY: parseFloat( e.target.value ) || 0 } ) }
+
+					<div className="cns-grid__group">
+						<NumberControl
+							__next40pxDefaultSize
+							label={ __( 'Offset X (px)', 'cns-story-suite' ) }
+							min={ -100 } max={ 100 } step={ 1 }
+							value={ markerIconOffsetX }
+							onChange={ ( v ) =>
+								onChange( { markerIconOffsetX: parseFloat( v ?? '' ) || 0 } )
+							}
 						/>
-						<span style={ { marginLeft: 4 } }>px</span>
+					</div>
+					<div className="cns-grid__group">
+						<NumberControl
+							__next40pxDefaultSize
+							label={ __( 'Offset Y (px)', 'cns-story-suite' ) }
+							min={ -100 } max={ 100 } step={ 1 }
+							value={ markerIconOffsetY }
+							onChange={ ( v ) =>
+								onChange( { markerIconOffsetY: parseFloat( v ?? '' ) || 0 } )
+							}
+						/>
 					</div>
 				</>
 			) }

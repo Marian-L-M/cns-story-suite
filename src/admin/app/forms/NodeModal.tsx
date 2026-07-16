@@ -1,8 +1,24 @@
 import { useState, useEffect } from '@wordpress/element';
+import {
+	BaseControl,
+	Button,
+	CheckboxControl,
+	Flex,
+	Modal,
+	RadioControl,
+	RangeControl,
+	SelectControl,
+	TextControl,
+	TextareaControl,
+	__experimentalNumberControl as NumberControl,
+} from '@wordpress/components';
+import { image as imageIcon, plus, trash } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import SubstoryPicker from '../shared/SubstoryPicker';
-import MarkerControls from '../shared/MarkerControls';
+import ColorField from '../shared/ColorField';
+import MediaSelectButton from '../shared/MediaSelectButton';
 import { apiFetch } from '../../utils';
-import type { StoryNode, StoryPath, NodeFormData, IconType, IconBgShape, NodeMarkerType, MarkerType } from '../../../types';
+import type { StoryNode, StoryPath, NodeFormData, IconType, IconBgShape, NodeMarkerType } from '../../../types';
 
 interface Props {
 	nodeId:       number | null; // null = new node
@@ -40,6 +56,14 @@ function buildInitialForm( node: StoryNode | null, initialX: number, initialY: n
 	};
 }
 
+const SHAPE_OPTIONS: { value: IconType; label: string }[] = [
+	{ value: 'round',     label: 'Round' },
+	{ value: 'square',    label: 'Square' },
+	{ value: 'diamond',   label: 'Diamond' },
+	{ value: 'icon',      label: 'Icon' },
+	{ value: 'thumbnail', label: 'Thumbnail' },
+];
+
 export default function NodeModal( { nodeId, existingNode, initialX, initialY, paths, onSave, onClose }: Props ) {
 	const [ form,     setForm     ] = useState< NodeFormData >( () => buildInitialForm( existingNode, initialX, initialY ) );
 	const [ saving,   setSaving   ] = useState( false );
@@ -47,19 +71,6 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, p
 	const [ creating, setCreating ] = useState( false );
 
 	const isNew = nodeId === null;
-
-	// Lock body scroll and handle Escape key.
-	useEffect( () => {
-		document.body.classList.add( 'cns-modal-open' );
-		function onKey( e: KeyboardEvent ) {
-			if ( e.key === 'Escape' ) onClose();
-		}
-		document.addEventListener( 'keydown', onKey );
-		return () => {
-			document.body.classList.remove( 'cns-modal-open' );
-			document.removeEventListener( 'keydown', onKey );
-		};
-	}, [] );
 
 	useEffect( () => {
 		setForm( buildInitialForm( existingNode, initialX, initialY ) );
@@ -73,13 +84,16 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, p
 		if ( ! newTitle.trim() ) return;
 		setCreating( true );
 		try {
-			const res  = await apiFetch( 'POST', '/substories', { title: newTitle } );
-			const data = await res.json() as { id: number; title: string; editUrl: string };
-			if ( res.ok ) {
-				set( 'substoryId', data.id );
-				set( 'substoryLabel', data.title );
-				setNewTitle( '' );
-			}
+			const data = await apiFetch< { id: number; title: string; editUrl: string } >(
+				'POST',
+				'/substories',
+				{ title: newTitle }
+			);
+			set( 'substoryId', data.id );
+			set( 'substoryLabel', data.title );
+			setNewTitle( '' );
+		} catch {
+			/* create failures are silent, as before */
 		} finally {
 			setCreating( false );
 		}
@@ -92,443 +106,431 @@ export default function NodeModal( { nodeId, existingNode, initialX, initialY, p
 	}
 
 	return (
-		<div
-			className="cns-modal"
-			role="dialog"
-			aria-modal="true"
-			aria-label={ isNew ? 'Add Node' : 'Edit Node' }
+		<Modal
+			title={ isNew ? __( 'Add Node', 'cns-story-suite' ) : __( 'Edit Node', 'cns-story-suite' ) }
+			onRequestClose={ onClose }
+			size="medium"
+			className="cns-node-modal"
 		>
-			<div className="cns-modal__backdrop" onClick={ onClose } />
+			{ /* Substory connection */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Substory Post', 'cns-story-suite' ) }</h3>
+				<SubstoryPicker
+					substoryId={ form.substoryId }
+					substoryLabel={ form.substoryLabel }
+					onChange={ ( id, label ) => { set( 'substoryId', id ); set( 'substoryLabel', label ); } }
+				/>
 
-			<div className="cns-modal__dialog">
-
-				<div className="cns-modal__header">
-					<h2 className="cns-modal__title">{ isNew ? 'Add Node' : 'Edit Node' }</h2>
-					<button className="cns-modal__close" onClick={ onClose } aria-label="Close">&times;</button>
-				</div>
-
-				<div className="cns-modal__body">
-
-					{ /* Substory connection */ }
-					<div className="cns-modal-section">
-						<h3>Substory Post</h3>
-						<SubstoryPicker
-							substoryId={ form.substoryId }
-							substoryLabel={ form.substoryLabel }
-							onChange={ ( id, label ) => { set( 'substoryId', id ); set( 'substoryLabel', label ); } }
-						/>
-
-						{ ! form.substoryId && (
-							<div className="cns-modal-section__create" style={ { marginTop: 10 } }>
-								<p className="description" style={ { marginBottom: 6 } }>
-									Or create a new substory post:
-								</p>
-								<div style={ { display: 'flex', gap: 8, alignItems: 'center' } }>
-									<input
-										type="text"
-										className="regular-text"
-										placeholder="New substory title…"
-										value={ newTitle }
-										onChange={ ( e ) => setNewTitle( e.target.value ) }
-										onKeyDown={ ( e ) => { if ( e.key === 'Enter' ) handleCreateSubstory(); } }
-										style={ { flex: 1 } }
-									/>
-									<button
-										type="button"
-										className="button"
-										onClick={ handleCreateSubstory }
-										disabled={ creating || ! newTitle.trim() }
-									>
-										{ creating ? 'Creating…' : 'Create' }
-									</button>
-								</div>
+				{ ! form.substoryId && (
+					<div style={ { marginTop: 10 } }>
+						<p className="description" style={ { marginBottom: 6 } }>
+							{ __( 'Or create a new substory post:', 'cns-story-suite' ) }
+						</p>
+						<Flex gap={ 2 } align="flex-end">
+							<div style={ { flex: 1 } }>
+								<TextControl
+									__next40pxDefaultSize
+									__nextHasNoMarginBottom
+									label={ __( 'New substory title', 'cns-story-suite' ) }
+									hideLabelFromVision
+									placeholder={ __( 'New substory title…', 'cns-story-suite' ) }
+									value={ newTitle }
+									onChange={ setNewTitle }
+									onKeyDown={ ( e: React.KeyboardEvent ) => {
+										if ( e.key === 'Enter' ) handleCreateSubstory();
+									} }
+								/>
 							</div>
+							<Button
+								variant="secondary"
+								icon={ plus }
+								isBusy={ creating }
+								disabled={ creating || ! newTitle.trim() }
+								onClick={ handleCreateSubstory }
+							>
+								{ creating
+									? __( 'Creating…', 'cns-story-suite' )
+									: __( 'Create', 'cns-story-suite' ) }
+							</Button>
+						</Flex>
+					</div>
+				) }
+			</div>
+
+			{ /* Title / excerpt overrides */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Display Overrides', 'cns-story-suite' ) }</h3>
+				<p className="description" style={ { marginBottom: 12 } }>
+					{ __( 'Leave blank to use the substory post’s title and excerpt.', 'cns-story-suite' ) }
+				</p>
+				<div className="cns-grid cns-grid__12">
+					<div className="cns-grid__group cns-grid__span-full">
+						<TextControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={ __( 'Title', 'cns-story-suite' ) }
+							value={ form.titleOverride }
+							placeholder={ form.substoryLabel || __( 'Node title…', 'cns-story-suite' ) }
+							onChange={ ( v ) => set( 'titleOverride', v ) }
+						/>
+					</div>
+					<div className="cns-grid__group cns-grid__span-full">
+						<TextareaControl
+							__nextHasNoMarginBottom
+							label={ __( 'Excerpt', 'cns-story-suite' ) }
+							rows={ 3 }
+							value={ form.excerptOverride }
+							placeholder={ __( 'Short description shown in the story window…', 'cns-story-suite' ) }
+							onChange={ ( v ) => set( 'excerptOverride', v ) }
+						/>
+					</div>
+				</div>
+			</div>
+
+			{ /* Position */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Position', 'cns-story-suite' ) }</h3>
+				<div className="cns-grid cns-grid__12">
+					<div className="cns-grid__group">
+						<NumberControl
+							__next40pxDefaultSize
+							label={ __( 'X (%)', 'cns-story-suite' ) }
+							min={ 0 } max={ 100 } step={ 0.1 }
+							value={ Math.round( form.x * 1000 ) / 10 }
+							onChange={ ( v ) =>
+								set( 'x', Math.max( 0, Math.min( 1, ( parseFloat( v ?? '' ) || 0 ) / 100 ) ) )
+							}
+						/>
+					</div>
+					<div className="cns-grid__group">
+						<NumberControl
+							__next40pxDefaultSize
+							label={ __( 'Y (%)', 'cns-story-suite' ) }
+							min={ 0 } max={ 100 } step={ 0.1 }
+							value={ Math.round( form.y * 1000 ) / 10 }
+							onChange={ ( v ) =>
+								set( 'y', Math.max( 0, Math.min( 1, ( parseFloat( v ?? '' ) || 0 ) / 100 ) ) )
+							}
+						/>
+					</div>
+				</div>
+				<p className="description" style={ { marginTop: 6 } }>
+					{ __(
+						'Position as a percentage of canvas width/height from the top-left. Also adjustable by clicking or dragging on the canvas.',
+						'cns-story-suite'
+					) }
+				</p>
+			</div>
+
+			{ /* Icon settings */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Node Appearance', 'cns-story-suite' ) }</h3>
+				<div className="cns-grid cns-grid__12">
+					<div className="cns-grid__group cns-grid__span-full">
+						<RadioControl
+							label={ __( 'Shape', 'cns-story-suite' ) }
+							selected={ form.iconType }
+							options={ SHAPE_OPTIONS.filter(
+								( o ) => o.value !== 'thumbnail' || !! form.substoryId
+							) }
+							onChange={ ( v ) => set( 'iconType', v as IconType ) }
+						/>
+						{ form.iconType === 'thumbnail' && (
+							<p className="description" style={ { marginTop: 6 } }>
+								{ __( 'Uses the substory’s featured image, clipped to a circle.', 'cns-story-suite' ) }
+							</p>
+						) }
+						{ ! form.substoryId && (
+							<p className="description" style={ { marginTop: 6, color: '#888' } }>
+								{ __( 'Link a substory above to enable the Thumbnail option.', 'cns-story-suite' ) }
+							</p>
 						) }
 					</div>
 
-					{ /* Title / excerpt overrides */ }
-					<div className="cns-modal-section">
-						<h3>Display Overrides</h3>
-						<p className="description" style={ { marginBottom: 12 } }>
-							Leave blank to use the substory post&rsquo;s title and excerpt.
-						</p>
-						<div className="cns-form-grid">
-							<div className="cns-form-row cns-form-row--full">
-								<label htmlFor="node-title-override">Title</label>
-								<input
-									id="node-title-override"
-									type="text"
-									className="regular-text"
-									value={ form.titleOverride }
-									onChange={ ( e ) => set( 'titleOverride', e.target.value ) }
-									placeholder={ form.substoryLabel || 'Node title…' }
-								/>
-							</div>
-							<div className="cns-form-row cns-form-row--full">
-								<label htmlFor="node-excerpt-override">Excerpt</label>
-								<textarea
-									id="node-excerpt-override"
-									className="large-text"
-									rows={ 3 }
-									value={ form.excerptOverride }
-									onChange={ ( e ) => set( 'excerptOverride', e.target.value ) }
-									placeholder="Short description shown in the story window…"
-								/>
-							</div>
-						</div>
-					</div>
-
-					{ /* Position */ }
-					<div className="cns-modal-section">
-						<h3>Position</h3>
-						<div className="cns-form-grid">
-							<div className="cns-form-row">
-								<label htmlFor="node-pos-x">X (%)</label>
-								<input
-									id="node-pos-x"
-									type="number"
-									className="small-text"
-									min="0"
-									max="100"
-									step="0.1"
-									value={ Math.round( form.x * 1000 ) / 10 }
-									onChange={ ( e ) => set( 'x', Math.max( 0, Math.min( 1, parseFloat( e.target.value ) / 100 ) ) ) }
-								/>
-							</div>
-							<div className="cns-form-row">
-								<label htmlFor="node-pos-y">Y (%)</label>
-								<input
-									id="node-pos-y"
-									type="number"
-									className="small-text"
-									min="0"
-									max="100"
-									step="0.1"
-									value={ Math.round( form.y * 1000 ) / 10 }
-									onChange={ ( e ) => set( 'y', Math.max( 0, Math.min( 1, parseFloat( e.target.value ) / 100 ) ) ) }
-								/>
-							</div>
-						</div>
-						<p className="description" style={ { marginTop: 6 } }>
-							Position as a percentage of canvas width/height from the top-left. Also adjustable by clicking or dragging on the canvas.
-						</p>
-					</div>
-
-					{ /* Icon settings */ }
-					<div className="cns-modal-section">
-						<h3>Node Appearance</h3>
-						<div className="cns-form-grid">
-
-							<div className="cns-form-row cns-form-row--full">
-								<label>Shape</label>
-								<div className="cns-radio-toggle">
-									{ ( [ 'round', 'square', 'diamond', 'icon', 'thumbnail' ] as IconType[] ).map( ( t ) => {
-										const isDisabled = t === 'thumbnail' && ! form.substoryId;
-										return (
-											<label key={ t } style={ isDisabled ? { opacity: 0.5 } : undefined }>
-												<input
-													type="radio"
-													name="icon-type"
-													value={ t }
-													checked={ form.iconType === t }
-													disabled={ isDisabled }
-													onChange={ () => set( 'iconType', t ) }
-												/>
-												{ ' ' }{ t === 'thumbnail' ? 'Thumbnail' : t.charAt( 0 ).toUpperCase() + t.slice( 1 ) }
-											</label>
-										);
-									} ) }
-								</div>
-								{ form.iconType === 'thumbnail' && (
-									<p className="description" style={ { marginTop: 6 } }>
-										Uses the substory&rsquo;s featured image, clipped to a circle.
-									</p>
-								) }
-								{ ! form.substoryId && (
-									<p className="description" style={ { marginTop: 6, color: '#888' } }>
-										Link a substory above to enable the Thumbnail option.
-									</p>
-								) }
-							</div>
-
-							{ form.iconType === 'icon' && (
-								<div className="cns-form-row cns-form-row--full">
-									<label>Icon Image</label>
-									<div style={ { display: 'flex', gap: 8, alignItems: 'center' } }>
-										<button
-											type="button"
-											className="button"
-											onClick={ () => {
-												if ( ! window.wp?.media ) return;
-												const frame = window.wp.media( {
-													title:    'Select Icon',
-													button:   { text: 'Use this icon' },
-													multiple: false,
-												} );
-												frame.on( 'select', () => {
-													const attachment = frame.state().get( 'selection' ).first().toJSON();
-													set( 'iconId', attachment.id );
-												} );
-												frame.open();
-											} }
-										>
-											{ form.iconId ? `Icon #${ form.iconId }` : 'Select Icon' }
-										</button>
-										{ form.iconId && (
-											<button
-												type="button"
-												className="button"
-												onClick={ () => set( 'iconId', null ) }
-											>
-												Remove
-											</button>
-										) }
-									</div>
-								</div>
-							) }
-
-							{ /* Background (for icon and thumbnail) */ }
-							{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && (
-								<div className="cns-form-row cns-form-row--full">
-									<label>Background shape</label>
-									<div className="cns-radio-toggle">
-										{ ( form.iconType === 'thumbnail'
-											? ( [ 'round', 'square' ] as const )
-											: ( [ 'none', 'round', 'square' ] as const )
-										).map( ( s ) => (
-											<label key={ s }>
-												<input type="radio" name="icon-bg-shape" value={ s }
-													checked={ form.iconBgShape === s }
-													onChange={ () => set( 'iconBgShape', s as IconBgShape ) }
-												/>
-												{ ' ' }{ s.charAt( 0 ).toUpperCase() + s.slice( 1 ) }
-											</label>
-										) ) }
-									</div>
-								</div>
-							) }
-							{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && form.iconBgShape !== 'none' && (
-								<div className="cns-form-row">
-									<label>Background color</label>
-									<input type="color" value={ form.iconBgColor }
-										onChange={ e => set( 'iconBgColor', e.target.value ) } />
-								</div>
-							) }
-
-							{ ! [ 'icon', 'thumbnail' ].includes( form.iconType ) && (
-								<div className="cns-form-row">
-									<label>Fill color</label>
-									<div>
-										<input
-											type="color"
-											value={ form.iconColor }
-											onChange={ ( e ) => set( 'iconColor', e.target.value ) }
+					{ form.iconType === 'icon' && (
+						<div className="cns-grid__group cns-grid__span-full">
+							<BaseControl
+								__nextHasNoMarginBottom
+								id="cns-node-icon-image"
+								label={ __( 'Icon Image', 'cns-story-suite' ) }
+							>
+								<div className="cns-actions-row">
+									<MediaSelectButton
+										title={ __( 'Select Icon', 'cns-story-suite' ) }
+										value={ form.iconId }
+										icon={ imageIcon }
+										onSelect={ ( att ) => set( 'iconId', att.id ) }
+									>
+										{ form.iconId
+											? `Icon #${ form.iconId }`
+											: __( 'Select Icon', 'cns-story-suite' ) }
+									</MediaSelectButton>
+									{ form.iconId && (
+										<Button
+											variant="tertiary"
+											isDestructive
+											icon={ trash }
+											label={ __( 'Remove icon', 'cns-story-suite' ) }
+											onClick={ () => set( 'iconId', null ) }
 										/>
-									</div>
+									) }
 								</div>
-							) }
-
-							<div className="cns-form-row">
-								<label>Border color</label>
-								<input type="color" value={ form.iconBorderColor }
-									onChange={ e => set( 'iconBorderColor', e.target.value ) } />
-							</div>
-							<div className="cns-form-row">
-								<label>Border width</label>
-								<div className="cns-range-wrap">
-									<input type="range" min="0" max="10" step="0.5"
-										value={ form.iconBorderWidth }
-										onChange={ e => set( 'iconBorderWidth', parseFloat( e.target.value ) ) } />
-									<span className="cns-range-value">{ form.iconBorderWidth }px</span>
-								</div>
-							</div>
-
-							<div className="cns-form-row">
-								<label>Size</label>
-								<div className="cns-range-wrap">
-									<input
-										type="range"
-										min="0.25"
-										max="3"
-										step="0.25"
-										value={ form.iconSize }
-										onChange={ ( e ) => set( 'iconSize', parseFloat( e.target.value ) ) }
-									/>
-									<span className="cns-range-value">{ form.iconSize }&times;</span>
-								</div>
-							</div>
-
+							</BaseControl>
 						</div>
-					</div>
+					) }
 
-					{ /* Path assignment */ }
-					<div className="cns-modal-section">
-						<h3>Story Path</h3>
-						<select
-							value={ form.pathId ?? '' }
-							onChange={ ( e ) => set( 'pathId', e.target.value ? parseInt( e.target.value, 10 ) : null ) }
-							className="regular-text"
-						>
-							<option value="">— No path (use global settings) —</option>
-							{ paths.map( ( p ) => (
-								<option key={ p.id } value={ p.id }>{ p.label || `Path #${ p.id }` }</option>
-							) ) }
-						</select>
-						<p className="description" style={ { marginTop: 6 } }>
-							Assign this node to a path to inherit its marker settings.
-						</p>
-					</div>
-
-					{ /* Per-node marker override */ }
-					<div className="cns-modal-section">
-						<h3>Individual Marker Override</h3>
-						<p className="description" style={ { marginBottom: 10 } }>
-							Overrides path and global settings for this node only. Leave a field blank to inherit.
-						</p>
-
-						{ /* Type */ }
-						<div className="cns-form-grid">
-							<div className="cns-form-row cns-form-row--full">
-								<label>Marker type</label>
-								<div className="cns-radio-toggle">
-									{ ( [ 'inherit', 'ring', 'icon' ] as NodeMarkerType[] ).map( ( t ) => (
-										<label key={ t }>
-											<input type="radio" name="node-marker-type" value={ t }
-												checked={ form.markerType === t }
-												onChange={ () => set( 'markerType', t ) }
-											/>
-											{ ' ' }{ t === 'inherit' ? 'Inherit' : t.charAt( 0 ).toUpperCase() + t.slice( 1 ) }
-										</label>
-									) ) }
-								</div>
-							</div>
-
-							{ /* Color override */ }
-							<div className="cns-form-row">
-								<label>
-									<input type="checkbox"
-										checked={ form.markerColor !== null }
-										onChange={ ( e ) => set( 'markerColor', e.target.checked ? '#00aaff' : null ) }
-										style={ { marginRight: 6 } }
-									/>
-									Color override
-								</label>
-								{ form.markerColor !== null && (
-									<input type="color" value={ form.markerColor }
-										onChange={ ( e ) => set( 'markerColor', e.target.value ) }
-									/>
-								) }
-							</div>
-
-							{ /* Size override */ }
-							<div className="cns-form-row">
-								<label>
-									<input type="checkbox"
-										checked={ form.markerSize !== null }
-										onChange={ ( e ) => set( 'markerSize', e.target.checked ? 5 : null ) }
-										style={ { marginRight: 6 } }
-									/>
-									Size override
-								</label>
-								{ form.markerSize !== null && (
-									<div className="cns-range-wrap">
-										<input type="range" min="1" max="30" step="1"
-											value={ form.markerSize }
-											onChange={ ( e ) => set( 'markerSize', parseFloat( e.target.value ) ) }
-										/>
-										<span className="cns-range-value">{ form.markerSize }px</span>
-									</div>
-								) }
-							</div>
-
-							{ /* Icon picker — only when type is icon */ }
-							{ form.markerType === 'icon' && (
-								<div className="cns-form-row cns-form-row--full">
-									<label>Marker icon</label>
-									<div style={ { display: 'flex', gap: 8, alignItems: 'center' } }>
-										<button type="button" className="button"
-											onClick={ () => {
-												const frame = window.wp?.media?.( {
-													title:    'Select Marker Icon',
-													button:   { text: 'Use as marker' },
-													multiple: false,
-													library:  { type: 'image' },
-												} );
-												if ( ! frame ) return;
-												frame.on( 'select', () => {
-													const a = frame.state().get( 'selection' ).first().toJSON();
-													set( 'markerIconId', a.id );
-												} );
-												frame.open();
-											} }
-										>
-											{ form.markerIconId ? `Icon #${ form.markerIconId }` : 'Select icon' }
-										</button>
-										{ form.markerIconId && (
-											<button type="button" className="button"
-												onClick={ () => set( 'markerIconId', null ) }
-											>Remove</button>
-										) }
-									</div>
-								</div>
-							) }
-
-							{ /* Offset overrides — only when type is icon */ }
-							{ form.markerType === 'icon' && (
-								<>
-									<div className="cns-form-row">
-										<label>
-											<input type="checkbox"
-												checked={ form.markerIconOffsetX !== null }
-												onChange={ ( e ) => set( 'markerIconOffsetX', e.target.checked ? 0 : null ) }
-												style={ { marginRight: 6 } }
-											/>
-											Offset X override
-										</label>
-										{ form.markerIconOffsetX !== null && (
-											<>
-												<input type="number" min="-100" max="100" step="1" style={ { width: 60 } }
-													value={ form.markerIconOffsetX }
-													onChange={ ( e ) => set( 'markerIconOffsetX', parseFloat( e.target.value ) || 0 ) }
-												/>
-												<span style={ { marginLeft: 4 } }>px</span>
-											</>
-										) }
-									</div>
-									<div className="cns-form-row">
-										<label>
-											<input type="checkbox"
-												checked={ form.markerIconOffsetY !== null }
-												onChange={ ( e ) => set( 'markerIconOffsetY', e.target.checked ? -30 : null ) }
-												style={ { marginRight: 6 } }
-											/>
-											Offset Y override
-										</label>
-										{ form.markerIconOffsetY !== null && (
-											<>
-												<input type="number" min="-100" max="100" step="1" style={ { width: 60 } }
-													value={ form.markerIconOffsetY }
-													onChange={ ( e ) => set( 'markerIconOffsetY', parseFloat( e.target.value ) || 0 ) }
-												/>
-												<span style={ { marginLeft: 4 } }>px</span>
-											</>
-										) }
-									</div>
-								</>
-							) }
+					{ /* Background (for icon and thumbnail) */ }
+					{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && (
+						<div className="cns-grid__group cns-grid__span-full">
+							<RadioControl
+								label={ __( 'Background shape', 'cns-story-suite' ) }
+								selected={ form.iconBgShape }
+								options={ ( form.iconType === 'thumbnail'
+									? ( [ 'round', 'square' ] as const )
+									: ( [ 'none', 'round', 'square' ] as const )
+								).map( ( s ) => ( {
+									value: s,
+									label: s.charAt( 0 ).toUpperCase() + s.slice( 1 ),
+								} ) ) }
+								onChange={ ( v ) => set( 'iconBgShape', v as IconBgShape ) }
+							/>
 						</div>
+					) }
+					{ ( form.iconType === 'icon' || form.iconType === 'thumbnail' ) && form.iconBgShape !== 'none' && (
+						<div className="cns-grid__group">
+							<ColorField
+								label={ __( 'Background color', 'cns-story-suite' ) }
+								value={ form.iconBgColor }
+								onChange={ ( v ) => set( 'iconBgColor', v ) }
+							/>
+						</div>
+					) }
+
+					{ ! [ 'icon', 'thumbnail' ].includes( form.iconType ) && (
+						<div className="cns-grid__group">
+							<ColorField
+								label={ __( 'Fill color', 'cns-story-suite' ) }
+								value={ form.iconColor }
+								onChange={ ( v ) => set( 'iconColor', v ) }
+							/>
+						</div>
+					) }
+
+					<div className="cns-grid__group">
+						<ColorField
+							label={ __( 'Border color', 'cns-story-suite' ) }
+							value={ form.iconBorderColor }
+							onChange={ ( v ) => set( 'iconBorderColor', v ) }
+						/>
 					</div>
-
+					<div className="cns-grid__group">
+						<RangeControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={ __( 'Border width (px)', 'cns-story-suite' ) }
+							min={ 0 } max={ 10 } step={ 0.5 }
+							withInputField
+							value={ form.iconBorderWidth }
+							onChange={ ( v ) => set( 'iconBorderWidth', v ?? 2 ) }
+						/>
+					</div>
+					<div className="cns-grid__group">
+						<RangeControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={ __( 'Size (×)', 'cns-story-suite' ) }
+							min={ 0.25 } max={ 3 } step={ 0.25 }
+							withInputField
+							value={ form.iconSize }
+							onChange={ ( v ) => set( 'iconSize', v ?? 1 ) }
+						/>
+					</div>
 				</div>
-
-				<div className="cns-modal__footer">
-					<button className="button" onClick={ onClose }>Cancel</button>
-					<button className="button button-primary" onClick={ handleSave } disabled={ saving }>
-						{ saving ? 'Saving…' : isNew ? 'Add Node' : 'Save Node' }
-					</button>
-				</div>
-
 			</div>
-		</div>
+
+			{ /* Path assignment */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Story Path', 'cns-story-suite' ) }</h3>
+				<SelectControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Path', 'cns-story-suite' ) }
+					hideLabelFromVision
+					help={ __( 'Assign this node to a path to inherit its marker settings.', 'cns-story-suite' ) }
+					value={ form.pathId !== null ? String( form.pathId ) : '' }
+					options={ [
+						{ value: '', label: __( '— No path (use global settings) —', 'cns-story-suite' ) },
+						...paths.map( ( p ) => ( {
+							value: String( p.id ),
+							label: p.label || `Path #${ p.id }`,
+						} ) ),
+					] }
+					onChange={ ( v ) => set( 'pathId', v ? parseInt( v, 10 ) : null ) }
+				/>
+			</div>
+
+			{ /* Per-node marker override */ }
+			<div className="cns-modal-section">
+				<h3>{ __( 'Individual Marker Override', 'cns-story-suite' ) }</h3>
+				<p className="description" style={ { marginBottom: 10 } }>
+					{ __(
+						'Overrides path and global settings for this node only. Leave a field unchecked to inherit.',
+						'cns-story-suite'
+					) }
+				</p>
+
+				<div className="cns-grid cns-grid__12">
+					<div className="cns-grid__group cns-grid__span-full">
+						<RadioControl
+							label={ __( 'Marker type', 'cns-story-suite' ) }
+							selected={ form.markerType }
+							options={ [
+								{ value: 'inherit', label: __( 'Inherit', 'cns-story-suite' ) },
+								{ value: 'ring',    label: __( 'Ring', 'cns-story-suite' ) },
+								{ value: 'icon',    label: __( 'Icon', 'cns-story-suite' ) },
+							] }
+							onChange={ ( v ) => set( 'markerType', v as NodeMarkerType ) }
+						/>
+					</div>
+
+					{ /* Color override */ }
+					<div className="cns-grid__group">
+						<CheckboxControl
+							__nextHasNoMarginBottom
+							label={ __( 'Color override', 'cns-story-suite' ) }
+							checked={ form.markerColor !== null }
+							onChange={ ( checked ) => set( 'markerColor', checked ? '#00aaff' : null ) }
+						/>
+						{ form.markerColor !== null && (
+							<ColorField
+								label={ __( 'Marker color', 'cns-story-suite' ) }
+								value={ form.markerColor }
+								onChange={ ( v ) => set( 'markerColor', v ) }
+							/>
+						) }
+					</div>
+
+					{ /* Size override */ }
+					<div className="cns-grid__group">
+						<CheckboxControl
+							__nextHasNoMarginBottom
+							label={ __( 'Size override', 'cns-story-suite' ) }
+							checked={ form.markerSize !== null }
+							onChange={ ( checked ) => set( 'markerSize', checked ? 5 : null ) }
+						/>
+						{ form.markerSize !== null && (
+							<RangeControl
+								__next40pxDefaultSize
+								__nextHasNoMarginBottom
+								label={ __( 'Marker size (px)', 'cns-story-suite' ) }
+								hideLabelFromVision
+								min={ 1 } max={ 30 } step={ 1 }
+								withInputField
+								value={ form.markerSize }
+								onChange={ ( v ) => set( 'markerSize', v ?? 5 ) }
+							/>
+						) }
+					</div>
+
+					{ /* Icon picker — only when type is icon */ }
+					{ form.markerType === 'icon' && (
+						<div className="cns-grid__group cns-grid__span-full">
+							<BaseControl
+								__nextHasNoMarginBottom
+								id="cns-node-marker-icon"
+								label={ __( 'Marker icon', 'cns-story-suite' ) }
+							>
+								<div className="cns-actions-row">
+									<MediaSelectButton
+										title={ __( 'Select Marker Icon', 'cns-story-suite' ) }
+										value={ form.markerIconId }
+										allowedTypes={ [ 'image' ] }
+										icon={ imageIcon }
+										onSelect={ ( att ) => set( 'markerIconId', att.id ) }
+									>
+										{ form.markerIconId
+											? `Icon #${ form.markerIconId }`
+											: __( 'Select icon', 'cns-story-suite' ) }
+									</MediaSelectButton>
+									{ form.markerIconId && (
+										<Button
+											variant="tertiary"
+											isDestructive
+											icon={ trash }
+											label={ __( 'Remove marker icon', 'cns-story-suite' ) }
+											onClick={ () => set( 'markerIconId', null ) }
+										/>
+									) }
+								</div>
+							</BaseControl>
+						</div>
+					) }
+
+					{ /* Offset overrides — only when type is icon */ }
+					{ form.markerType === 'icon' && (
+						<>
+							<div className="cns-grid__group">
+								<CheckboxControl
+									__nextHasNoMarginBottom
+									label={ __( 'Offset X override', 'cns-story-suite' ) }
+									checked={ form.markerIconOffsetX !== null }
+									onChange={ ( checked ) => set( 'markerIconOffsetX', checked ? 0 : null ) }
+								/>
+								{ form.markerIconOffsetX !== null && (
+									<NumberControl
+										__next40pxDefaultSize
+										label={ __( 'Offset X (px)', 'cns-story-suite' ) }
+										hideLabelFromVision
+										min={ -100 } max={ 100 } step={ 1 }
+										value={ form.markerIconOffsetX }
+										onChange={ ( v ) =>
+											set( 'markerIconOffsetX', parseFloat( v ?? '' ) || 0 )
+										}
+									/>
+								) }
+							</div>
+							<div className="cns-grid__group">
+								<CheckboxControl
+									__nextHasNoMarginBottom
+									label={ __( 'Offset Y override', 'cns-story-suite' ) }
+									checked={ form.markerIconOffsetY !== null }
+									onChange={ ( checked ) => set( 'markerIconOffsetY', checked ? -30 : null ) }
+								/>
+								{ form.markerIconOffsetY !== null && (
+									<NumberControl
+										__next40pxDefaultSize
+										label={ __( 'Offset Y (px)', 'cns-story-suite' ) }
+										hideLabelFromVision
+										min={ -100 } max={ 100 } step={ 1 }
+										value={ form.markerIconOffsetY }
+										onChange={ ( v ) =>
+											set( 'markerIconOffsetY', parseFloat( v ?? '' ) || 0 )
+										}
+									/>
+								) }
+							</div>
+						</>
+					) }
+				</div>
+			</div>
+
+			<Flex justify="flex-end" gap={ 2 } style={ { marginTop: 16 } }>
+				<Button variant="tertiary" onClick={ onClose }>
+					{ __( 'Cancel', 'cns-story-suite' ) }
+				</Button>
+				<Button
+					variant="primary"
+					isBusy={ saving }
+					disabled={ saving }
+					onClick={ handleSave }
+				>
+					{ saving
+						? __( 'Saving…', 'cns-story-suite' )
+						: isNew
+						? __( 'Add Node', 'cns-story-suite' )
+						: __( 'Save Node', 'cns-story-suite' ) }
+				</Button>
+			</Flex>
+		</Modal>
 	);
 }

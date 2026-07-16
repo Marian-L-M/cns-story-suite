@@ -1,4 +1,7 @@
 import { useState } from '@wordpress/element';
+import { Button, SearchControl, SelectControl } from '@wordpress/components';
+import { link, linkOff } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import { mapApiFetch } from '../../utils';
 import type { StoryLink, LinkType } from '../../../types';
 
@@ -39,11 +42,10 @@ export default function LinksPanel( { storyId: _storyId, links, onLinkAdd, onLin
 			} else {
 				path = '/hierarchy?per_page=50&search=' + encodeURIComponent( search );
 			}
-			const res  = await mapApiFetch( 'GET', path );
-			const data = await res.json() as Array< { id: number; title: string } >;
-			if ( res.ok ) {
-				setResults( data.map( ( item ) => ( { id: item.id, title: item.title, type: linkType } ) ) );
-			}
+			const data = await mapApiFetch< Array< { id: number; title: string } > >( 'GET', path );
+			setResults( data.map( ( item ) => ( { id: item.id, title: item.title, type: linkType } ) ) );
+		} catch {
+			/* search failures leave the results empty, as before */
 		} finally {
 			setLoading( false );
 		}
@@ -53,35 +55,39 @@ export default function LinksPanel( { storyId: _storyId, links, onLinkAdd, onLin
 
 	return (
 		<div className="cns-panel cns-links-panel">
-			<h2>Map Suite Links</h2>
+			<h2>{ __( 'Map Suite Links', 'cns-story-suite' ) }</h2>
 			<p className="description">
-				Link this story to specific map objects, areas, or hierarchy regions.
-				These relationships are used for cross-referencing in the map editor.
+				{ __(
+					'Link this story to specific map objects, areas, or hierarchy regions. These relationships are used for cross-referencing in the map editor.',
+					'cns-story-suite'
+				) }
 			</p>
 
 			{ links.length > 0 && (
 				<>
-					<h3>Linked Entities</h3>
+					<h3>{ __( 'Linked Entities', 'cns-story-suite' ) }</h3>
 					<table className="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
-								<th>Type</th>
-								<th>Entity</th>
-								<th>Actions</th>
+								<th>{ __( 'Type', 'cns-story-suite' ) }</th>
+								<th>{ __( 'Entity', 'cns-story-suite' ) }</th>
+								<th>{ __( 'Actions', 'cns-story-suite' ) }</th>
 							</tr>
 						</thead>
 						<tbody>
-							{ links.map( ( link ) => (
-								<tr key={ link.id }>
-									<td><span className="cns-badge">{ LINK_TYPE_LABELS[ link.linkType ] }</span></td>
-									<td>{ link.linkTitle || `#${ link.linkId }` }</td>
+							{ links.map( ( storyLink ) => (
+								<tr key={ storyLink.id }>
+									<td><span className="cns-badge">{ LINK_TYPE_LABELS[ storyLink.linkType ] }</span></td>
+									<td>{ storyLink.linkTitle || `#${ storyLink.linkId }` }</td>
 									<td>
-										<button
-											className="button button-small cns-delete-link"
-											onClick={ () => onLinkDelete( link.id ) }
+										<Button
+											size="small"
+											icon={ linkOff }
+											isDestructive
+											onClick={ () => onLinkDelete( storyLink.id ) }
 										>
-											Unlink
-										</button>
+											{ __( 'Unlink', 'cns-story-suite' ) }
+										</Button>
 									</td>
 								</tr>
 							) ) }
@@ -90,27 +96,42 @@ export default function LinksPanel( { storyId: _storyId, links, onLinkAdd, onLin
 				</>
 			) }
 
-			<h3 style={ { marginTop: 24 } }>Add Link</h3>
+			<h3 style={ { marginTop: 24 } }>{ __( 'Add Link', 'cns-story-suite' ) }</h3>
 			<div className="cns-row-group">
-				<select
+				<SelectControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Entity type', 'cns-story-suite' ) }
+					hideLabelFromVision
 					value={ linkType }
-					onChange={ ( e ) => { setLinkType( e.target.value as LinkType ); setResults( [] ); } }
-				>
-					<option value="map_object">Map Object</option>
-					<option value="map_area">Map Area</option>
-					<option value="hierarchy">Hierarchy Region</option>
-				</select>
-				<input
-					type="search"
-					placeholder="Search…"
-					value={ search }
-					onChange={ ( e ) => setSearch( e.target.value ) }
-					onKeyDown={ ( e ) => { if ( e.key === 'Enter' ) handleSearch(); } }
-					className="regular-text"
+					options={ [
+						{ value: 'map_object', label: __( 'Map Object', 'cns-story-suite' ) },
+						{ value: 'map_area',   label: __( 'Map Area', 'cns-story-suite' ) },
+						{ value: 'hierarchy',  label: __( 'Hierarchy Region', 'cns-story-suite' ) },
+					] }
+					onChange={ ( v ) => { setLinkType( v as LinkType ); setResults( [] ); } }
 				/>
-				<button className="button" onClick={ handleSearch } disabled={ loading }>
-					{ loading ? 'Searching…' : 'Search' }
-				</button>
+				<SearchControl
+					__nextHasNoMarginBottom
+					label={ __( 'Search entities', 'cns-story-suite' ) }
+					hideLabelFromVision
+					placeholder={ __( 'Search…', 'cns-story-suite' ) }
+					value={ search }
+					onChange={ setSearch }
+					onKeyDown={ ( e: React.KeyboardEvent ) => {
+						if ( e.key === 'Enter' ) handleSearch();
+					} }
+				/>
+				<Button
+					variant="secondary"
+					isBusy={ loading }
+					disabled={ loading }
+					onClick={ handleSearch }
+				>
+					{ loading
+						? __( 'Searching…', 'cns-story-suite' )
+						: __( 'Search', 'cns-story-suite' ) }
+				</Button>
 			</div>
 
 			{ results.length > 0 && (
@@ -119,14 +140,16 @@ export default function LinksPanel( { storyId: _storyId, links, onLinkAdd, onLin
 						<li key={ item.id } className="cns-link-result">
 							<span>{ item.title || `#${ item.id }` }</span>
 							{ linkedIds.has( item.id ) ? (
-								<span className="cns-badge">Linked</span>
+								<span className="cns-badge">{ __( 'Linked', 'cns-story-suite' ) }</span>
 							) : (
-								<button
-									className="button button-small button-primary"
+								<Button
+									size="small"
+									variant="primary"
+									icon={ link }
 									onClick={ () => onLinkAdd( linkType, item.id ) }
 								>
-									+ Link
-								</button>
+									{ __( 'Link', 'cns-story-suite' ) }
+								</Button>
 							) }
 						</li>
 					) ) }

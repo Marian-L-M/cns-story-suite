@@ -13,13 +13,17 @@
 		"format": "wp-scripts format"
 	},
 	"dependencies": {
+		"@wordpress/api-fetch": "^7.47.0",
 		"@wordpress/block-editor": "latest",
 		"@wordpress/blocks": "latest",
 		"@wordpress/components": "latest",
 		"@wordpress/core-data": "latest",
 		"@wordpress/data": "latest",
 		"@wordpress/element": "latest",
-		"@wordpress/i18n": "latest"
+		"@wordpress/i18n": "latest",
+		"@wordpress/icons": "^13.2.0",
+		"@wordpress/media-utils": "^5.47.0",
+		"@wordpress/notices": "^5.47.0"
 	},
 	"devDependencies": {
 		"ajv": "^8.17.1",
