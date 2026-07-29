@@ -101,6 +101,25 @@ $edges = array_map(fn(array $e): array => [
 $map_data = null;
 if ($map_id && function_exists('cns_story_suite_get_map_render_data')) {
 	$map_data = cns_story_suite_get_map_render_data($map_id, true);
+
+	// MasterMap regions: hide child maps the visitor may not see (mirrors the
+	// visibility rules in cns-map-suite's map render.php) so draft/private
+	// child titles/thumbnails don't leak to the frontend.
+	if ($map_data && ! empty($map_data['hierarchyRegions'])) {
+		$map_data['hierarchyRegions'] = array_values(array_filter(
+			$map_data['hierarchyRegions'],
+			static function (array $region): bool {
+				$status = $region['status'] ?? '';
+				if ($status === 'publish') {
+					return true;
+				}
+				if ($status === 'private') {
+					return current_user_can('read_private_posts');
+				}
+				return $status !== '' && current_user_can('manage_maps');
+			}
+		));
+	}
 }
 
 $block_data = [

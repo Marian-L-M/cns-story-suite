@@ -173,6 +173,7 @@ function cns_story_suite_get_map_render_data(int $map_id, bool $resolve_infoboxe
 		'image_size'        => 'large',
 		'resolve_infoboxes' => $resolve_infoboxes,
 		'labels'            => false, // story canvas doesn't render map labels
+		'hierarchy'         => true,  // MasterMaps draw their child-map regions
 	]);
 	if (! $map) {
 		return null;
@@ -225,6 +226,20 @@ function cns_story_suite_get_map_render_data(int $map_id, bool $resolve_infoboxe
 		return $area;
 	}, $map['areas']);
 
+	// MasterMap child regions in the same camelCase shape as objects/areas, so
+	// the story canvases can treat them as one more base-map layer.
+	$regions = array_map(static function (array $row): array {
+		return [
+			'id'           => (int) ($row['id'] ?? 0),
+			'childMapId'   => (int) ($row['child_map_id'] ?? 0),
+			'title'        => (string) (($row['title_override'] ?? '') ?: ($row['child_map_title'] ?? '')),
+			'status'       => (string) ($row['child_map_status'] ?? ''),
+			'thumbnailUrl' => (string) ($row['child_map_thumbnail'] ?? ''),
+			'nodes'        => is_array($row['nodes'] ?? null) ? $row['nodes'] : [],
+			'canvasStyles' => is_array($row['canvas_styles'] ?? null) && $row['canvas_styles'] ? $row['canvas_styles'] : null,
+		];
+	}, $map['hierarchy_regions'] ?? []);
+
 	return [
 		'id'          => $map_id,
 		'title'       => $map['title'],
@@ -237,8 +252,10 @@ function cns_story_suite_get_map_render_data(int $map_id, bool $resolve_infoboxe
 		'imageX'      => $map['image_x'],
 		'imageY'      => $map['image_y'],
 		'imageW'      => $map['image_w'],
+		'isMaster'    => (bool) ($map['is_master'] ?? false),
 		'objects'     => $objects,
 		'areas'       => $areas,
+		'hierarchyRegions' => $regions,
 	];
 }
 

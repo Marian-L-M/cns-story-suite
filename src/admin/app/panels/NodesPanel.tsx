@@ -1,5 +1,5 @@
-import { Button, __experimentalNumberControl as NumberControl } from '@wordpress/components';
-import { brush, closeSmall, pencil, starEmpty, trash } from '@wordpress/icons';
+import { Button } from '@wordpress/components';
+import { arrowDown, arrowUp, brush, closeSmall, pencil, starEmpty, trash } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 import type { StoryNode, StoryEdge, StoryPath } from '../../../types';
 
@@ -34,12 +34,27 @@ export default function NodesPanel( {
 		);
 	}
 
+	// Moves an outgoing edge one slot up/down among its siblings and rewrites
+	// every sibling's sort order to its list index, so ties (fresh edges all
+	// default to 0) become an explicit, visible order.
+	function moveEdge( outEdges: StoryEdge[], index: number, dir: -1 | 1 ) {
+		const target = index + dir;
+		if ( target < 0 || target >= outEdges.length ) return;
+		const reordered = [ ...outEdges ];
+		[ reordered[ index ], reordered[ target ] ] = [ reordered[ target ], reordered[ index ] ];
+		reordered.forEach( ( edge, i ) => {
+			if ( edge.sortOrder !== i ) onEdgeReorder( edge.id, i );
+		} );
+	}
+
 	return (
 		<div className="cns-panel cns-nodes-panel">
 			<h2>Story Nodes</h2>
 			<p className="description">
 				Click "Set Start" to mark the first node visitors will see.
-				Connections are managed via the Canvas tab.
+				Connections are managed via the Canvas tab. The order of a node's
+				outgoing connections decides branch numbering (1.1, 1.2, …) and
+				which branch "Next" follows first on the frontend.
 			</p>
 
 			<table className="wp-list-table widefat fixed striped">
@@ -56,7 +71,7 @@ export default function NodesPanel( {
 					{ nodes.map( ( node ) => {
 						const outEdges = edges
 							.filter( ( e ) => e.fromNodeId === node.id )
-							.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+							.sort( ( a, b ) => a.sortOrder - b.sortOrder || a.id - b.id );
 
 						return (
 							<tr key={ node.id }>
@@ -108,19 +123,28 @@ export default function NodesPanel( {
 								</td>
 								<td>
 									{ outEdges.length === 0 && <span className="description">None</span> }
-									{ outEdges.map( ( edge ) => {
+									{ outEdges.map( ( edge, index ) => {
 										const toNode = nodes.find( ( n ) => n.id === edge.toNodeId );
 										return (
 											<div key={ edge.id } className="cns-edge-row">
-												<NumberControl
-													size="small"
-													label={ __( 'Sort order (lower = higher priority)', 'cns-story-suite' ) }
-													hideLabelFromVision
-													min={ 0 }
-													value={ edge.sortOrder }
-													onChange={ ( v ) => onEdgeReorder( edge.id, parseInt( v ?? '', 10 ) || 0 ) }
-													style={ { width: 60 } }
-												/>
+												{ outEdges.length > 1 && (
+													<>
+														<Button
+															size="small"
+															icon={ arrowUp }
+															label={ __( 'Move branch up', 'cns-story-suite' ) }
+															disabled={ index === 0 }
+															onClick={ () => moveEdge( outEdges, index, -1 ) }
+														/>
+														<Button
+															size="small"
+															icon={ arrowDown }
+															label={ __( 'Move branch down', 'cns-story-suite' ) }
+															disabled={ index === outEdges.length - 1 }
+															onClick={ () => moveEdge( outEdges, index, 1 ) }
+														/>
+													</>
+												) }
 												<span>→ { toNode ? getDisplayTitle( toNode ) : `#${ edge.toNodeId }` }</span>
 												<Button
 													size="small"

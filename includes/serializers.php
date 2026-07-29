@@ -93,11 +93,14 @@ function cns_story_suite_serialize_path(array $row, bool $public = false): array
 		? (wp_get_attachment_url((int) $row['marker_icon_id']) ?: '')
 		: '';
 
-	$path = ['id' => (int) $row['id']];
+	$path = [
+		'id'    => (int) $row['id'],
+		// The label is shown in the frontend story window, so both shapes carry it.
+		'label' => $row['label'],
+	];
 	if (! $public) {
 		$path += [
 			'storyId'   => (int) $row['story_id'],
-			'label'     => $row['label'],
 			'sortOrder' => (int) $row['sort_order'],
 		];
 	}

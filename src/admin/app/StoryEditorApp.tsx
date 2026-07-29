@@ -363,6 +363,80 @@ export default function StoryEditorApp() {
 		}
 	}
 
+	// ── Path node manager (Paths tab modal) ───────────────────────────────────
+
+	/** Minimal node create for the path modal: substory at canvas centre, already in the path. */
+	async function handleQuickNodeCreate( substoryId: number, pathId: number ): Promise< StoryNode | undefined > {
+		try {
+			const node = await apiFetch< StoryNode >( 'POST', `/stories/${ storyId }/nodes`, {
+				x: 0.5, y: 0.5,
+				path_id:     pathId,
+				substory_id: substoryId,
+			} );
+			setNodes( ( p ) => [ ...p, node ] );
+			return node;
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Applies the modal's result: path membership, then a linear connection
+	 * chain in list order. Connections between the affected nodes that aren't
+	 * part of the new chain are removed; connections to outside nodes stay.
+	 */
+	async function handlePathNodesApply( pathId: number, orderedIds: number[], removedIds: number[] ) {
+		try {
+			for ( const id of removedIds ) {
+				const updated = await apiFetch< StoryNode >( 'PATCH', `/nodes/${ id }`, { path_id: 0 } );
+				setNodes( ( p ) => p.map( ( n ) => ( n.id === id ? updated : n ) ) );
+			}
+			for ( const id of orderedIds ) {
+				const node = nodes.find( ( n ) => n.id === id );
+				if ( node && node.pathId !== pathId ) {
+					const updated = await apiFetch< StoryNode >( 'PATCH', `/nodes/${ id }`, { path_id: pathId } );
+					setNodes( ( p ) => p.map( ( n ) => ( n.id === id ? updated : n ) ) );
+				}
+			}
+
+			const affected = new Set( [ ...orderedIds, ...removedIds ] );
+			const desired  = new Set< string >();
+			for ( let i = 0; i < orderedIds.length - 1; i++ ) {
+				desired.add( `${ orderedIds[ i ] }-${ orderedIds[ i + 1 ] }` );
+			}
+
+			for ( const edge of edges ) {
+				const key = `${ edge.fromNodeId }-${ edge.toNodeId }`;
+				if ( affected.has( edge.fromNodeId ) && affected.has( edge.toNodeId ) && ! desired.has( key ) ) {
+					await apiFetch( 'DELETE', `/edges/${ edge.id }` );
+					setEdges( ( p ) => p.filter( ( e ) => e.id !== edge.id ) );
+				}
+			}
+
+			const existing = new Set( edges.map( ( e ) => `${ e.fromNodeId }-${ e.toNodeId }` ) );
+			for ( const key of desired ) {
+				if ( existing.has( key ) ) continue;
+				const [ from, to ] = key.split( '-' ).map( Number );
+				const edge = await apiFetch< StoryEdge >( 'POST', '/edges', {
+					story_id:     storyId,
+					from_node_id: from,
+					to_node_id:   to,
+				} );
+				setEdges( ( p ) => {
+					const filtered = p.filter( ( e ) => e.id !== edge.id );
+					return [ ...filtered, edge ];
+				} );
+			}
+
+			createSuccessNotice( __( 'Path nodes updated.', 'cns-story-suite' ), { type: 'snackbar' } );
+		} catch ( err ) {
+			createErrorNotice(
+				( err as Error ).message || __( 'Updating path nodes failed.', 'cns-story-suite' ),
+				{ type: 'snackbar' }
+			);
+		}
+	}
+
 	// ── Link operations ───────────────────────────────────────────────────────
 
 	async function handleLinkAdd( linkType: string, linkId: number ) {
@@ -701,9 +775,13 @@ export default function StoryEditorApp() {
 						{ activeTab === 'paths' && (
 							<PathsPanel
 								paths={ paths }
+								nodes={ nodes }
+								edges={ edges }
 								onCreatePath={ handlePathCreate }
 								onUpdatePath={ handlePathUpdate }
 								onDeletePath={ handlePathDelete }
+								onQuickNodeCreate={ handleQuickNodeCreate }
+								onPathNodesApply={ handlePathNodesApply }
 							/>
 						) }
 

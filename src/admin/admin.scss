@@ -877,3 +877,38 @@ $thumb-size: 3em;
 }
 
 // (Icon action buttons now use @wordpress/components' <Button size="small" icon>.)
+// ── Path node manager modal (Paths tab) ───────────────────────────────────────
+
+.cns-path-nodes-list {
+	margin-bottom: 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	max-height: 320px;
+	overflow-y: auto;
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 10px;
+		border-bottom: 1px solid #f0f0f1;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+
+	&__index {
+		min-width: 22px;
+		text-align: right;
+		color: #757575;
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__title {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}

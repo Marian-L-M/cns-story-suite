@@ -1,21 +1,31 @@
 import { useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
-import { pencil, plus, trash } from '@wordpress/icons';
+import { listView, pencil, plus, trash } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 import PathModal from '../forms/PathModal';
-import type { StoryPath, PathFormData } from '../../../types';
+import PathNodesModal from '../forms/PathNodesModal';
+import type { StoryNode, StoryEdge, StoryPath, PathFormData } from '../../../types';
 
 interface Props {
 	paths:        StoryPath[];
+	nodes:        StoryNode[];
+	edges:        StoryEdge[];
 	onCreatePath: ( data: PathFormData ) => Promise< void >;
 	onUpdatePath: ( pathId: number, data: PathFormData ) => Promise< void >;
 	onDeletePath: ( pathId: number ) => void;
+	onQuickNodeCreate: ( substoryId: number, pathId: number ) => Promise< StoryNode | undefined >;
+	onPathNodesApply:  ( pathId: number, orderedNodeIds: number[], removedNodeIds: number[] ) => Promise< void >;
 }
 
-export default function PathsPanel( { paths, onCreatePath, onUpdatePath, onDeletePath }: Props ) {
+export default function PathsPanel( {
+	paths, nodes, edges,
+	onCreatePath, onUpdatePath, onDeletePath,
+	onQuickNodeCreate, onPathNodesApply,
+}: Props ) {
 	const [ modal, setModal ] = useState< { open: boolean; path: StoryPath | null } >(
 		{ open: false, path: null }
 	);
+	const [ nodesModalPath, setNodesModalPath ] = useState< StoryPath | null >( null );
 
 	async function handleSave( data: PathFormData ) {
 		if ( modal.path ) {
@@ -31,7 +41,7 @@ export default function PathsPanel( { paths, onCreatePath, onUpdatePath, onDelet
 			<h2>{ __( 'Story Paths', 'cns-story-suite' ) }</h2>
 			<p className="description">
 				{ __(
-					'Paths group nodes so you can apply shared marker settings. Assign nodes to a path via the node editor. Priority order: individual node settings > path settings > global settings.',
+					'Paths group nodes so you can apply shared marker settings. Use "Manage nodes" to order and connect a path’s nodes without the canvas. Priority order: individual node settings > path settings > global settings.',
 					'cns-story-suite'
 				) }
 			</p>
@@ -57,7 +67,8 @@ export default function PathsPanel( { paths, onCreatePath, onUpdatePath, onDelet
 							<th style={ { width: 24 } }></th>
 							<th>{ __( 'Label', 'cns-story-suite' ) }</th>
 							<th style={ { width: 80 } }>{ __( 'Marker', 'cns-story-suite' ) }</th>
-							<th style={ { width: 120 } }>{ __( 'Actions', 'cns-story-suite' ) }</th>
+							<th style={ { width: 60 } }>{ __( 'Nodes', 'cns-story-suite' ) }</th>
+							<th style={ { width: 200 } }>{ __( 'Actions', 'cns-story-suite' ) }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -79,8 +90,17 @@ export default function PathsPanel( { paths, onCreatePath, onUpdatePath, onDelet
 										? __( 'Ring', 'cns-story-suite' )
 										: __( 'Icon', 'cns-story-suite' ) }
 								</td>
+								<td>{ nodes.filter( ( n ) => n.pathId === path.id ).length }</td>
 								<td>
 									<div className="cns-actions-row">
+										<Button
+											size="small"
+											icon={ listView }
+											label={ __( 'Manage nodes: order, connect, add or remove', 'cns-story-suite' ) }
+											onClick={ () => setNodesModalPath( path ) }
+										>
+											{ __( 'Manage nodes', 'cns-story-suite' ) }
+										</Button>
 										<Button
 											size="small"
 											icon={ pencil }
@@ -111,6 +131,17 @@ export default function PathsPanel( { paths, onCreatePath, onUpdatePath, onDelet
 					path={ modal.path }
 					onSave={ handleSave }
 					onClose={ () => setModal( { open: false, path: null } ) }
+				/>
+			) }
+
+			{ nodesModalPath && (
+				<PathNodesModal
+					path={ nodesModalPath }
+					nodes={ nodes }
+					edges={ edges }
+					onQuickNodeCreate={ onQuickNodeCreate }
+					onApply={ onPathNodesApply }
+					onClose={ () => setNodesModalPath( null ) }
 				/>
 			) }
 		</div>

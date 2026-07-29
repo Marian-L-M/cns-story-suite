@@ -11,7 +11,9 @@ $stories            = cns_story_suite_get_all_stories($per_page, ($paged - 1) * 
 
 $return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_STORIES);
 $editor_url  = add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin.php'));
-$delete_on_uninstall = (bool) get_option('cns_story_suite_delete_on_uninstall', false);
+$delete_on_uninstall  = (bool) get_option('cns_story_suite_delete_on_uninstall', false);
+$show_stories_menu    = (bool) get_option('cns_story_suite_show_stories_menu', false);
+$show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu', false);
 ?>
 <div class="cns-stories-overview">
 
@@ -156,6 +158,23 @@ $delete_on_uninstall = (bool) get_option('cns_story_suite_delete_on_uninstall', 
 			<?php wp_nonce_field('cns_story_save_settings'); ?>
 			<input type="hidden" name="cns_story_action" value="save_settings" />
 			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><?php esc_html_e('Admin menu visibility', 'cns-story-suite'); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="show_stories_menu" value="1" <?php checked($show_stories_menu); ?> />
+							<?php esc_html_e('Show Stories in the WordPress admin sidebar', 'cns-story-suite'); ?>
+						</label>
+						<br />
+						<label>
+							<input type="checkbox" name="show_substories_menu" value="1" <?php checked($show_substories_menu); ?> />
+							<?php esc_html_e('Show Substories in the WordPress admin sidebar', 'cns-story-suite'); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e('Adds the standard WordPress list screens for stories and substories to the sidebar. The CNS editor pages here stay the primary management UI.', 'cns-story-suite'); ?>
+						</p>
+					</td>
+				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e('Uninstall behaviour', 'cns-story-suite'); ?></th>
 					<td>

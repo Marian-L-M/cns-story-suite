@@ -86,6 +86,123 @@ function showInfobox( item ) {
 	drawer.querySelector( '.cns-map-drawer__close' ).focus();
 }
 
+// ── Story node dialog ─────────────────────────────────────────────────────────
+// Centered modal (visually modelled on shadcn/ui's Dialog — rebuilt in plain
+// JS/CSS since the frontend has no React) showing the clicked node's story
+// info, with prev/next controls that walk the story's connections.
+
+function closeStoryDialog() {
+	const dialog = document.getElementById( 'cns-story-dialog' );
+	if ( ! dialog ) return;
+	dialog.classList.remove( 'is-open' );
+	document.body.classList.remove( 'cns-story-dialog-open' );
+}
+
+function getOrCreateStoryDialog() {
+	let dialog = document.getElementById( 'cns-story-dialog' );
+	if ( ! dialog ) {
+		dialog = document.createElement( 'div' );
+		dialog.id        = 'cns-story-dialog';
+		dialog.className = 'cns-story-dialog';
+		dialog.setAttribute( 'role', 'dialog' );
+		dialog.setAttribute( 'aria-modal', 'true' );
+		dialog.innerHTML =
+			'<div class="cns-story-dialog__backdrop"></div>' +
+			'<div class="cns-story-dialog__panel">' +
+				'<button class="cns-story-dialog__close" type="button" aria-label="Close">&times;</button>' +
+				'<div class="cns-story-dialog__body"></div>' +
+				'<div class="cns-story-dialog__nav"></div>' +
+			'</div>';
+		document.body.appendChild( dialog );
+
+		dialog.querySelector( '.cns-story-dialog__backdrop' ).addEventListener( 'click', closeStoryDialog );
+		dialog.querySelector( '.cns-story-dialog__close' ).addEventListener( 'click', closeStoryDialog );
+		document.addEventListener( 'keydown', ( e ) => {
+			if ( ! dialog.classList.contains( 'is-open' ) ) return;
+			const nav = dialog._cnsNav;
+			if ( e.key === 'Escape' ) {
+				closeStoryDialog();
+			} else if ( e.key === 'ArrowLeft' && nav && nav.prevId !== null ) {
+				nav.open( nav.prevId );
+			} else if ( e.key === 'ArrowRight' && nav && nav.nextIds.length ) {
+				nav.open( nav.nextIds[ 0 ] );
+			}
+		} );
+	}
+	return dialog;
+}
+
+function renderStoryDialog( data, nodeId, openFn ) {
+	const node = data.nodes.find( ( n ) => n.id === nodeId );
+	if ( ! node ) return;
+
+	const dialog = getOrCreateStoryDialog();
+	const body   = dialog.querySelector( '.cns-story-dialog__body' );
+	const nav    = dialog.querySelector( '.cns-story-dialog__nav' );
+
+	const title   = node.titleOverride || node.substoryTitle || '';
+	const excerpt = node.excerptOverride || node.substoryExcerpt || '';
+	const imgUrl  = node.substoryThumbnailUrl || '';
+
+	// Step label: same numbering as the sidebar list; the start node is unnumbered.
+	let stepLabel = '';
+	if ( node.id === data.story.startNodeId ) {
+		stepLabel = 'Start';
+	} else {
+		const items = buildOrderedNodes( data.nodes, data.edges, data.story.startNodeId );
+		const item  = items.find( ( i ) => i.node.id === nodeId );
+		if ( item && item.stepNumber ) stepLabel = item.stepNumber.join( '.' );
+	}
+
+	let html = '';
+	if ( imgUrl )    html += '<img class="cns-story-dialog__image" src="' + encodeURI( imgUrl ) + '" alt="" />';
+	if ( stepLabel ) html += '<span class="cns-story-dialog__step">' + esc( stepLabel ) + '</span>';
+	if ( title )     html += '<h2 class="cns-story-dialog__title">' + esc( title ) + '</h2>';
+	if ( excerpt )   html += '<p class="cns-story-dialog__excerpt">' + esc( excerpt ) + '</p>';
+	if ( node.substoryUrl ) {
+		html += '<a class="cns-story-dialog__read-more" href="' + esc( node.substoryUrl ) + '">Read more &rarr;</a>';
+	}
+	body.innerHTML = html || '<p class="cns-story-dialog__excerpt">' + esc( 'No details for this node.' ) + '</p>';
+
+	// Prev = first incoming connection, next = outgoing connections in branch order.
+	const byOrder   = ( a, b ) => a.sortOrder - b.sortOrder || a.id - b.id;
+	const prevEdge  = data.edges.filter( ( e ) => e.toNodeId === nodeId ).sort( byOrder )[ 0 ] || null;
+	const nextEdges = data.edges.filter( ( e ) => e.fromNodeId === nodeId ).sort( byOrder );
+	const nodeTitle = ( id ) => {
+		const n = data.nodes.find( ( x ) => x.id === id );
+		return n ? ( n.titleOverride || n.substoryTitle || 'Untitled' ) : '';
+	};
+
+	let navHtml = '<div class="cns-story-dialog__nav-side">';
+	if ( prevEdge ) {
+		navHtml += '<button type="button" class="cns-story-dialog__navbtn" data-node="' + prevEdge.fromNodeId + '">' +
+			'<span aria-hidden="true">&larr;</span><span class="cns-story-dialog__navbtn-label">' + esc( nodeTitle( prevEdge.fromNodeId ) ) + '</span></button>';
+	}
+	navHtml += '</div><div class="cns-story-dialog__nav-side cns-story-dialog__nav-side--next">';
+	for ( const e of nextEdges ) {
+		navHtml += '<button type="button" class="cns-story-dialog__navbtn" data-node="' + e.toNodeId + '">' +
+			'<span class="cns-story-dialog__navbtn-label">' + esc( nodeTitle( e.toNodeId ) ) + '</span><span aria-hidden="true">&rarr;</span></button>';
+	}
+	navHtml += '</div>';
+	nav.innerHTML = navHtml;
+	nav.hidden = ! prevEdge && ! nextEdges.length;
+
+	nav.querySelectorAll( '.cns-story-dialog__navbtn' ).forEach( ( btn ) => {
+		btn.addEventListener( 'click', () => openFn( parseInt( btn.dataset.node, 10 ) ) );
+	} );
+
+	dialog._cnsNav = {
+		prevId:  prevEdge ? prevEdge.fromNodeId : null,
+		nextIds: nextEdges.map( ( e ) => e.toNodeId ),
+		open:    openFn,
+	};
+
+	const wasOpen = dialog.classList.contains( 'is-open' );
+	dialog.classList.add( 'is-open' );
+	document.body.classList.add( 'cns-story-dialog-open' );
+	if ( ! wasOpen ) dialog.querySelector( '.cns-story-dialog__close' ).focus();
+}
+
 // ── Path numbering (mirrors CanvasNodeList algorithm) ─────────────────────────
 
 /**
@@ -174,8 +291,9 @@ function buildOrderedNodes( nodes, edges, startNodeId ) {
 			const node = nodes.find( ( n ) => n.id === nodeId );
 			if ( ! node ) return;
 
+			// Roots (start node & other entry points) are listed too, unnumbered.
 			const stepNumber = isRoot ? null : ( stepNums.get( nodeId ) ?? null );
-			if ( ! isRoot ) result.push( { node, depth, stepNumber } );
+			result.push( { node, depth, stepNumber } );
 
 			const outEdges = edges
 				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
@@ -280,6 +398,49 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		if ( img.complete && img.naturalWidth ) {
 			const iw = m.imageW * W;
 			ctx.drawImage( img, m.imageX * W, m.imageY * H, iw, ( iw / img.naturalWidth ) * img.naturalHeight );
+		}
+	}
+
+	// MasterMap child regions — same rendering as the cns-map-suite frontend so
+	// a master map used as a story base looks like it does on its own page.
+	for ( const region of ( m?.hierarchyRegions ?? [] ) ) {
+		const pts = region.nodes || [];
+		if ( pts.length < 3 ) continue;
+
+		const s = region.canvasStyles;
+		ctx.beginPath();
+		ctx.moveTo( pts[ 0 ].x * W, pts[ 0 ].y * H );
+		for ( let i = 1; i < pts.length; i++ ) {
+			ctx.lineTo( pts[ i ].x * W, pts[ i ].y * H );
+		}
+		ctx.closePath();
+
+		ctx.save();
+		ctx.globalAlpha = s?.fillOpacity ?? 0.25;
+		ctx.fillStyle   = s?.fill ?? '#e8a020';
+		ctx.fill();
+		ctx.restore();
+
+		ctx.save();
+		ctx.strokeStyle = s?.stroke ?? '#e8a020';
+		ctx.lineWidth   = s?.strokeWidth ?? 2;
+		ctx.setLineDash( [] );
+		ctx.stroke();
+		ctx.restore();
+
+		if ( region.title ) {
+			const rcx = ( pts.reduce( ( sum, p ) => sum + p.x, 0 ) / pts.length ) * W;
+			const rcy = ( pts.reduce( ( sum, p ) => sum + p.y, 0 ) / pts.length ) * H;
+			ctx.save();
+			ctx.font         = 'bold 12px sans-serif';
+			ctx.textAlign    = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillStyle    = '#fff';
+			ctx.strokeStyle  = 'rgba(0,0,0,0.6)';
+			ctx.lineWidth    = 3;
+			ctx.strokeText( region.title, rcx, rcy );
+			ctx.fillText( region.title, rcx, rcy );
+			ctx.restore();
 		}
 	}
 
@@ -513,7 +674,9 @@ function renderWindow( windowEl, data, activeNodeId, expandedIds ) {
 	const rows = items.map( ( { node, depth, stepNumber } ) => {
 		const title    = node.titleOverride || node.substoryTitle || '';
 		const excerpt  = node.excerptOverride || node.substoryExcerpt || '';
-		const numStr   = stepNumber ? stepNumber.join( '.' ) : '—';
+		const isStart  = node.id === data.story.startNodeId;
+		const numStr   = isStart ? '★' : ( stepNumber ? stepNumber.join( '.' ) : '—' );
+		const path     = node.pathId && data._pathMap ? data._pathMap.get( node.pathId ) : null;
 		const isActive = node.id === activeNodeId;
 		const isOpen   = expandedIds.has( node.id );
 		const indent   = 8 + Math.min( depth, 4 ) * 14;
@@ -527,6 +690,7 @@ function renderWindow( windowEl, data, activeNodeId, expandedIds ) {
 				<span class="cns-sw-item__num">${ esc( numStr ) }</span>
 				<span class="cns-sw-item__dot" style="background:${ esc( node.iconColor ) };border-radius:${ dotBorderR };transform:${ dotTransform }"></span>
 				<span class="cns-sw-item__title">${ esc( title ) }</span>
+				${ path && path.label ? `<span class="cns-sw-item__path" style="background:${ esc( path.markerColor ) }">${ esc( path.label ) }</span>` : '' }
 			</button>
 			${ hasDetail ? `<div class="cns-sw-item__detail">
 				${ excerpt ? `<p class="cns-sw-item__excerpt">${ esc( excerpt ) }</p>` : '' }
@@ -682,6 +846,13 @@ function initBlock( blockEl ) {
 	function redraw()   { drawStory( canvas, data, activeNodeId, scheduleRedraw ); }
 	function rerender() { renderWindow( windowEl, data, activeNodeId, expandedIds ); redraw(); }
 
+	// Opens (or re-targets) the node dialog and keeps canvas + list in sync.
+	function openNodeDialog( nodeId ) {
+		activeNodeId = nodeId;
+		rerender();
+		renderStoryDialog( data, nodeId, openNodeDialog );
+	}
+
 	// Preload images then start loop.
 	const urls = [];
 	if ( m?.bgImageUrl ) urls.push( m.bgImageUrl );
@@ -737,8 +908,7 @@ function initBlock( blockEl ) {
 			const n = data.nodes[ i ];
 			const r = ( BASE_R * n.iconSize ) + 5;
 			if ( ( mx - n.x * canvas.width ) ** 2 + ( my - n.y * canvas.height ) ** 2 <= r ** 2 ) {
-				activeNodeId = n.id;
-				rerender();
+				openNodeDialog( n.id );
 				return;
 			}
 		}

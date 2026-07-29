@@ -44,6 +44,8 @@ if (get_option('cns_story_suite_delete_on_uninstall')) {
 
 delete_option('cns_story_suite_db_version');
 delete_option('cns_story_suite_delete_on_uninstall');
+delete_option('cns_story_suite_show_stories_menu');
+delete_option('cns_story_suite_show_substories_menu');
 
 foreach (wp_roles()->roles as $role_name => $unused) {
 	$role = get_role($role_name);

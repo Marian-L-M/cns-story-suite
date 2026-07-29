@@ -1,37 +1,74 @@
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, TextControl, Placeholder, Spinner } from '@wordpress/components';
+import { PanelBody, ComboboxControl, Placeholder, Spinner } from '@wordpress/components';
+import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
+import { decodeEntities } from '@wordpress/html-entities';
 import { __ } from '@wordpress/i18n';
+
+const STATUS_LABELS = {
+	draft:   __( 'Draft', 'cns-story-suite' ),
+	private: __( 'Private', 'cns-story-suite' ),
+};
+
+function storyLabel( record ) {
+	const title  = decodeEntities( record.title?.rendered || '' ) || __( '(no title)', 'cns-story-suite' );
+	const status = STATUS_LABELS[ record.status ];
+	return status ? `${ title } — ${ status }` : title;
+}
 
 export default function Edit( { attributes, setAttributes } ) {
 	const { storyId } = attributes;
+	const [ search, setSearch ] = useState( '' );
 
-	const story = useSelect(
+	const { story, searchResults, isSearching } = useSelect(
 		( select ) => {
-			if ( ! storyId ) return null;
-			return select( 'core' ).getEntityRecord( 'postType', 'cns_story', storyId );
+			const { getEntityRecord, getEntityRecords, isResolving } = select( 'core' );
+			const query = {
+				per_page: 20,
+				status:   [ 'publish', 'draft', 'private' ],
+				...( search ? { search } : {} ),
+			};
+			return {
+				story:         storyId ? getEntityRecord( 'postType', 'cns_story', storyId ) : null,
+				searchResults: getEntityRecords( 'postType', 'cns_story', query ),
+				isSearching:   isResolving( 'getEntityRecords', [ 'postType', 'cns_story', query ] ),
+			};
 		},
-		[ storyId ]
+		[ storyId, search ]
 	);
 
 	const isLoading = storyId && story === undefined;
+
+	const options = [
+		// Keep the current selection visible even when it doesn't match the search.
+		...( storyId && story ? [ { value: String( storyId ), label: storyLabel( story ) } ] : [] ),
+		...( searchResults ?? [] )
+			.filter( ( r ) => r.id !== storyId )
+			.map( ( r ) => ( { value: String( r.id ), label: storyLabel( r ) } ) ),
+	];
 
 	return (
 		<>
 			<InspectorControls>
 				<PanelBody title={ __( 'Story Settings', 'cns-story-suite' ) }>
-					<TextControl
-						label={ __( 'Story ID', 'cns-story-suite' ) }
-						type="number"
-						value={ storyId || '' }
-						onChange={ ( v ) => setAttributes( { storyId: parseInt( v ) || 0 } ) }
-						help={ __( 'Enter the ID of the story to embed.', 'cns-story-suite' ) }
+					<ComboboxControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Story', 'cns-story-suite' ) }
+						placeholder={ __( 'Search stories…', 'cns-story-suite' ) }
+						value={ storyId ? String( storyId ) : null }
+						options={ options }
+						onFilterValueChange={ setSearch }
+						onChange={ ( value ) =>
+							setAttributes( { storyId: parseInt( value ?? '', 10 ) || 0 } )
+						}
+						allowReset
+						help={
+							isSearching
+								? __( 'Searching…', 'cns-story-suite' )
+								: __( 'Type to search stories by title.', 'cns-story-suite' )
+						}
 					/>
-					{ storyId > 0 && story && (
-						<p>
-							<strong>{ story.title?.rendered || __( '(no title)', 'cns-story-suite' ) }</strong>
-						</p>
-					) }
 				</PanelBody>
 			</InspectorControls>
 
@@ -42,7 +79,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					<Placeholder
 						icon="book"
 						label={ __( 'CNS Story', 'cns-story-suite' ) }
-						instructions={ __( 'Enter a Story ID in the block settings panel to embed a story.', 'cns-story-suite' ) }
+						instructions={ __( 'Pick a story in the block settings panel to embed it.', 'cns-story-suite' ) }
 					/>
 				) }
 
@@ -52,7 +89,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							{ __( 'Story:', 'cns-story-suite' ) }
 						</div>
 						<div className="cns-story-block-preview__title">
-							{ story.title?.rendered || __( '(no title)', 'cns-story-suite' ) }
+							{ decodeEntities( story.title?.rendered || '' ) || __( '(no title)', 'cns-story-suite' ) }
 						</div>
 						<p className="cns-story-block-preview__note">
 							{ __( 'The interactive canvas renders on the frontend.', 'cns-story-suite' ) }

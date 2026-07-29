@@ -50,6 +50,7 @@ export function drawStory(
 	ctx.clearRect( 0, 0, W, H );
 	drawBackground( ctx, W, H, state );
 	drawMapImage( ctx, W, H, state );
+	drawHierarchyRegions( ctx, W, H, state );
 	drawMapAreas( ctx, W, H, state );
 	drawMapObjects( ctx, W, H, state );
 	drawEdges( ctx, W, H, state );
@@ -83,6 +84,60 @@ function drawMapImage( ctx: CanvasRenderingContext2D, W: number, H: number, stat
 	const iw = m.imageW * W;
 	const ih = ( iw / img.naturalWidth ) * img.naturalHeight;
 	ctx.drawImage( img, m.imageX * W, m.imageY * H, iw, ih );
+}
+
+// ── Layer: MasterMap child regions (read-only) ────────────────────────────────
+// Mirrors cns-map-suite's frontend region rendering so a master map used as a
+// story base looks the same as it does on its own page.
+
+function drawHierarchyRegions( ctx: CanvasRenderingContext2D, W: number, H: number, state: DrawState ): void {
+	const regions = state.mapData?.hierarchyRegions ?? [];
+
+	for ( const region of regions ) {
+		const pts = region.nodes ?? [];
+		if ( pts.length < 3 ) continue;
+
+		const s           = region.canvasStyles;
+		const fill        = s?.fill        ?? '#e8a020';
+		const fillOpacity = s?.fillOpacity ?? 0.25;
+		const stroke      = s?.stroke      ?? '#e8a020';
+		const strokeWidth = s?.strokeWidth ?? 2;
+
+		ctx.beginPath();
+		ctx.moveTo( pts[ 0 ].x * W, pts[ 0 ].y * H );
+		for ( let i = 1; i < pts.length; i++ ) {
+			ctx.lineTo( pts[ i ].x * W, pts[ i ].y * H );
+		}
+		ctx.closePath();
+
+		ctx.save();
+		ctx.globalAlpha = fillOpacity;
+		ctx.fillStyle   = fill;
+		ctx.fill();
+		ctx.restore();
+
+		ctx.save();
+		ctx.strokeStyle = stroke;
+		ctx.lineWidth   = strokeWidth;
+		ctx.setLineDash( [] );
+		ctx.stroke();
+		ctx.restore();
+
+		if ( region.title ) {
+			const cx = ( pts.reduce( ( sum, p ) => sum + p.x, 0 ) / pts.length ) * W;
+			const cy = ( pts.reduce( ( sum, p ) => sum + p.y, 0 ) / pts.length ) * H;
+			ctx.save();
+			ctx.font         = 'bold 12px sans-serif';
+			ctx.textAlign    = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillStyle    = '#fff';
+			ctx.strokeStyle  = 'rgba(0,0,0,0.6)';
+			ctx.lineWidth    = 3;
+			ctx.strokeText( region.title, cx, cy );
+			ctx.fillText( region.title, cx, cy );
+			ctx.restore();
+		}
+	}
 }
 
 // ── Layer: map areas (read-only, dimmed) ──────────────────────────────────────

@@ -3,6 +3,12 @@
 defined('ABSPATH') || exit;
 
 function cns_story_suite_register_post_types(): void {
+	// Optional native admin-menu entries (toggled in the plugin settings).
+	// The custom CNS editor pages remain the primary management UI; these
+	// expose the standard WP list tables in the sidebar for quick access.
+	$show_stories_menu    = (bool) get_option('cns_story_suite_show_stories_menu', false);
+	$show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu', false);
+
 	// ── Story CPT ─────────────────────────────────────────────────────────────
 	if (! post_type_exists('cns_story')) {
 		register_post_type('cns_story', [
@@ -22,7 +28,9 @@ function cns_story_suite_register_post_types(): void {
 			'publicly_queryable'  => true,
 			'show_in_rest'        => true,
 			'show_ui'             => true,
-			'show_in_menu'        => false,
+			'show_in_menu'        => $show_stories_menu,
+			'menu_icon'           => 'dashicons-book',
+			'menu_position'       => 58,
 			'show_in_nav_menus'   => true,
 			'exclude_from_search' => false,
 			'has_archive'         => false,
@@ -52,7 +60,9 @@ function cns_story_suite_register_post_types(): void {
 			'publicly_queryable'  => true,
 			'show_in_rest'        => true,
 			'show_ui'             => true,
-			'show_in_menu'        => false,
+			'show_in_menu'        => $show_substories_menu,
+			'menu_icon'           => 'dashicons-media-document',
+			'menu_position'       => 58,
 			'show_in_nav_menus'   => true,
 			'exclude_from_search' => false,
 			'has_archive'         => false,

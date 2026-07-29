@@ -177,6 +177,16 @@ export interface MapAreaRef {
 	canvasStyles: { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number } | null;
 }
 
+export interface MapHierarchyRegionRef {
+	id:           number;
+	childMapId:   number;
+	title:        string;
+	status?:      string;
+	thumbnailUrl: string;
+	nodes:        Array<{ x: number; y: number }>;
+	canvasStyles: { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number } | null;
+}
+
 export interface MapRenderData {
 	id:          number;
 	title:       string;
@@ -189,8 +199,10 @@ export interface MapRenderData {
 	imageX:      number;
 	imageY:      number;
 	imageW:      number;
+	isMaster?:   boolean;
 	objects:     MapObjectRef[];
 	areas:       MapAreaRef[];
+	hierarchyRegions?: MapHierarchyRegionRef[];
 }
 
 // ── Domain: Substory search result ────────────────────────────────────────────
