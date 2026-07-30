@@ -18,6 +18,7 @@
 - [ ] **H-4** `src/blocks/story/render.php` vs `includes/admin/api.php` — Duplicate `format_node` logic diverges; `render.php` omits the `post_status` gate on substory URL that `api.php` correctly applies.
 - [x] **H-5** `includes/admin/api.php:364` — `wp_update_post()` return value ignored; silent failure returns a success response. Fixed: capture return, check `is_wp_error()`.
 - [ ] **H-6** `src/blocks/story/view.js:546` — `requestAnimationFrame` loop runs forever with no cancellation or Intersection Observer; multiple blocks = multiple infinite loops.
+- [ ] Story tab breaks when switch from a map tab with canvas
 
 ### Medium
 

@@ -1,31 +1,24 @@
 import { useState, useEffect } from '@wordpress/element';
-import {
-	RangeControl,
-	SelectControl,
-	__experimentalNumberControl as NumberControl,
-	__experimentalToggleGroupControl as ToggleGroupControl,
-	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
-} from '@wordpress/components';
 import { useDispatch } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
 import { __ } from '@wordpress/i18n';
-import ColorField from './shared/ColorField';
-import Notices from './shared/Notices';
+
 import EditorHeader from './EditorHeader';
 import TabBar from './TabBar';
-import StoryCanvas from '../canvas/StoryCanvas';
-import CanvasNodeList from './CanvasNodeList';
-import SettingsPanel from './panels/SettingsPanel';
+import { apiFetch } from '../utils';
+import EdgeStyleModal from './forms/EdgeStyleModal';
+import NodeModal from './forms/NodeModal';
+import LinksPanel from './panels/LinksPanel';
 import NodesPanel from './panels/NodesPanel';
 import PathsPanel from './panels/PathsPanel';
-import LinksPanel from './panels/LinksPanel';
-import NodeModal from './forms/NodeModal';
-import EdgeStyleModal from './forms/EdgeStyleModal';
-import { apiFetch } from '../utils';
+import SettingsPanel from './panels/SettingsPanel';
+import StoryCanvasPanel from './panels/StoryCanvasPanel';
+import Notices from './shared/Notices';
+
 import type {
 	StorySettings, StoryNode, StoryEdge, StoryLink, StoryPath,
 	MapRenderData, MapObjectRef, MapAreaRef,
-	LineStyle, PostStatus, StoryTab, NodeFormData, EdgeFormData, PathFormData, CanvasMode,
+	PostStatus, StoryTab, NodeFormData, EdgeFormData, PathFormData, CanvasMode,
 } from '../../types';
 
 interface NodeModalState {
@@ -60,6 +53,8 @@ function buildInitialSettings(): StorySettings {
 		markerIconOffsetY: -30,
 	};
 }
+
+
 
 export default function StoryEditorApp() {
 	const d       = window.cnsStoryEditor || ( {} as typeof window.cnsStoryEditor );
@@ -542,6 +537,11 @@ export default function StoryEditorApp() {
 		setCanvasMode( 'connect' );
 	}
 
+	function handleCanvasModeChange( mode: CanvasMode ) {
+		setEdgeStartNodeId( mode === 'connect' ? selectedNodeId : null );
+		setCanvasMode( mode );
+	}
+
 	// ── Modal save ────────────────────────────────────────────────────────────
 
 	async function handleModalSave( formData: NodeFormData ) {
@@ -599,160 +599,38 @@ export default function StoryEditorApp() {
 						) }
 
 						{ activeTab === 'canvas' && (
-							<div className="cns-story-canvas-view">
-								<div className="cns-story-canvas-toolbar">
-									<div className="cns-story-canvas-toolbar__row">
-										{ ! isNew && (
-											<ToggleGroupControl
-												__next40pxDefaultSize
-												__nextHasNoMarginBottom
-												label={ __( 'Canvas mode', 'cns-story-suite' ) }
-												hideLabelFromVision
-												value={ canvasMode }
-												isAdaptiveWidth
-												onChange={ ( value ) => {
-													const mode = ( value ?? 'select' ) as CanvasMode;
-													if ( mode === 'connect' ) {
-														setEdgeStartNodeId( selectedNodeId );
-													} else {
-														setEdgeStartNodeId( null );
-													}
-													setCanvasMode( mode );
-												} }
-											>
-												<ToggleGroupControlOption
-													value="select"
-													label={ __( 'Select', 'cns-story-suite' ) }
-												/>
-												<ToggleGroupControlOption
-													value="add"
-													label={ __( 'Add', 'cns-story-suite' ) }
-												/>
-												<ToggleGroupControlOption
-													value="connect"
-													label={ __( 'Connect', 'cns-story-suite' ) }
-												/>
-											</ToggleGroupControl>
-										) }
-										{ canvasMode === 'connect' && (
-											<span className="cns-story-canvas-toolbar__hint">
-												{ edgeStartNodeId === null
-													? 'Click a node to start a path'
-													: 'Click next node · Enter or Esc to finish' }
-											</span>
-										) }
-										{ canvasMode === 'select' && selectedNodeId !== null && (
-											<span className="cns-story-canvas-toolbar__hint">
-												Click canvas to move here
-											</span>
-										) }
-										{ canvasMode === 'add' && (
-											<span className="cns-story-canvas-toolbar__hint">
-												Click canvas to place a new node
-											</span>
-										) }
-									</div>
-
-									<div className="cns-story-canvas-toolbar__row cns-story-canvas-toolbar__line-style">
-										<span className="cns-story-canvas-toolbar__label">
-											{ __( 'Lines:', 'cns-story-suite' ) }
-										</span>
-										<ColorField
-											label={ __( 'Color', 'cns-story-suite' ) }
-											value={ settings.lineColor }
-											onChange={ ( v ) => setSettings( ( p ) => ( { ...p, lineColor: v } ) ) }
-										/>
-										<NumberControl
-											size="small"
-											label={ __( 'Width (px)', 'cns-story-suite' ) }
-											min={ 0.5 } max={ 20 } step={ 0.5 }
-											value={ settings.lineWidth }
-											onChange={ ( v ) =>
-												setSettings( ( p ) => ( { ...p, lineWidth: parseFloat( v ?? '' ) || p.lineWidth } ) )
-											}
-											style={ { width: 70 } }
-										/>
-										<SelectControl
-											__nextHasNoMarginBottom
-											size="small"
-											label={ __( 'Style', 'cns-story-suite' ) }
-											value={ settings.lineStyle }
-											options={ [
-												{ value: 'solid',  label: __( 'Solid', 'cns-story-suite' ) },
-												{ value: 'dashed', label: __( 'Dashed', 'cns-story-suite' ) },
-												{ value: 'dotted', label: __( 'Dotted', 'cns-story-suite' ) },
-											] }
-											onChange={ ( v ) => setSettings( ( p ) => ( { ...p, lineStyle: v as LineStyle } ) ) }
-										/>
-										<div className="cns-story-canvas-toolbar__opacity">
-											<RangeControl
-												__nextHasNoMarginBottom
-												label={ __( 'Opacity', 'cns-story-suite' ) }
-												min={ 0 } max={ 1 } step={ 0.05 }
-												withInputField={ false }
-												value={ settings.lineOpacity }
-												onChange={ ( v ) =>
-													setSettings( ( p ) => ( { ...p, lineOpacity: v ?? 1 } ) )
-												}
-											/>
-											<span>{ Math.round( settings.lineOpacity * 100 ) }%</span>
-										</div>
-									</div>
-								</div>
-
-								<div className="cns-story-canvas-layout">
-									<div className="cns-story-canvas-main">
-										<div className="cns-story-canvas-wrap">
-											<StoryCanvas
-												mapData={ mapData }
-												mapObjects={ mapObjects }
-												mapAreas={ mapAreas }
-												nodes={ nodes }
-												edges={ edges }
-												paths={ paths }
-												selectedNodeId={ selectedNodeId }
-												edgeStartNodeId={ edgeStartNodeId }
-												isEdgeMode={ canvasMode === 'connect' }
-												lineColor={ settings.lineColor }
-												lineWidth={ settings.lineWidth }
-												lineStyle={ settings.lineStyle }
-												lineOpacity={ settings.lineOpacity }
-												markerColor={ settings.markerColor }
-												markerSize={ settings.markerSize }
-												markerType={ settings.markerType }
-												markerIconUrl={ settings.markerIconUrl }
-												markerIconOffsetX={ settings.markerIconOffsetX }
-												markerIconOffsetY={ settings.markerIconOffsetY }
-												onNodeClick={ handleNodeClick }
-												onCanvasClick={ handleCanvasClick }
-												onEdgeClick={ handleEdgeClick }
-												onNodeDragEnd={ handleNodeDragEnd }
-											/>
-										</div>
-									</div>
-
-									<div className="cns-story-window-panel">
-										<CanvasNodeList
-											nodes={ nodes }
-											edges={ edges }
-											startNodeId={ settings.startNodeId }
-											selectedNodeId={ selectedNodeId }
-											onSelect={ ( id ) => setSelectedNodeId( id ) }
-											onEdit={ ( id ) => {
-												setSelectedNodeId( id );
-												setNodeModal( { open: true, nodeId: id, x: 0, y: 0 } );
-											} }
-											onDelete={ handleNodeDelete }
-											onSetStartNode={ ( id ) => setSettings( ( p ) => ( { ...p, startNodeId: id } ) ) }
-											onEdgeReorder={ handleEdgeReorder }
-											onEdgeDelete={ handleEdgeDelete }
-											onStartEdgeFrom={ handleStartEdgeFrom }
-											onEditEdge={ ( edgeId ) => setEdgeModal( { open: true, edgeId } ) }
-										/>
-									</div>
-								</div>
-							</div>
+							<StoryCanvasPanel
+								isNew={ isNew }
+								settings={ settings }
+								nodes={ nodes }
+								edges={ edges }
+								paths={ paths }
+								mapData={ mapData }
+								mapObjects={ mapObjects }
+								mapAreas={ mapAreas }
+								canvasMode={ canvasMode }
+								selectedNodeId={ selectedNodeId }
+								edgeStartNodeId={ edgeStartNodeId }
+								onSettingsChange={ setSettings }
+								onCanvasModeChange={ handleCanvasModeChange }
+								onNodeClick={ handleNodeClick }
+								onCanvasClick={ handleCanvasClick }
+								onEdgeClick={ handleEdgeClick }
+								onNodeDragEnd={ handleNodeDragEnd }
+								onSelectNode={ setSelectedNodeId }
+								onEditNode={ ( id ) => {
+									setSelectedNodeId( id );
+									setNodeModal( { open: true, nodeId: id, x: 0, y: 0 } );
+								} }
+								onDeleteNode={ handleNodeDelete }
+								onSetStartNode={ ( id ) => setSettings( ( p ) => ( { ...p, startNodeId: id } ) ) }
+								onEdgeReorder={ handleEdgeReorder }
+								onEdgeDelete={ handleEdgeDelete }
+								onStartEdgeFrom={ handleStartEdgeFrom }
+								onEditEdge={ ( edgeId ) => setEdgeModal( { open: true, edgeId } ) }
+							/>
 						) }
+
 
 						{ activeTab === 'nodes' && (
 							<NodesPanel

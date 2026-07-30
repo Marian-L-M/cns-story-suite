@@ -1,15 +1,20 @@
 import {
 	BaseControl,
 	Button,
+	Flex,
+	FlexBlock,
+	FlexItem,
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
 import { image as imageIcon, trash } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
-import type { StorySettings } from '../../../types';
+
 import MapPicker from '../shared/MapPicker';
 import MarkerControls from '../shared/MarkerControls';
 import MediaSelectButton from '../shared/MediaSelectButton';
+
+import type { StorySettings } from '../../../types';
 
 interface Props {
 	settings:     StorySettings;
@@ -26,31 +31,46 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 		<div className="cns-panel cns-settings-panel">
 			<h2>{ __( 'Story Settings', 'cns-story-suite' ) }</h2>
 
-			<div className="cns-grid cns-grid__12">
-				<div className="cns-grid__group cns-grid__span-full">
-					<TextControl
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-						label={ __( 'Title', 'cns-story-suite' ) }
-						value={ settings.title }
-						onChange={ ( v ) => set( 'title', v ) }
-					/>
-				</div>
+			<div className="cns-grid cns-grid__24">
+				<Flex className={"cns-grid__span-2"} direction={"column"} gap={4}>
+					<FlexItem>
+						<TextControl
+							label={ __( 'Title', 'cns-story-suite' ) }
+							value={ settings.title }
+							onChange={ ( v ) => set( 'title', v ) }
+							__next40pxDefaultSize
+							/>
+					</FlexItem>
+					<FlexItem>
+						<TextareaControl
+							label={ __( 'Description', 'cns-story-suite' ) }
+							help={ __( 'Short summary shown in story listings.', 'cns-story-suite' ) }
+							rows={ 3 }
+							value={ settings.description }
+							onChange={ ( v ) => set( 'description', v ) }
+							/>
+					</FlexItem>
+					<FlexItem>
+						<BaseControl
+							id="cns-story-map"
+							label={ __( 'Map', 'cns-story-suite' ) }
+							help={ __(
+								'The story canvas overlays this map. Objects and areas are shown read-only.',
+								'cns-story-suite'
+							) }
+						>
+							<MapPicker
+								mapId={ settings.mapId }
+								mapTitle={ settings.mapTitle }
+								onChange={ onMapChange }
+							/>
+						</BaseControl>
+					</FlexItem>
+				</Flex>
+		
 
-				<div className="cns-grid__group">
-					<TextareaControl
-						__nextHasNoMarginBottom
-						label={ __( 'Description', 'cns-story-suite' ) }
-						help={ __( 'Short summary shown in story listings.', 'cns-story-suite' ) }
-						rows={ 3 }
-						value={ settings.description }
-						onChange={ ( v ) => set( 'description', v ) }
-					/>
-				</div>
-
-				<div className="cns-grid__group">
+				<div className="cns-grid__group cns-grid__span-1">
 					<BaseControl
-						__nextHasNoMarginBottom
 						id="cns-story-thumbnail"
 						label={ __( 'Thumbnail', 'cns-story-suite' ) }
 						help={ __( 'Used as the story’s featured image.', 'cns-story-suite' ) }
@@ -60,7 +80,7 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 								<img
 									src={ settings.thumbnailUrl }
 									alt=""
-									style={ { maxWidth: 120, maxHeight: 80, display: 'block', borderRadius: 4, border: '1px solid #ddd' } }
+									style={ { maxWidth: 240, maxHeight: 160, display: 'block', borderRadius: 4, border: '1px solid #ddd' } }
 								/>
 							</div>
 						) }
@@ -90,28 +110,8 @@ export default function SettingsPanel( { settings, onChange, onMapChange }: Prop
 						</div>
 					</BaseControl>
 				</div>
-
-				<div className="cns-grid__group">
+				<div className="cns-grid__group cns-grid__span-2">
 					<BaseControl
-						__nextHasNoMarginBottom
-						id="cns-story-map"
-						label={ __( 'Map', 'cns-story-suite' ) }
-						help={ __(
-							'The story canvas overlays this map. Objects and areas are shown read-only.',
-							'cns-story-suite'
-						) }
-					>
-						<MapPicker
-							mapId={ settings.mapId }
-							mapTitle={ settings.mapTitle }
-							onChange={ onMapChange }
-						/>
-					</BaseControl>
-				</div>
-
-				<div className="cns-grid__group cns-grid__span-full">
-					<BaseControl
-						__nextHasNoMarginBottom
 						id="cns-story-marker"
 						label={ __( 'Active node marker', 'cns-story-suite' ) }
 						help={ __( 'Global default. Overridden per-path and per-node.', 'cns-story-suite' ) }
