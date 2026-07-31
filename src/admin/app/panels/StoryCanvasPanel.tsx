@@ -8,6 +8,7 @@ import {
     Button,
     Popover,
 } from '@wordpress/components';
+import { fullscreen as fullscreenIcon, close } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 
 import CanvasNodeList from '../CanvasNodeList';
@@ -19,7 +20,7 @@ import type {
 	MapRenderData, MapObjectRef, MapAreaRef,
 	LineStyle, CanvasMode,
 } from '../../../types';
-import { useState } from '@wordpress/element';
+import { useState, useEffect } from '@wordpress/element';
 
 
 interface Props {
@@ -49,6 +50,7 @@ interface Props {
 	onEdgeDelete:       ( edgeId: number ) => void;
 	onStartEdgeFrom:    ( fromNodeId: number ) => void;
 	onEditEdge:         ( edgeId: number ) => void;
+	onSequenceSwap:     ( edge: StoryEdge ) => void;
 }
 
 
@@ -60,6 +62,7 @@ export default function StoryCanvasPanel( {
 	onNodeClick, onCanvasClick, onEdgeClick, onNodeDragEnd,
 	onSelectNode, onEditNode, onDeleteNode, onSetStartNode,
 	onEdgeReorder, onEdgeDelete, onStartEdgeFrom, onEditEdge,
+	onSequenceSwap,
 }: Props ) {
     function set< K extends keyof StorySettings >( key: K, value: StorySettings[ K ] ) {
 		onSettingsChange( { ...settings, [ key ]: value } );
@@ -70,6 +73,21 @@ export default function StoryCanvasPanel( {
     const toggleVisibleHelpInformation = () => {
 		setIsVisibleHelpInformation( ( state: boolean ) => ! state );
 	};
+
+	// Fullscreen (lightbox) mode: lock body scroll, Esc exits.
+	const [ isFullscreen, setIsFullscreen ] = useState( false );
+	useEffect( () => {
+		if ( ! isFullscreen ) return;
+		function onKeyDown( e: KeyboardEvent ) {
+			if ( e.key === 'Escape' ) setIsFullscreen( false );
+		}
+		document.addEventListener( 'keydown', onKeyDown );
+		document.body.classList.add( 'cns-story-canvas-fullscreen-open' );
+		return () => {
+			document.removeEventListener( 'keydown', onKeyDown );
+			document.body.classList.remove( 'cns-story-canvas-fullscreen-open' );
+		};
+	}, [ isFullscreen ] );
 
     return(
         <div className="cns-story-canvas-view">
@@ -183,7 +201,18 @@ export default function StoryCanvasPanel( {
 
             <div className="cns-story-canvas-layout">
                 <div className="cns-story-canvas-main">
-                    <div className="cns-story-canvas-wrap">
+                    <div className={ 'cns-story-canvas-wrap' + ( isFullscreen ? ' is-fullscreen' : '' ) }>
+                        <Button
+                            className="cns-story-canvas-fs"
+                            variant="secondary"
+                            icon={ isFullscreen ? close : fullscreenIcon }
+                            label={
+                                isFullscreen
+                                    ? __( 'Exit fullscreen', 'cns-story-suite' )
+                                    : __( 'View fullscreen', 'cns-story-suite' )
+                            }
+                            onClick={ () => setIsFullscreen( ( f ) => ! f ) }
+                        />
                         <StoryCanvas
                           	mapData={ mapData }
 							mapObjects={ mapObjects }
@@ -226,6 +255,7 @@ export default function StoryCanvasPanel( {
 						onEdgeDelete={ onEdgeDelete }
 						onStartEdgeFrom={ onStartEdgeFrom }
 						onEditEdge={ onEditEdge }
+						onSequenceSwap={ onSequenceSwap }
                     />
                 </div>
             </div>

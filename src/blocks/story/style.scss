@@ -78,6 +78,60 @@
 	}
 }
 
+// ── Fullscreen (lightbox) mode ────────────────────────────────────────────────
+// Toggled by the ⛶ button; the whole block becomes a fixed dark overlay showing
+// only the canvas. Zooming stays available inside. Mirrors cns-map-suite.
+
+.cns-story-block.is-fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 99990; // below the node dialog (100000) and infobox drawer (99999)
+	display: block;
+	width: auto;
+	max-width: none;
+	margin: 0;
+	padding: 24px;
+	background: rgba(0, 0, 0, 0.92);
+
+	.cns-story-window {
+		display: none;
+	}
+
+	.cns-story-block__canvas-wrap {
+		height: 100%;
+	}
+
+	.cns-story-zoom {
+		top: 34px;
+		right: 34px;
+	}
+
+	.cns-story-canvas-scroll {
+		display: flex;
+		width: 100%;
+		height: 100%;
+		max-height: none;
+		overflow: auto;
+
+		canvas {
+			margin: auto; // centers when smaller, stays scrollable when zoomed
+		}
+
+		// At 100% the canvas fits the screen like a lightbox image; the zoomed
+		// state keeps the width-driven scaling from view.js's inline styles.
+		// !important beats the inline max-width view.js puts on the canvas.
+		&:not(.is-zoomed) canvas {
+			width: auto !important;
+			max-width: calc(100vw - 48px) !important;
+			max-height: calc(100vh - 48px);
+		}
+	}
+}
+
+body.cns-story-fullscreen-open {
+	overflow: hidden;
+}
+
 // ── Story window panel ────────────────────────────────────────────────────────
 
 .cns-story-window {
@@ -112,26 +166,25 @@
 			font-weight: 600;
 		}
 	}
-}
-
-.cns-sw-item__head {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	width: 100%;
-	padding: 7px 10px 7px 0;
-	background: none;
-	border: none;
-	cursor: pointer;
-	text-align: left;
-	font-size: 0.8125rem;
-	color: inherit;
-	line-height: 1.3;
-
-	&:hover {
-		background: rgba(0, 0, 0, 0.03);
+	&__head {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		width: 100%;
+		padding: 7px 10px 7px 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		text-align: left;
+		font-size: 1rem;
+		color: inherit;
+		line-height: 100%;
+		&:hover {
+			background: rgba(0, 0, 0, 0.03);
+		}
 	}
 }
+
 
 .cns-sw-item__num {
 	font-size: 10px;

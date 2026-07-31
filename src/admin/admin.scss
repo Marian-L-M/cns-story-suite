@@ -480,6 +480,7 @@ $thumb-size: 3em;
 }
 
 .cns-story-canvas-wrap {
+	position: relative; // anchors the fullscreen toggle
 	display: flex;
 	justify-content: center;
 	padding: 16px;
@@ -492,6 +493,42 @@ $thumb-size: 3em;
 		display: block;
 		cursor: crosshair;
 	}
+
+	.cns-story-canvas-fs {
+		position: absolute;
+		top: 26px;
+		right: 26px;
+		z-index: 10;
+		background: #fff;
+	}
+
+	// ── Fullscreen (lightbox) mode — mirrors cns-map-suite's Preview canvas ──
+	&.is-fullscreen {
+		position: fixed;
+		inset: 0;
+		z-index: 99990;
+		margin: 0;
+		padding: 24px;
+		background: rgba(0, 0, 0, 0.92);
+		overflow: auto;
+
+		canvas {
+			margin: auto; // centers when smaller than the viewport
+			width: auto;
+			max-width: calc(100vw - 48px);
+			max-height: calc(100vh - 48px);
+		}
+
+		.cns-story-canvas-fs {
+			position: fixed;
+			top: 34px;
+			right: 34px;
+		}
+	}
+}
+
+body.cns-story-canvas-fullscreen-open {
+	overflow: hidden;
 }
 
 // ── Story window — side panel (admin) ─────────────────────────────────────────

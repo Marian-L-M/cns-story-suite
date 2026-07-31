@@ -671,12 +671,14 @@ function renderWindow(windowEl, data, activeNodeId, expandedIds) {
     const path = node.pathId && data._pathMap ? data._pathMap.get(node.pathId) : null;
     const isActive = node.id === activeNodeId;
     const isOpen = expandedIds.has(node.id);
-    const indent = 8 + Math.min(depth, 4) * 14;
+    // const indent   = 8 + Math.min( depth, 4 ) * 14;
     const dotR = node.iconType === 'square' ? '2px' : '0';
     const dotTransform = node.iconType === 'diamond' ? 'rotate(45deg)' : '';
     const dotBorderR = node.iconType === 'round' || node.iconType === 'thumbnail' || node.iconType === 'icon' ? '50%' : dotR;
     const hasDetail = excerpt || node.substoryUrl;
-    return `<div class="cns-sw-item${isActive ? ' is-active' : ''}${isOpen ? ' is-open' : ''}" data-node="${node.id}" style="padding-left:${indent}px">
+
+    // return `<div class="cns-sw-item${ isActive ? ' is-active' : '' }${ isOpen ? ' is-open' : '' }" data-node="${ node.id }" style="padding-left:${ indent }px">
+    return `<div class="cns-sw-item${isActive ? ' is-active' : ''}${isOpen ? ' is-open' : ''}" data-node="${node.id}">
 			<button class="cns-sw-item__head" type="button">
 				<span class="cns-sw-item__num">${esc(numStr)}</span>
 				<span class="cns-sw-item__dot" style="background:${esc(node.iconColor)};border-radius:${dotBorderR};transform:${dotTransform}"></span>
@@ -744,11 +746,14 @@ function setupZoomControls(canvas) {
   let zoom = 1;
   const controls = document.createElement('div');
   controls.className = 'cns-story-zoom';
+  const fsBtn = document.createElement('button');
   const zoomIn = document.createElement('button');
   const zoomOut = document.createElement('button');
   const value = document.createElement('span');
+  fsBtn.type = 'button';
   zoomIn.type = 'button';
   zoomOut.type = 'button';
+  fsBtn.className = 'cns-story-zoom__btn cns-story-zoom__btn--fs';
   zoomIn.className = 'cns-story-zoom__btn';
   zoomOut.className = 'cns-story-zoom__btn';
   zoomIn.textContent = '+';
@@ -756,10 +761,36 @@ function setupZoomControls(canvas) {
   zoomIn.setAttribute('aria-label', 'Zoom map in');
   zoomOut.setAttribute('aria-label', 'Zoom map out');
   value.className = 'cns-story-zoom__value';
+  controls.appendChild(fsBtn);
   controls.appendChild(zoomIn);
   controls.appendChild(value);
   controls.appendChild(zoomOut);
   wrap.appendChild(controls);
+
+  // ── Lightbox-style fullscreen (same pattern as the cns-map-suite block) ──
+  const blockEl = canvas.closest('.cns-story-block');
+  let fullscreen = false;
+  function renderFsBtn() {
+    fsBtn.textContent = fullscreen ? '✕' : '⛶';
+    fsBtn.setAttribute('aria-label', fullscreen ? 'Exit fullscreen' : 'View story fullscreen');
+  }
+  function setFullscreen(on) {
+    fullscreen = on;
+    if (blockEl) blockEl.classList.toggle('is-fullscreen', on);
+    document.body.classList.toggle('cns-story-fullscreen-open', on);
+    renderFsBtn();
+  }
+  fsBtn.addEventListener('click', () => setFullscreen(!fullscreen));
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !fullscreen) return;
+    // Let Esc close an open dialog/drawer first; the next Esc exits.
+    const dialog = document.getElementById('cns-story-dialog');
+    if (dialog && dialog.classList.contains('is-open')) return;
+    const drawer = document.getElementById('cns-map-drawer');
+    if (drawer && drawer.classList.contains('is-open')) return;
+    setFullscreen(false);
+  });
+  renderFsBtn();
   function render() {
     value.textContent = Math.round(zoom * 100) + '%';
     zoomIn.disabled = zoom >= MAX;

@@ -24,6 +24,13 @@ interface Props {
 	onEdgeDelete:    ( edgeId: number ) => void;
 	onStartEdgeFrom: ( fromNodeId: number ) => void;
 	onEditEdge:      ( edgeId: number ) => void;
+	onSequenceSwap:  ( edge: StoryEdge ) => void;
+}
+
+// Matches the server's ORDER BY sort_order ASC, id ASC — fresh edges all
+// default to sort_order 0, so the id tiebreak keeps the order deterministic.
+function byOrder( a: StoryEdge, b: StoryEdge ): number {
+	return a.sortOrder - b.sortOrder || a.id - b.id;
 }
 
 function formatStep( num: number[] | null ): string {
@@ -90,7 +97,7 @@ function buildTree(
 		) {
 			const out = edges
 				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
-				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+				.sort( byOrder );
 
 			if ( isRoot ) {
 				const used = Math.max( 1, out.length );
@@ -140,7 +147,7 @@ function buildTree(
 
 			const outEdges = edges
 				.filter( ( e ) => e.fromNodeId === nodeId && reachable.has( e.toNodeId ) )
-				.sort( ( a, b ) => a.sortOrder - b.sortOrder );
+				.sort( byOrder );
 
 			assignChildNumbers( nodeId, stepNumber, fromBranchOf.get( nodeId ) ?? false, isRoot );
 
@@ -171,6 +178,7 @@ export default function CanvasNodeList( {
 	nodes, edges, startNodeId, selectedNodeId,
 	onSelect, onEdit, onDelete, onSetStartNode,
 	onEdgeReorder, onEdgeDelete, onStartEdgeFrom, onEditEdge,
+	onSequenceSwap,
 }: Props ) {
 	if ( ! nodes.length ) {
 		return (
@@ -182,26 +190,43 @@ export default function CanvasNodeList( {
 
 	const tree = buildTree( nodes, edges, startNodeId );
 
+	// Swaps two adjacent siblings, then rewrites every sibling's sort order to
+	// its list index — fresh edges all default to 0, so swapping the stored
+	// values alone would be a no-op.
+	function reorderSiblings( sorted: StoryEdge[], idx: number, dir: -1 | 1 ) {
+		const target = idx + dir;
+		if ( target < 0 || target >= sorted.length ) return;
+		const reordered = [ ...sorted ];
+		[ reordered[ idx ], reordered[ target ] ] = [ reordered[ target ], reordered[ idx ] ];
+		reordered.forEach( ( edge, i ) => {
+			if ( edge.sortOrder !== i ) onEdgeReorder( edge.id, i );
+		} );
+	}
+
+	// Branch nodes (≥2 siblings) reorder among their siblings; linear nodes
+	// swap places with their neighbour in the chain, rewiring connections.
 	function handleMoveUp( item: TreeItem ) {
 		const { incomingEdge, siblings } = item;
 		if ( ! incomingEdge ) return;
-		const sorted = [ ...siblings ].sort( ( a, b ) => a.sortOrder - b.sortOrder );
-		const idx    = sorted.findIndex( ( e ) => e.id === incomingEdge.id );
-		if ( idx <= 0 ) return;
-		const prev = sorted[ idx - 1 ];
-		onEdgeReorder( incomingEdge.id, prev.sortOrder );
-		onEdgeReorder( prev.id, incomingEdge.sortOrder );
+		const sorted = [ ...siblings ].sort( byOrder );
+		if ( sorted.length > 1 ) {
+			reorderSiblings( sorted, sorted.findIndex( ( e ) => e.id === incomingEdge.id ), -1 );
+		} else {
+			onSequenceSwap( incomingEdge ); // swap with the parent node
+		}
 	}
 
 	function handleMoveDown( item: TreeItem ) {
 		const { incomingEdge, siblings } = item;
 		if ( ! incomingEdge ) return;
-		const sorted = [ ...siblings ].sort( ( a, b ) => a.sortOrder - b.sortOrder );
-		const idx    = sorted.findIndex( ( e ) => e.id === incomingEdge.id );
-		if ( idx < 0 || idx >= sorted.length - 1 ) return;
-		const next = sorted[ idx + 1 ];
-		onEdgeReorder( incomingEdge.id, next.sortOrder );
-		onEdgeReorder( next.id, incomingEdge.sortOrder );
+		const sorted = [ ...siblings ].sort( byOrder );
+		if ( sorted.length > 1 ) {
+			reorderSiblings( sorted, sorted.findIndex( ( e ) => e.id === incomingEdge.id ), 1 );
+		} else {
+			const out = edges.filter( ( e ) => e.fromNodeId === item.node.id ).sort( byOrder );
+			if ( out.length !== 1 ) return;
+			onSequenceSwap( out[ 0 ] ); // swap with the single successor node
+		}
 	}
 
 	return (
@@ -213,10 +238,14 @@ export default function CanvasNodeList( {
 				const isSelected = node.id === selectedNodeId;
 				const isOrphan   = stepNumber === null && ! isStart;
 
-				const sorted = [ ...siblings ].sort( ( a, b ) => a.sortOrder - b.sortOrder );
-				const idx    = sorted.findIndex( ( e ) => e.id === incomingEdge?.id );
-				const canUp   = incomingEdge !== null && idx > 0;
-				const canDown = incomingEdge !== null && idx < sorted.length - 1;
+				const sorted   = [ ...siblings ].sort( byOrder );
+				const idx      = sorted.findIndex( ( e ) => e.id === incomingEdge?.id );
+				const isBranch = sorted.length > 1;
+				const outCount = incomingEdge ? edges.filter( ( e ) => e.fromNodeId === node.id ).length : 0;
+				// Branch: reorder among siblings. Linear: swap with the parent
+				// (up) or the single successor (down).
+				const canUp   = incomingEdge !== null && ( ! isBranch || idx > 0 );
+				const canDown = incomingEdge !== null && ( isBranch ? idx < sorted.length - 1 : outCount === 1 );
 
 				return (
 					<div

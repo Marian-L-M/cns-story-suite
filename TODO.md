@@ -51,3 +51,4 @@
 - [ ] Keyboard navigation and focus management for the story window
 - [ ] Path reordering UI (sort_order field exists but no drag-to-reorder)
 - [ ] Static/cached render data to reduce DB load on page load
+- [ ] Remove right col from single story template (waste of space -> No infobox)

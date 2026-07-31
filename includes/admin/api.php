@@ -818,6 +818,42 @@ function cns_story_suite_api_update_edge(WP_REST_Request $req): WP_REST_Response
 	$updates = [];
 	$formats = [];
 
+	// Endpoint rewiring (used by the editor's "move in sequence" swap).
+	$new_from = $req->has_param('from_node_id') ? (int) $req->get_param('from_node_id') : (int) $row['from_node_id'];
+	$new_to   = $req->has_param('to_node_id')   ? (int) $req->get_param('to_node_id')   : (int) $row['to_node_id'];
+
+	if ($new_from !== (int) $row['from_node_id'] || $new_to !== (int) $row['to_node_id']) {
+		if ($new_from === $new_to) {
+			return new WP_Error('self_loop', __('A node cannot connect to itself.', 'cns-story-suite'), ['status' => 400]);
+		}
+
+		$node_ids = array_unique([$new_from, $new_to]);
+		$found    = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d AND id IN (%d, %d)",
+				(int) $row['story_id'], $new_from, $new_to
+			)
+		);
+		if (count($found) < count($node_ids)) {
+			return new WP_Error('invalid_nodes', __('Both nodes must belong to this story.', 'cns-story-suite'), ['status' => 400]);
+		}
+
+		$duplicate = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$wpdb->prefix}cns_story_edges WHERE from_node_id = %d AND to_node_id = %d AND id != %d",
+				$new_from, $new_to, $edge_id
+			)
+		);
+		if ($duplicate) {
+			return new WP_Error('duplicate_edge', __('A connection between these nodes already exists.', 'cns-story-suite'), ['status' => 409]);
+		}
+
+		$updates['from_node_id'] = $new_from;
+		$formats[] = '%d';
+		$updates['to_node_id'] = $new_to;
+		$formats[] = '%d';
+	}
+
 	if (($v = $req->get_param('sort_order')) !== null) {
 		$updates['sort_order'] = (int) $v;
 		$formats[] = '%d';

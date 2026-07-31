@@ -470,6 +470,59 @@ export default function StoryEditorApp() {
 		}
 	}
 
+	// ── Node sequence swap ───────────────────────────────────────────────────
+
+	/**
+	 * Swaps the two nodes joined by `pivot` in the story sequence: the pivot
+	 * edge reverses, and every other connection touching either node trades
+	 * that endpoint for the other node. Node positions on the canvas stay put —
+	 * only the connections are rewired. If the earlier node was the start node,
+	 * the start flag moves to the node taking its place.
+	 */
+	async function handleSequenceSwap( pivot: StoryEdge ) {
+		const n = pivot.fromNodeId;
+		const m = pivot.toNodeId;
+
+		// Reverse the pivot first so the earlier node has no outgoing edge left
+		// when its replacement inherits the successor connections.
+		const changes: { id: number; from: number; to: number }[] = [
+			{ id: pivot.id, from: m, to: n },
+		];
+		for ( const e of edges ) {
+			if ( e.id === pivot.id ) continue;
+			const from = e.fromNodeId === n ? m : e.fromNodeId === m ? n : e.fromNodeId;
+			const to   = e.toNodeId   === n ? m : e.toNodeId   === m ? n : e.toNodeId;
+			if ( from !== e.fromNodeId || to !== e.toNodeId ) {
+				changes.push( { id: e.id, from, to } );
+			}
+		}
+
+		try {
+			for ( const c of changes ) {
+				const updated = await apiFetch< StoryEdge >( 'PATCH', `/edges/${ c.id }`, {
+					from_node_id: c.from,
+					to_node_id:   c.to,
+				} );
+				setEdges( ( p ) => p.map( ( e ) => ( e.id === c.id ? updated : e ) ) );
+			}
+			if ( settings.startNodeId === n ) {
+				setSettings( ( p ) => ( { ...p, startNodeId: m } ) );
+			}
+		} catch ( err ) {
+			createErrorNotice(
+				( err as Error ).message || __( 'Reordering failed.', 'cns-story-suite' ),
+				{ type: 'snackbar' }
+			);
+			// A partial rewire leaves the local graph stale — resync from the server.
+			try {
+				const data = await apiFetch< { edges: StoryEdge[] } >( 'GET', `/stories/${ storyId }/data` );
+				setEdges( data.edges );
+			} catch {
+				/* keep local state if the resync fails too */
+			}
+		}
+	}
+
 	// ── Canvas mode key handler ───────────────────────────────────────────────
 
 	useEffect( () => {
@@ -628,6 +681,7 @@ export default function StoryEditorApp() {
 								onEdgeDelete={ handleEdgeDelete }
 								onStartEdgeFrom={ handleStartEdgeFrom }
 								onEditEdge={ ( edgeId ) => setEdgeModal( { open: true, edgeId } ) }
+								onSequenceSwap={ handleSequenceSwap }
 							/>
 						) }
 
