@@ -47,21 +47,39 @@ $off_y_raw        = get_post_meta($story_id, '_cns_story_marker_icon_offset_y', 
 $marker_off_x     = ($off_x_raw !== '' && $off_x_raw !== false) ? (float) $off_x_raw : 0.0;
 $marker_off_y     = ($off_y_raw !== '' && $off_y_raw !== false) ? (float) $off_y_raw : ($legacy_off ?: -30.0);
 
-$raw_nodes = $wpdb->get_results(
-	$wpdb->prepare(
-		"SELECT * FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d ORDER BY created_at ASC, id ASC",
-		$story_id
-	),
-	ARRAY_A
-) ?: [];
+// Raw cns_story_* rows come from the render cache (includes/cache.php);
+// serialization below stays live because it applies per-user visibility rules.
+$story_rows = cns_story_suite_cache_get($story_id);
+if (! isset($story_rows['nodes'], $story_rows['paths'], $story_rows['edges'])) {
+	$story_rows = [
+		'nodes' => $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d ORDER BY created_at ASC, id ASC",
+				$story_id
+			),
+			ARRAY_A
+		) ?: [],
+		'paths' => $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
+				$story_id
+			),
+			ARRAY_A
+		) ?: [],
+		'edges' => $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}cns_story_edges WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
+				$story_id
+			),
+			ARRAY_A
+		) ?: [],
+	];
+	cns_story_suite_cache_set($story_id, $story_rows);
+}
 
-$raw_paths = $wpdb->get_results(
-	$wpdb->prepare(
-		"SELECT * FROM {$wpdb->prefix}cns_story_paths WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
-		$story_id
-	),
-	ARRAY_A
-) ?: [];
+$raw_nodes = $story_rows['nodes'];
+$raw_paths = $story_rows['paths'];
+$raw_edges = $story_rows['edges'];
 
 // Row shaping is shared with the REST API (includes/serializers.php);
 // $public = true gates unpublished substories and omits edit URLs.
@@ -76,14 +94,6 @@ $nodes = array_map(
 	fn(array $row): array => cns_story_suite_serialize_node($row, true),
 	$raw_nodes
 );
-
-$raw_edges = $wpdb->get_results(
-	$wpdb->prepare(
-		"SELECT * FROM {$wpdb->prefix}cns_story_edges WHERE story_id = %d ORDER BY sort_order ASC, id ASC",
-		$story_id
-	),
-	ARRAY_A
-) ?: [];
 
 $edges = array_map(fn(array $e): array => [
 	'id'          => (int) $e['id'],

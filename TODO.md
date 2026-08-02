@@ -50,5 +50,5 @@
 - [ ] Responsive canvas — scale to container width, maintain aspect ratio
 - [ ] Keyboard navigation and focus management for the story window
 - [ ] Path reordering UI (sort_order field exists but no drag-to-reorder)
-- [ ] Static/cached render data to reduce DB load on page load
+- [x] Static/cached render data to reduce DB load on page load — `includes/cache.php` caches raw `cns_story_*` rows (nodes/paths/edges) in transients for the frontend block; invalidated by a global version bump on any REST write or story deletion. Serialization stays live because it applies per-user visibility rules (mind H-1/H-2). Map data is cached on the map-suite side.
 - [ ] Remove right col from single story template (waste of space -> No infobox)
