@@ -232,6 +232,7 @@ function cns_story_suite_get_map_render_data(int $map_id, bool $resolve_infoboxe
 		return [
 			'id'           => (int) ($row['id'] ?? 0),
 			'childMapId'   => (int) ($row['child_map_id'] ?? 0),
+			'shapeType'    => (string) (($row['shape_type'] ?? '') ?: 'POLYGON'),
 			'title'        => (string) (($row['title_override'] ?? '') ?: ($row['child_map_title'] ?? '')),
 			'status'       => (string) ($row['child_map_status'] ?? ''),
 			'thumbnailUrl' => (string) ($row['child_map_thumbnail'] ?? ''),

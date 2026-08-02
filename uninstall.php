@@ -46,6 +46,17 @@ delete_option('cns_story_suite_db_version');
 delete_option('cns_story_suite_delete_on_uninstall');
 delete_option('cns_story_suite_show_stories_menu');
 delete_option('cns_story_suite_show_substories_menu');
+delete_option('cns_story_suite_cache_ver');
+
+// Remove render-cache transients (includes/cache.php). Keys carry a version
+// suffix, so match by prefix; with an external object cache the rows aren't
+// in wp_options, but entries there expire via TTL on their own.
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+$wpdb->query(
+	"DELETE FROM {$wpdb->options}
+	 WHERE option_name LIKE '\_transient\_cns\_story\_rows\_%'
+	    OR option_name LIKE '\_transient\_timeout\_cns\_story\_rows\_%'"
+);
 
 foreach (wp_roles()->roles as $role_name => $unused) {
 	$role = get_role($role_name);

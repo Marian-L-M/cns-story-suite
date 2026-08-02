@@ -5,9 +5,11 @@ $per_page_options   = [10, 20, 50, 100];
 $requested_per_page = (int) ($_GET['per_page'] ?? 20);
 $per_page           = in_array($requested_per_page, $per_page_options, true) ? $requested_per_page : 20;
 $paged              = max(1, absint($_GET['paged'] ?? 1));
-$total_stories      = cns_story_suite_count_stories();
+$in_trash           = (sanitize_key($_GET['status'] ?? '') === 'trash');
+$total_stories      = cns_story_suite_count_stories($in_trash);
+$trash_count        = cns_story_suite_count_stories(true);
 $total_pages        = (int) ceil($total_stories / $per_page);
-$stories            = cns_story_suite_get_all_stories($per_page, ($paged - 1) * $per_page);
+$stories            = cns_story_suite_get_all_stories($per_page, ($paged - 1) * $per_page, $in_trash);
 
 $return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_STORIES);
 $editor_url  = add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin.php'));
@@ -17,9 +19,21 @@ $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu'
 ?>
 <div class="cns-stories-overview">
 
+	<?php if (isset($_GET['trashed']) && $_GET['trashed'] === '1') : ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e('Story moved to trash.', 'cns-story-suite'); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php if (isset($_GET['restored']) && $_GET['restored'] === '1') : ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e('Story restored from trash. Restored stories are set to Draft.', 'cns-story-suite'); ?></p>
+		</div>
+	<?php endif; ?>
+
 	<?php if (isset($_GET['deleted']) && $_GET['deleted'] === '1') : ?>
 		<div class="notice notice-success is-dismissible">
-			<p><?php esc_html_e('Story deleted.', 'cns-story-suite'); ?></p>
+			<p><?php esc_html_e('Story permanently deleted.', 'cns-story-suite'); ?></p>
 		</div>
 	<?php endif; ?>
 
@@ -36,8 +50,30 @@ $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu'
 		</a>
 	</div>
 
+	<?php if ($trash_count > 0 || $in_trash) : ?>
+		<ul class="subsubsub" style="margin: 0 0 4px;">
+			<li>
+				<a href="<?php echo esc_url(add_query_arg(['page' => $return_page], admin_url('admin.php'))); ?>"
+					<?php if (! $in_trash) : ?>class="current"<?php endif; ?>>
+					<?php esc_html_e('All', 'cns-story-suite'); ?>
+					<span class="count">(<?php echo (int) cns_story_suite_count_stories(); ?>)</span>
+				</a> |
+			</li>
+			<li>
+				<a href="<?php echo esc_url(add_query_arg(['page' => $return_page, 'status' => 'trash'], admin_url('admin.php'))); ?>"
+					<?php if ($in_trash) : ?>class="current"<?php endif; ?>>
+					<?php esc_html_e('Trash', 'cns-story-suite'); ?>
+					<span class="count">(<?php echo (int) $trash_count; ?>)</span>
+				</a>
+			</li>
+		</ul>
+	<?php endif; ?>
+
 	<div class="cns-maps-overview__page-count">
 		<form method="get">
+			<?php if ($in_trash) : ?>
+				<input type="hidden" name="status" value="trash" />
+			<?php endif; ?>
 			<input type="hidden" name="page" value="<?php echo esc_attr($return_page); ?>" />
 			<label for="cns-per-page"><?php esc_html_e('Items per page:', 'cns-story-suite'); ?></label>
 			<select name="per_page" id="cns-per-page" onchange="this.form.submit()">
@@ -85,13 +121,15 @@ $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu'
 					['page' => CNS_STORY_PAGE_EDITOR, 'story_id' => $story->ID],
 					admin_url('admin.php')
 				));
-				$delete_url = esc_url(wp_nonce_url(
-					add_query_arg(
-						['page' => $return_page, 'action' => 'delete', 'story_id' => $story->ID],
-						admin_url('admin.php')
-					),
-					'cns_delete_story_' . $story->ID
-				));
+				$action_url = static function (string $action) use ($return_page, $story): string {
+					return esc_url(wp_nonce_url(
+						add_query_arg(
+							['page' => $return_page, 'action' => $action, 'story_id' => $story->ID],
+							admin_url('admin.php')
+						),
+						'cns_' . $action . '_story_' . $story->ID
+					));
+				};
 			?>
 				<tr>
 					<td class="col-thumb">
@@ -113,24 +151,34 @@ $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu'
 					<td><?php echo esc_html($map_title); ?></td>
 					<td><?php echo (int) $node_count; ?></td>
 					<td><?php
-						$labels = ['publish' => __('Published', 'cns-story-suite'), 'draft' => __('Draft', 'cns-story-suite'), 'private' => __('Private', 'cns-story-suite')];
+						$labels = ['publish' => __('Published', 'cns-story-suite'), 'draft' => __('Draft', 'cns-story-suite'), 'private' => __('Private', 'cns-story-suite'), 'trash' => __('Trash', 'cns-story-suite')];
 						echo esc_html($labels[$story->post_status] ?? ucfirst($story->post_status));
 					?></td>
 					<td><?php echo esc_html(get_the_date('Y-m-d', $story)); ?></td>
 					<td class="cns-maps-actions">
-						<a href="<?php echo $edit_url; ?>"><?php esc_html_e('Edit', 'cns-story-suite'); ?></a>
-						<?php if (in_array($story->post_status, ['publish', 'private'], true)) : ?>
+						<?php if ($in_trash) : ?>
+							<a href="<?php echo $action_url('restore'); ?>"><?php esc_html_e('Restore', 'cns-story-suite'); ?></a>
 							&nbsp;&middot;&nbsp;
-							<a href="<?php echo esc_url(get_permalink($story->ID)); ?>" target="_blank" rel="noopener">
-								<?php esc_html_e('View', 'cns-story-suite'); ?>
-							</a>
+							<a
+								href="<?php echo $action_url('delete-forever'); ?>"
+								class="cns-delete-link"
+								data-confirm="<?php esc_attr_e('Permanently delete this story and all its nodes, paths and edges? This cannot be undone.', 'cns-story-suite'); ?>"
+							><?php esc_html_e('Delete Permanently', 'cns-story-suite'); ?></a>
+						<?php else : ?>
+							<a href="<?php echo $edit_url; ?>"><?php esc_html_e('Edit', 'cns-story-suite'); ?></a>
+							<?php if (in_array($story->post_status, ['publish', 'private'], true)) : ?>
+								&nbsp;&middot;&nbsp;
+								<a href="<?php echo esc_url(get_permalink($story->ID)); ?>" target="_blank" rel="noopener">
+									<?php esc_html_e('View', 'cns-story-suite'); ?>
+								</a>
+							<?php endif; ?>
+							&nbsp;&middot;&nbsp;
+							<a
+								href="<?php echo $action_url('delete'); ?>"
+								class="cns-delete-link"
+								data-confirm="<?php esc_attr_e('Move this story to trash?', 'cns-story-suite'); ?>"
+							><?php esc_html_e('Trash', 'cns-story-suite'); ?></a>
 						<?php endif; ?>
-						&nbsp;&middot;&nbsp;
-						<a
-							href="<?php echo $delete_url; ?>"
-							class="cns-delete-link"
-							data-confirm="<?php esc_attr_e('Permanently delete this story?', 'cns-story-suite'); ?>"
-						><?php esc_html_e('Delete', 'cns-story-suite'); ?></a>
 					</td>
 				</tr>
 			<?php endforeach; ?>

@@ -1,0 +1,1155 @@
+# Copyright (C) 2026 Marian Maschke
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: CNS Story Suite 0.1.0\n"
+"Report-Msgid-Bugs-To: https://namatamago.dev/\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-08-02T11:46:53+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: cns-story-suite\n"
+
+#. Plugin Name of the plugin
+#: cns-story-suite.php
+#: includes/admin/menu.php:21
+msgid "CNS Story Suite"
+msgstr ""
+
+#. Description of the plugin
+#: cns-story-suite.php
+msgid "Canvas-based branching stories for the Clouds and Spaceships platform. Requires CNS Map Suite."
+msgstr ""
+
+#. Author of the plugin
+#: cns-story-suite.php
+msgid "Marian Maschke"
+msgstr ""
+
+#. Author URI of the plugin
+#: cns-story-suite.php
+msgid "https://namatamago.dev/"
+msgstr ""
+
+#: cns-story-suite.php:40
+#: cns-story-suite.php:68
+msgid "CNS Story Suite requires CNS Map Suite to be installed and active."
+msgstr ""
+
+#: includes/admin/api.php:298
+msgid "Map not found."
+msgstr ""
+
+#: includes/admin/api.php:318
+#: includes/admin/api.php:375
+#: includes/admin/api.php:521
+#: includes/admin/api.php:981
+#: includes/admin/api.php:1021
+#: includes/admin/api.php:1090
+#: includes/admin/api.php:1107
+msgid "Story not found."
+msgstr ""
+
+#: includes/admin/api.php:500
+#: includes/admin/api.php:938
+#: includes/admin/api.php:968
+#: includes/admin/views/overview.php:147
+#: includes/admin/views/substories-overview.php:102
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:14
+#: src/blocks/story/edit.js:92
+msgid "(no title)"
+msgstr ""
+
+#: includes/admin/api.php:583
+msgid "Could not create node."
+msgstr ""
+
+#: includes/admin/api.php:605
+#: includes/admin/api.php:723
+msgid "Node not found."
+msgstr ""
+
+#: includes/admin/api.php:739
+msgid "Could not delete node."
+msgstr ""
+
+#: includes/admin/api.php:756
+msgid "story_id, from_node_id, and to_node_id are required."
+msgstr ""
+
+#: includes/admin/api.php:760
+#: includes/admin/api.php:828
+msgid "A node cannot connect to itself."
+msgstr ""
+
+#: includes/admin/api.php:771
+#: includes/admin/api.php:839
+msgid "Both nodes must belong to this story."
+msgstr ""
+
+#: includes/admin/api.php:816
+#: includes/admin/api.php:907
+msgid "Edge not found."
+msgstr ""
+
+#: includes/admin/api.php:849
+msgid "A connection between these nodes already exists."
+msgstr ""
+
+#: includes/admin/api.php:1012
+msgid "link_type must be map_object, map_area, or hierarchy."
+msgstr ""
+
+#: includes/admin/api.php:1016
+msgid "link_id is required."
+msgstr ""
+
+#: includes/admin/api.php:1031
+#: includes/admin/api.php:1046
+msgid "Could not create link."
+msgstr ""
+
+#: includes/admin/api.php:1075
+msgid "Link not found."
+msgstr ""
+
+#: includes/admin/api.php:1137
+msgid "Could not create path."
+msgstr ""
+
+#: includes/admin/api.php:1155
+#: includes/admin/api.php:1208
+msgid "Path not found."
+msgstr ""
+
+#: includes/admin/api.php:1217
+msgid "Could not delete path."
+msgstr ""
+
+#: includes/admin/menu.php:20
+#: includes/admin/menu.php:53
+#: includes/admin/menu.php:54
+#: includes/admin/views/overview.php:47
+#: includes/post-types.php:16
+msgid "Stories"
+msgstr ""
+
+#: includes/admin/menu.php:27
+#: includes/admin/menu.php:28
+#: includes/admin/menu.php:73
+#: includes/admin/menu.php:74
+#: includes/admin/views/substories-overview.php:34
+#: includes/post-types.php:48
+msgid "Substories"
+msgstr ""
+
+#: includes/admin/menu.php:39
+#: includes/admin/menu.php:40
+msgid "Story Editor"
+msgstr ""
+
+#: includes/admin/menu.php:64
+#: includes/admin/menu.php:65
+#: build/admin/index.js:1
+msgid "All Stories"
+msgstr ""
+
+#: includes/admin/menu.php:82
+#: includes/admin/menu.php:83
+#: includes/post-types.php:21
+msgid "New Story"
+msgstr ""
+
+#: includes/admin/views/overview.php:24
+msgid "Story moved to trash."
+msgstr ""
+
+#: includes/admin/views/overview.php:30
+msgid "Story restored from trash. Restored stories are set to Draft."
+msgstr ""
+
+#: includes/admin/views/overview.php:36
+msgid "Story permanently deleted."
+msgstr ""
+
+#: includes/admin/views/overview.php:42
+msgid "Settings saved."
+msgstr ""
+
+#: includes/admin/views/overview.php:49
+msgid "+ New Story"
+msgstr ""
+
+#: includes/admin/views/overview.php:58
+msgid "All"
+msgstr ""
+
+#: includes/admin/views/overview.php:65
+#: includes/admin/views/overview.php:154
+#: includes/admin/views/overview.php:180
+#: includes/admin/views/substories-overview.php:127
+msgid "Trash"
+msgstr ""
+
+#: includes/admin/views/overview.php:78
+#: includes/admin/views/substories-overview.php:46
+msgid "Items per page:"
+msgstr ""
+
+#: includes/admin/views/overview.php:93
+#: includes/admin/views/substories-overview.php:61
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Title"
+msgstr ""
+
+#: includes/admin/views/overview.php:94
+#: build/admin/index.js:2
+msgid "Map"
+msgstr ""
+
+#: includes/admin/views/overview.php:95
+#: build/admin/index.js:2
+msgid "Nodes"
+msgstr ""
+
+#: includes/admin/views/overview.php:96
+#: includes/admin/views/substories-overview.php:62
+msgid "Status"
+msgstr ""
+
+#: includes/admin/views/overview.php:97
+#: includes/admin/views/substories-overview.php:63
+msgid "Date"
+msgstr ""
+
+#: includes/admin/views/overview.php:98
+#: includes/admin/views/substories-overview.php:64
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Actions"
+msgstr ""
+
+#: includes/admin/views/overview.php:104
+msgid "No stories found."
+msgstr ""
+
+#: includes/admin/views/overview.php:154
+#: includes/admin/views/substories-overview.php:84
+msgid "Published"
+msgstr ""
+
+#: includes/admin/views/overview.php:154
+#: includes/admin/views/substories-overview.php:85
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:9
+msgid "Draft"
+msgstr ""
+
+#: includes/admin/views/overview.php:154
+#: includes/admin/views/substories-overview.php:86
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:10
+msgid "Private"
+msgstr ""
+
+#: includes/admin/views/overview.php:160
+msgid "Restore"
+msgstr ""
+
+#: includes/admin/views/overview.php:165
+msgid "Permanently delete this story and all its nodes, paths and edges? This cannot be undone."
+msgstr ""
+
+#: includes/admin/views/overview.php:166
+msgid "Delete Permanently"
+msgstr ""
+
+#: includes/admin/views/overview.php:168
+#: includes/admin/views/substories-overview.php:114
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Edit"
+msgstr ""
+
+#: includes/admin/views/overview.php:172
+#: includes/admin/views/substories-overview.php:119
+msgid "View"
+msgstr ""
+
+#: includes/admin/views/overview.php:179
+msgid "Move this story to trash?"
+msgstr ""
+
+#: includes/admin/views/overview.php:204
+msgid "Plugin Settings"
+msgstr ""
+
+#: includes/admin/views/overview.php:210
+msgid "Admin menu visibility"
+msgstr ""
+
+#: includes/admin/views/overview.php:214
+msgid "Show Stories in the WordPress admin sidebar"
+msgstr ""
+
+#: includes/admin/views/overview.php:219
+msgid "Show Substories in the WordPress admin sidebar"
+msgstr ""
+
+#: includes/admin/views/overview.php:222
+msgid "Adds the standard WordPress list screens for stories and substories to the sidebar. The CNS editor pages here stay the primary management UI."
+msgstr ""
+
+#: includes/admin/views/overview.php:227
+msgid "Uninstall behaviour"
+msgstr ""
+
+#: includes/admin/views/overview.php:231
+msgid "Delete all story and substory posts when this plugin is uninstalled"
+msgstr ""
+
+#: includes/admin/views/overview.php:234
+msgid "When unchecked (default), posts are kept after uninstall. Custom DB tables are always removed."
+msgstr ""
+
+#: includes/admin/views/overview.php:239
+msgid "Save Settings"
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:29
+msgid "Substory moved to trash."
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:36
+msgid "+ New Substory"
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:39
+msgid "Full overview"
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:71
+msgid "No substories yet."
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:73
+msgid "Create your first substory"
+msgstr ""
+
+#: includes/admin/views/substories-overview.php:126
+msgid "Move this substory to trash?"
+msgstr ""
+
+#: includes/post-types.php:17
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:57
+msgid "Story"
+msgstr ""
+
+#: includes/post-types.php:18
+#: includes/post-types.php:19
+msgid "Add New Story"
+msgstr ""
+
+#: includes/post-types.php:20
+msgid "Edit Story"
+msgstr ""
+
+#: includes/post-types.php:22
+#: build/admin/index.js:1
+msgid "View Story"
+msgstr ""
+
+#: includes/post-types.php:23
+msgid "Search Stories"
+msgstr ""
+
+#: includes/post-types.php:24
+msgid "No stories found"
+msgstr ""
+
+#: includes/post-types.php:25
+msgid "No stories found in trash"
+msgstr ""
+
+#: includes/post-types.php:49
+msgid "Substory"
+msgstr ""
+
+#: includes/post-types.php:50
+#: includes/post-types.php:51
+msgid "Add New Substory"
+msgstr ""
+
+#: includes/post-types.php:52
+msgid "Edit Substory"
+msgstr ""
+
+#: includes/post-types.php:53
+msgid "New Substory"
+msgstr ""
+
+#: includes/post-types.php:54
+msgid "View Substory"
+msgstr ""
+
+#: includes/post-types.php:55
+msgid "Search Substories"
+msgstr ""
+
+#: includes/post-types.php:56
+msgid "No substories found"
+msgstr ""
+
+#: includes/post-types.php:57
+msgid "No substories found in trash"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Post status"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Save Story"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Use story default"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "(story default)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Path Style"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Override this connection’s line style, or use the story’s global settings."
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Color"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Width (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Style"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Solid"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Dashed"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Dotted"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Opacity"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Reset all to story defaults"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Delete this connection?"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Delete connection"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Cancel"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Save"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Substory post"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Search substories…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Add Node"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Edit Node"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Substory Post"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Or create a new substory post:"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "New substory title"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "New substory title…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Creating…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Create"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Display Overrides"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Leave blank to use the substory post’s title and excerpt."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Node title…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Excerpt"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Short description shown in the story window…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Position"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "X (%)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Y (%)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Position as a percentage of canvas width/height from the top-left. Also adjustable by clicking or dragging on the canvas."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Node Appearance"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Shape"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Uses the substory’s featured image, clipped to a circle."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Link a substory above to enable the Thumbnail option."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Icon Image"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Select Icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Remove icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Background shape"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Background color"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Fill color"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Border color"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Border width (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Size (×)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Story Path"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Path"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Assign this node to a path to inherit its marker settings."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "— No path (use global settings) —"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Individual Marker Override"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Overrides path and global settings for this node only. Leave a field unchecked to inherit."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Marker type"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Inherit"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Ring"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Color override"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Marker color"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Size override"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Marker size (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Marker icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Select Marker Icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Select icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Remove marker icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Offset X override"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Offset X (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Offset Y override"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Offset Y (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Saving…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Save Node"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Map Suite Links"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Link this story to specific map objects, areas, or hierarchy regions. These relationships are used for cross-referencing in the map editor."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Linked Entities"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Type"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Entity"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Unlink"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Add Link"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Entity type"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Map Object"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Map Area"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Hierarchy Region"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Search entities"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Search…"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:68
+msgid "Searching…"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Search"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Linked"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Link"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Move branch up"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Move branch down"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Style this connection"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Set as start node"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Set Start"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Delete"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Ring outline"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Icon image"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Ring size (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Icon size (px)"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Change icon"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Position preset"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Add Path"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Edit Path"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Path Label"
+msgstr ""
+
+#: build/admin/index.js:1
+#: build/admin/index.js:2
+msgid "Label"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "e.g. Main storyline"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Marker Settings"
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "These override the global marker for all nodes in this path (unless overridden per-node)."
+msgstr ""
+
+#: build/admin/index.js:1
+msgid "Save Path"
+msgstr ""
+
+#. translators: %s: path label
+#: build/admin/index.js:2
+#, js-format
+msgid "Manage Nodes — %s"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Nodes are connected top-to-bottom in the order below. Applying replaces the connections between these nodes; connections to nodes outside the list are kept."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "No nodes in this path yet."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Move up"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Move down"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Remove from this path"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Add existing node"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Search this story’s nodes…"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "currently in another path"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Add substory as new node"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Creates a node at the canvas centre linked to the chosen substory — move it into place on the Canvas tab afterwards."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Adding…"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Applying…"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Apply Order & Connections"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Story Paths"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Paths group nodes so you can apply shared marker settings. Use \"Manage nodes\" to order and connect a path’s nodes without the canvas. Priority order: individual node settings > path settings > global settings."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "No paths yet."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Marker"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Manage nodes: order, connect, add or remove"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Manage nodes"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Search maps…"
+msgstr ""
+
+#: build/admin/index.js:2
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:53
+msgid "Story Settings"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Description"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Short summary shown in story listings."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "The story canvas overlays this map. Objects and areas are shown read-only."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Thumbnail"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Used as the story’s featured image."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Select Story Thumbnail"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Change thumbnail"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Set thumbnail"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Remove thumbnail"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Active node marker"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Global default. Overridden per-path and per-node."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Move up in sequence"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Move down in sequence"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Remove this branch"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Split route: add a parallel branch from the same parent"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Edit node"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Delete node"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Canvas mode"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Select"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Add"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Connect"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Lines:"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Exit fullscreen"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "View fullscreen"
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Story saved."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Save failed."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Save the story first before adding nodes."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Reordering failed."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Path nodes updated."
+msgstr ""
+
+#: build/admin/index.js:2
+msgid "Updating path nodes failed."
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:58
+msgid "Search stories…"
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:69
+msgid "Type to search stories by title."
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:81
+msgid "CNS Story"
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:82
+msgid "Pick a story in the block settings panel to embed it."
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:89
+msgid "Story:"
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:95
+msgid "The interactive canvas renders on the frontend."
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:103
+msgid "Story not found"
+msgstr ""
+
+#: build/blocks/story/index.js:1
+#: src/blocks/story/edit.js:104
+msgid "No story found with the given ID."
+msgstr ""
+
+#: build/blocks/story/block.json
+#: src/blocks/story/block.json
+msgctxt "block title"
+msgid "CNS Story"
+msgstr ""
+
+#: build/blocks/story/block.json
+#: src/blocks/story/block.json
+msgctxt "block description"
+msgid "Embed a branching interactive story canvas with a story window."
+msgstr ""
+
+#: build/blocks/story/block.json
+#: src/blocks/story/block.json
+msgctxt "block keyword"
+msgid "story"
+msgstr ""
+
+#: build/blocks/story/block.json
+#: src/blocks/story/block.json
+msgctxt "block keyword"
+msgid "canvas"
+msgstr ""
+
+#: build/blocks/story/block.json
+#: src/blocks/story/block.json
+msgctxt "block keyword"
+msgid "interactive"
+msgstr ""

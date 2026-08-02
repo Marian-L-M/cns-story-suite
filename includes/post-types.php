@@ -132,18 +132,20 @@ add_filter('the_content', 'cns_story_suite_inject_story_content', 5);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function cns_story_suite_get_all_stories(int $take = -1, int $skip = 0): array {
+function cns_story_suite_get_all_stories(int $take = -1, int $skip = 0, bool $trash = false): array {
 	return get_posts([
 		'post_type'      => 'cns_story',
 		'posts_per_page' => $take,
 		'offset'         => $skip,
-		'post_status'    => ['publish', 'draft', 'private'],
+		'post_status'    => $trash ? ['trash'] : ['publish', 'draft', 'private'],
 		'orderby'        => 'date',
 		'order'          => 'DESC',
 	]);
 }
 
-function cns_story_suite_count_stories(): int {
+function cns_story_suite_count_stories(bool $trash = false): int {
 	$counts = wp_count_posts('cns_story');
-	return (int) $counts->publish + (int) $counts->draft + (int) $counts->private;
+	return $trash
+		? (int) $counts->trash
+		: (int) $counts->publish + (int) $counts->draft + (int) $counts->private;
 }

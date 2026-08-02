@@ -95,3 +95,36 @@ function cns_story_suite_create_tables(): void {
 		KEY idx_link (link_type, link_id)
 	) $charset_collate;");
 }
+
+// ── Row cleanup on permanent post deletion ────────────────────────────────────
+// Runs for every permanent deletion path (admin handler, trash emptying,
+// wp-cli, REST), so story rows can never be orphaned. Trashing a story keeps
+// its rows, which is what makes restoring from trash lossless.
+
+function cns_story_suite_purge_story_rows(int $story_id): void {
+	global $wpdb;
+
+	// Edges carry story_id, but also sweep by node id to catch any stray rows
+	// linked across stories (mirrors the pre-trash admin delete handler).
+	$node_ids = $wpdb->get_col(
+		$wpdb->prepare("SELECT id FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d", $story_id)
+	);
+	if ($node_ids) {
+		$placeholders = implode(',', array_fill(0, count($node_ids), '%d'));
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query($wpdb->prepare(
+			"DELETE FROM {$wpdb->prefix}cns_story_edges WHERE from_node_id IN ($placeholders) OR to_node_id IN ($placeholders)",
+			...array_merge($node_ids, $node_ids)
+		));
+	}
+	$wpdb->delete($wpdb->prefix . 'cns_story_edges', ['story_id' => $story_id], ['%d']);
+	$wpdb->delete($wpdb->prefix . 'cns_story_nodes', ['story_id' => $story_id], ['%d']);
+	$wpdb->delete($wpdb->prefix . 'cns_story_links', ['story_id' => $story_id], ['%d']);
+	$wpdb->delete($wpdb->prefix . 'cns_story_paths', ['story_id' => $story_id], ['%d']);
+}
+
+add_action('before_delete_post', function (int $post_id, WP_Post $post): void {
+	if ($post->post_type === 'cns_story') {
+		cns_story_suite_purge_story_rows($post_id);
+	}
+}, 10, 2);

@@ -181,43 +181,41 @@ add_action('admin_init', function (): void {
 	}
 });
 
+// Trash / restore / permanent delete. "Delete" moves the story to trash and
+// keeps its node/path/edge rows, so restoring is lossless; rows are purged by
+// the before_delete_post hook (includes/database.php) only when the post is
+// permanently deleted — from here, from the trash being emptied, or from any
+// other deletion path.
 add_action('admin_init', function (): void {
 	$page   = sanitize_key($_GET['page'] ?? '');
 	$action = sanitize_key($_GET['action'] ?? '');
 
 	$overview_pages = [CNS_STORY_PAGE_STORIES, CNS_STORY_PAGE_SETTINGS];
-	if (! in_array($page, $overview_pages, true) || $action !== 'delete') {
+	$actions        = ['delete' => 'trashed', 'restore' => 'restored', 'delete-forever' => 'deleted'];
+	if (! in_array($page, $overview_pages, true) || ! isset($actions[$action])) {
 		return;
 	}
 
 	$story_id = (int) ($_GET['story_id'] ?? 0);
-	if (! $story_id || ! check_admin_referer('cns_delete_story_' . $story_id)) {
+	if (! $story_id || ! check_admin_referer('cns_' . $action . '_story_' . $story_id)) {
 		return;
 	}
 
 	$story = get_post($story_id);
 	if ($story && $story->post_type === 'cns_story' && current_user_can('manage_stories')) {
-		global $wpdb;
-		$node_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT id FROM {$wpdb->prefix}cns_story_nodes WHERE story_id = %d",
-				$story_id
-			)
-		);
-		if ($node_ids) {
-			$placeholders = implode(',', array_fill(0, count($node_ids), '%d'));
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query($wpdb->prepare(
-				"DELETE FROM {$wpdb->prefix}cns_story_edges WHERE from_node_id IN ($placeholders) OR to_node_id IN ($placeholders)",
-				...array_merge($node_ids, $node_ids)
-			));
+		switch ($action) {
+			case 'delete':
+				wp_trash_post($story_id);
+				break;
+			case 'restore':
+				wp_untrash_post($story_id);
+				break;
+			case 'delete-forever':
+				wp_delete_post($story_id, true);
+				break;
 		}
-		$wpdb->delete($wpdb->prefix . 'cns_story_nodes', ['story_id' => $story_id], ['%d']);
-		$wpdb->delete($wpdb->prefix . 'cns_story_links', ['story_id' => $story_id], ['%d']);
-		$wpdb->delete($wpdb->prefix . 'cns_story_paths', ['story_id' => $story_id], ['%d']);
-		wp_delete_post($story_id, true);
 	}
 
-	wp_safe_redirect(add_query_arg(['page' => $page, 'deleted' => '1'], admin_url('admin.php')));
+	wp_safe_redirect(add_query_arg(['page' => $page, $actions[$action] => '1'], admin_url('admin.php')));
 	exit;
 });

@@ -7,6 +7,7 @@
  * Requires at least: 6.8
  * Requires PHP:      8.0
  * Author:            Marian Maschke
+ * Author URI:        https://namatamago.dev/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       cns-story-suite

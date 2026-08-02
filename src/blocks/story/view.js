@@ -405,15 +405,11 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 	// a master map used as a story base looks like it does on its own page.
 	for ( const region of ( m?.hierarchyRegions ?? [] ) ) {
 		const pts = region.nodes || [];
-		if ( pts.length < 3 ) continue;
 
 		const s = region.canvasStyles;
-		ctx.beginPath();
-		ctx.moveTo( pts[ 0 ].x * W, pts[ 0 ].y * H );
-		for ( let i = 1; i < pts.length; i++ ) {
-			ctx.lineTo( pts[ i ].x * W, pts[ i ].y * H );
-		}
-		ctx.closePath();
+		// buildAreaPath is shape-aware (polygon / rectangle / bezier / circle)
+		// and returns false when the node count is too low for the shape.
+		if ( ! buildAreaPath( ctx, { shapeType: region.shapeType, nodes: pts }, W, H ) ) continue;
 
 		ctx.save();
 		ctx.globalAlpha = s?.fillOpacity ?? 0.25;
@@ -429,8 +425,13 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		ctx.restore();
 
 		if ( region.title ) {
-			const rcx = ( pts.reduce( ( sum, p ) => sum + p.x, 0 ) / pts.length ) * W;
-			const rcy = ( pts.reduce( ( sum, p ) => sum + p.y, 0 ) / pts.length ) * H;
+			// Circle labels sit on the center node; other shapes use the centroid.
+			const rcx = ( region.shapeType === 'CIRCLE'
+				? pts[ 0 ].x
+				: pts.reduce( ( sum, p ) => sum + p.x, 0 ) / pts.length ) * W;
+			const rcy = ( region.shapeType === 'CIRCLE'
+				? pts[ 0 ].y
+				: pts.reduce( ( sum, p ) => sum + p.y, 0 ) / pts.length ) * H;
 			ctx.save();
 			ctx.font         = 'bold 12px sans-serif';
 			ctx.textAlign    = 'center';
