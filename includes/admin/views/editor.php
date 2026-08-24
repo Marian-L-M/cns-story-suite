@@ -6,7 +6,7 @@ $story    = $story_id ? get_post($story_id) : null;
 $is_new   = (! $story || $story->post_type !== 'cns_story');
 
 $overview_url = add_query_arg(
-	['page' => get_template() === 'clouds-and-spaceships' ? CNS_STORY_PAGE_SETTINGS : CNS_STORY_PAGE_STORIES],
+	['page' => CNS_STORY_PAGE_SETTINGS],
 	admin_url('admin.php')
 );
 

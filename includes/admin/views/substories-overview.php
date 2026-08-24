@@ -19,7 +19,7 @@ $substories = get_posts([
 	'order'          => 'DESC',
 ]);
 
-$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_SUBSTORIES);
+$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_SETTINGS_SUBSTORIES);
 $new_url     = admin_url('post-new.php?post_type=cns_substory');
 ?>
 <div class="cns-stories-overview">

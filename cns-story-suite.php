@@ -25,10 +25,9 @@ define('CNS_STORY_SUITE_DIR',        plugin_dir_path(__FILE__));
 define('CNS_STORY_SUITE_URL',        plugin_dir_url(__FILE__));
 define('CNS_STORY_SUITE_BASENAME',   plugin_basename(__FILE__));
 
-define('CNS_STORY_PAGE_STORIES',    'cns-stories');
-define('CNS_STORY_PAGE_EDITOR',     'cns-story-editor');
-define('CNS_STORY_PAGE_SETTINGS',   'cns-settings-stories');
-define('CNS_STORY_PAGE_SUBSTORIES', 'cns-substories');
+define('CNS_STORY_PAGE_EDITOR',              'cns-story-editor');
+define('CNS_STORY_PAGE_SETTINGS',            'cns-settings-stories');
+define('CNS_STORY_PAGE_SETTINGS_SUBSTORIES', 'cns-settings-substories');
 
 // ── Lifecycle hooks (defined before dependency bail so activation can deactivate us) ──
 
@@ -120,7 +119,7 @@ add_action('plugins_loaded', 'cns_story_suite_maybe_upgrade_db');
 
 add_filter('cns_map_editor_extensions', function (array $ext): array {
 	$overview_url = add_query_arg(
-		['page' => get_template() === 'clouds-and-spaceships' ? CNS_STORY_PAGE_SETTINGS : CNS_STORY_PAGE_STORIES],
+		['page' => CNS_STORY_PAGE_SETTINGS],
 		admin_url('admin.php')
 	);
 	$ext['hasStorySuite']         = true;

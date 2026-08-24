@@ -2,38 +2,37 @@
 
 defined('ABSPATH') || exit;
 
-function cns_story_suite_register_menus(): void {
-	if (get_template() === 'clouds-and-spaceships') {
-		cns_story_suite_register_under_cns_theme();
-	} else {
-		cns_story_suite_register_standalone();
-	}
-}
-add_action('admin_menu', 'cns_story_suite_register_menus', 10);
+// Shared CNS settings page framework (no-op if another CNS component
+// already loaded its identical copy).
+require_once CNS_STORY_SUITE_DIR . 'includes/admin/cns-settings-page.php';
 
 /**
- * CNS theme active: register tabs via cns_admin_tabs filter + hidden editor sub-page.
+ * Stories + Substories tabs on the shared CNS settings page. The framework
+ * builds the page whether or not the CNS theme is active, so no standalone
+ * menu is needed.
  */
-function cns_story_suite_register_under_cns_theme(): void {
-	add_filter('cns_admin_tabs', function (array $tabs): array {
-		$tabs['stories'] = [
-			'menu_title' => __('Stories', 'cns-story-suite'),
-			'title'      => __('CNS Story Suite', 'cns-story-suite'),
-			'capability' => 'manage_stories',
-			'callback'   => 'cns_story_suite_render_overview',
-			'priority'   => 40,
-		];
-		$tabs['substories'] = [
-			'menu_title' => __('Substories', 'cns-story-suite'),
-			'title'      => __('Substories', 'cns-story-suite'),
-			'capability' => 'edit_posts',
-			'callback'   => 'cns_story_suite_render_substories',
-			'priority'   => 41,
-		];
-		return $tabs;
-	});
+add_filter('cns_admin_tabs', function (array $tabs): array {
+	$tabs['stories'] = [
+		'menu_title' => __('Stories', 'cns-story-suite'),
+		'title'      => __('CNS Story Suite', 'cns-story-suite'),
+		'capability' => 'manage_stories',
+		'callback'   => 'cns_story_suite_render_overview',
+		'priority'   => 40,
+	];
+	$tabs['substories'] = [
+		'menu_title' => __('Substories', 'cns-story-suite'),
+		'title'      => __('Substories', 'cns-story-suite'),
+		'capability' => 'edit_posts',
+		'callback'   => 'cns_story_suite_render_substories',
+		'priority'   => 41,
+	];
+	return $tabs;
+});
 
-	// Hidden sub-page for the story editor.
+/**
+ * Hidden sub-page for the story editor (accessible by URL, not shown in menu).
+ */
+function cns_story_suite_register_menus(): void {
 	add_submenu_page(
 		'cns-settings',
 		__('Story Editor', 'cns-story-suite'),
@@ -44,59 +43,31 @@ function cns_story_suite_register_under_cns_theme(): void {
 	);
 	remove_submenu_page('cns-settings', CNS_STORY_PAGE_EDITOR);
 }
+add_action('admin_menu', 'cns_story_suite_register_menus', 10);
 
 /**
- * CNS theme not active: standalone top-level Stories menu.
+ * Canonical page slug for the current request. The default tab is also served
+ * from the bare cns-settings slug, so resolve that back to our tab pages.
  */
-function cns_story_suite_register_standalone(): void {
-	add_menu_page(
-		__('Stories', 'cns-story-suite'),
-		__('Stories', 'cns-story-suite'),
-		'manage_stories',
-		CNS_STORY_PAGE_STORIES,
-		'cns_story_suite_render_overview',
-		'dashicons-book',
-		59
-	);
-
-	add_submenu_page(
-		CNS_STORY_PAGE_STORIES,
-		__('All Stories', 'cns-story-suite'),
-		__('All Stories', 'cns-story-suite'),
-		'manage_stories',
-		CNS_STORY_PAGE_STORIES,
-		'cns_story_suite_render_overview'
-	);
-
-	add_submenu_page(
-		CNS_STORY_PAGE_STORIES,
-		__('Substories', 'cns-story-suite'),
-		__('Substories', 'cns-story-suite'),
-		'edit_posts',
-		CNS_STORY_PAGE_SUBSTORIES,
-		'cns_story_suite_render_substories'
-	);
-
-	add_submenu_page(
-		CNS_STORY_PAGE_STORIES,
-		__('New Story', 'cns-story-suite'),
-		__('New Story', 'cns-story-suite'),
-		'manage_stories',
-		CNS_STORY_PAGE_EDITOR,
-		'cns_story_suite_render_editor'
-	);
+function cns_story_suite_current_page(): string {
+	$page = sanitize_key($_GET['page'] ?? '');
+	if ($page === 'cns-settings') {
+		$active = cns_admin_active_tab();
+		if ($active === 'stories')    return CNS_STORY_PAGE_SETTINGS;
+		if ($active === 'substories') return CNS_STORY_PAGE_SETTINGS_SUBSTORIES;
+	}
+	return $page;
 }
 
 // ── Asset enqueuing ───────────────────────────────────────────────────────────
 
 function cns_story_suite_enqueue_admin_assets(): void {
-	$page = sanitize_key($_GET['page'] ?? '');
+	$page = cns_story_suite_current_page();
 
 	$is_story_page = in_array($page, [
-		CNS_STORY_PAGE_STORIES,
 		CNS_STORY_PAGE_EDITOR,
 		CNS_STORY_PAGE_SETTINGS,
-		CNS_STORY_PAGE_SUBSTORIES,
+		CNS_STORY_PAGE_SETTINGS_SUBSTORIES,
 	], true);
 
 	if (! $is_story_page) {
@@ -126,14 +97,12 @@ function cns_story_suite_enqueue_admin_assets(): void {
 		true
 	);
 
-	$overview_page = get_template() === 'clouds-and-spaceships' ? CNS_STORY_PAGE_SETTINGS : CNS_STORY_PAGE_STORIES;
-
 	wp_localize_script('cns-story-admin', 'cnsStorySuite', [
 		'restUrl'       => rest_url('cns-story-suite/v1'),
 		'mapRestUrl'    => rest_url('cns-map-suite/v1'),
 		'wpRestUrl'     => rest_url('wp/v2'),
 		'nonce'         => wp_create_nonce('wp_rest'),
-		'overviewUrl'   => add_query_arg(['page' => $overview_page], admin_url('admin.php')),
+		'overviewUrl'   => add_query_arg(['page' => CNS_STORY_PAGE_SETTINGS], admin_url('admin.php')),
 		'editorUrl'     => add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin.php')),
 		'substoriesUrl' => admin_url('edit.php?post_type=cns_substory'),
 	]);
@@ -175,7 +144,7 @@ add_action('admin_init', function (): void {
 		update_option('cns_story_suite_delete_on_uninstall',   ! empty($_POST['delete_on_uninstall']));
 		update_option('cns_story_suite_show_stories_menu',     ! empty($_POST['show_stories_menu']));
 		update_option('cns_story_suite_show_substories_menu',  ! empty($_POST['show_substories_menu']));
-		$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_STORIES);
+		$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_SETTINGS);
 		wp_safe_redirect(add_query_arg(['page' => $return_page, 'settings-saved' => '1'], admin_url('admin.php')));
 		exit;
 	}
@@ -187,12 +156,11 @@ add_action('admin_init', function (): void {
 // permanently deleted — from here, from the trash being emptied, or from any
 // other deletion path.
 add_action('admin_init', function (): void {
-	$page   = sanitize_key($_GET['page'] ?? '');
+	$page   = cns_story_suite_current_page();
 	$action = sanitize_key($_GET['action'] ?? '');
 
-	$overview_pages = [CNS_STORY_PAGE_STORIES, CNS_STORY_PAGE_SETTINGS];
-	$actions        = ['delete' => 'trashed', 'restore' => 'restored', 'delete-forever' => 'deleted'];
-	if (! in_array($page, $overview_pages, true) || ! isset($actions[$action])) {
+	$actions = ['delete' => 'trashed', 'restore' => 'restored', 'delete-forever' => 'deleted'];
+	if ($page !== CNS_STORY_PAGE_SETTINGS || ! isset($actions[$action])) {
 		return;
 	}
 

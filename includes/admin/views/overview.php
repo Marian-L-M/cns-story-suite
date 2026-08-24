@@ -11,7 +11,7 @@ $trash_count        = cns_story_suite_count_stories(true);
 $total_pages        = (int) ceil($total_stories / $per_page);
 $stories            = cns_story_suite_get_all_stories($per_page, ($paged - 1) * $per_page, $in_trash);
 
-$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_STORIES);
+$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_SETTINGS);
 $editor_url  = add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin.php'));
 $delete_on_uninstall  = (bool) get_option('cns_story_suite_delete_on_uninstall', false);
 $show_stories_menu    = (bool) get_option('cns_story_suite_show_stories_menu', false);
