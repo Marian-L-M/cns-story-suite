@@ -19,7 +19,7 @@ function cns_story_suite_create_tables(): void {
 		story_id BIGINT UNSIGNED NOT NULL,
 		label VARCHAR(255) NOT NULL DEFAULT '',
 		sort_order INT NOT NULL DEFAULT 0,
-		marker_color VARCHAR(7) NOT NULL DEFAULT '#00aaff',
+		marker_color VARCHAR(9) NOT NULL DEFAULT '#00aaff',
 		marker_size FLOAT NOT NULL DEFAULT 5.0,
 		marker_type VARCHAR(10) NOT NULL DEFAULT 'ring',
 		marker_icon_id BIGINT UNSIGNED NULL DEFAULT NULL,
@@ -42,15 +42,15 @@ function cns_story_suite_create_tables(): void {
 		y FLOAT NOT NULL DEFAULT 0.5,
 		icon_type VARCHAR(10) NOT NULL DEFAULT 'round',
 		icon_id BIGINT UNSIGNED NULL DEFAULT NULL,
-		icon_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',
+		icon_color VARCHAR(9) NOT NULL DEFAULT '#ffffff',
 		icon_size FLOAT NOT NULL DEFAULT 1.0,
-		icon_border_color VARCHAR(7) NOT NULL DEFAULT '#000000',
+		icon_border_color VARCHAR(9) NOT NULL DEFAULT '#000000',
 		icon_border_width FLOAT NOT NULL DEFAULT 2.0,
-		icon_bg_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',
+		icon_bg_color VARCHAR(9) NOT NULL DEFAULT '#ffffff',
 		icon_bg_shape VARCHAR(10) NOT NULL DEFAULT 'none',
 		marker_type VARCHAR(10) NOT NULL DEFAULT 'inherit',
 		marker_icon_id BIGINT UNSIGNED NULL DEFAULT NULL,
-		marker_color VARCHAR(7) NULL DEFAULT NULL,
+		marker_color VARCHAR(9) NULL DEFAULT NULL,
 		marker_size FLOAT NULL DEFAULT NULL,
 		marker_icon_offset_x FLOAT NULL DEFAULT NULL,
 		marker_icon_offset_y FLOAT NULL DEFAULT NULL,
@@ -70,10 +70,9 @@ function cns_story_suite_create_tables(): void {
 		from_node_id BIGINT UNSIGNED NOT NULL,
 		to_node_id BIGINT UNSIGNED NOT NULL,
 		sort_order INT NOT NULL DEFAULT 0,
-		line_color VARCHAR(7) NULL DEFAULT NULL,
+		line_color VARCHAR(9) NULL DEFAULT NULL,
 		line_width FLOAT NULL DEFAULT NULL,
 		line_style VARCHAR(10) NULL DEFAULT NULL,
-		line_opacity FLOAT NULL DEFAULT NULL,
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (id),
 		UNIQUE KEY uq_edge (from_node_id, to_node_id),
@@ -81,6 +80,15 @@ function cns_story_suite_create_tables(): void {
 		KEY idx_from_node (from_node_id),
 		KEY idx_to_node (to_node_id)
 	) $charset_collate;");
+
+	// Colors carry their own alpha (#rrggbbaa), so the separate opacity column
+	// is obsolete. dbDelta() widens columns but never drops them.
+	$edges = "{$wpdb->prefix}cns_story_edges";
+	if ($wpdb->get_var($wpdb->prepare(
+		"SHOW COLUMNS FROM `{$edges}` LIKE %s", 'line_opacity'
+	))) {
+		$wpdb->query("ALTER TABLE `{$edges}` DROP COLUMN `line_opacity`");
+	}
 
 	// Story links: relationship between a story and map-suite entities.
 	dbDelta("CREATE TABLE {$wpdb->prefix}cns_story_links (

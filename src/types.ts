@@ -119,7 +119,6 @@ export interface StoryEdge {
 	lineColor:   string | null;
 	lineWidth:   number | null;
 	lineStyle:   LineStyle | null;
-	lineOpacity: number | null;
 }
 
 // ── Domain: StoryLink ─────────────────────────────────────────────────────────
@@ -142,7 +141,6 @@ export interface StorySettings {
 	lineColor:       string;
 	lineWidth:       number;
 	lineStyle:       LineStyle;
-	lineOpacity:     number;
 	startNodeId:     number | null;
 	viewUrl:         string;
 	thumbnailId:     number | null;
@@ -174,7 +172,7 @@ export interface MapAreaRef {
 	title:        string;
 	shapeType:    'POLYGON' | 'BEZIER' | 'CIRCLE' | 'RECTANGLE';
 	nodes:        Array<{ x: number; y: number }>;
-	canvasStyles: { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number } | null;
+	canvasStyles: { fill?: string; stroke?: string; strokeWidth?: number } | null;
 }
 
 export interface MapHierarchyRegionRef {
@@ -184,7 +182,7 @@ export interface MapHierarchyRegionRef {
 	status?:      string;
 	thumbnailUrl: string;
 	nodes:        Array<{ x: number; y: number }>;
-	canvasStyles: { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number } | null;
+	canvasStyles: { fill?: string; stroke?: string; strokeWidth?: number } | null;
 }
 
 export interface MapRenderData {
@@ -254,5 +252,4 @@ export interface EdgeFormData {
 	lineColor:   string | null;
 	lineWidth:   number | null;
 	lineStyle:   LineStyle | null;
-	lineOpacity: number | null;
 }

@@ -15,7 +15,6 @@ interface Props {
 	lineColor:         string;
 	lineWidth:         number;
 	lineStyle:         LineStyle;
-	lineOpacity:       number;
 	markerColor:       string;
 	markerSize:        number;
 	markerType:        MarkerType;
@@ -32,7 +31,7 @@ export default function StoryCanvas( {
 	mapData, mapObjects, mapAreas,
 	nodes, edges, paths,
 	selectedNodeId, edgeStartNodeId, isEdgeMode,
-	lineColor, lineWidth, lineStyle, lineOpacity,
+	lineColor, lineWidth, lineStyle,
 	markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 	onNodeClick, onCanvasClick, onEdgeClick, onNodeDragEnd,
 }: Props ) {
@@ -40,7 +39,7 @@ export default function StoryCanvas( {
 	const stateRef   = useRef( {
 		mapData, mapObjects, mapAreas, nodes, edges, paths,
 		selectedNodeId, edgeStartNodeId, isEdgeMode,
-		lineColor, lineWidth, lineStyle, lineOpacity,
+		lineColor, lineWidth, lineStyle,
 		markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 	} );
 	const dragging   = useRef< { nodeId: number; startX: number; startY: number } | null >( null );
@@ -55,7 +54,7 @@ export default function StoryCanvas( {
 		stateRef.current = {
 			mapData, mapObjects, mapAreas, nodes, edges, paths,
 			selectedNodeId, edgeStartNodeId, isEdgeMode,
-			lineColor, lineWidth, lineStyle, lineOpacity,
+			lineColor, lineWidth, lineStyle,
 			markerColor, markerSize, markerType, markerIconUrl, markerIconOffsetX, markerIconOffsetY,
 		};
 		if ( canvasRef.current && ! dragging.current ) {

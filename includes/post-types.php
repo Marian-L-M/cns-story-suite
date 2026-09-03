@@ -82,7 +82,6 @@ function cns_story_suite_register_post_meta(): void {
 		'_cns_story_line_color'    => 'string',
 		'_cns_story_line_width'    => 'number',
 		'_cns_story_line_style'    => 'string',
-		'_cns_story_line_opacity'  => 'number',
 		'_cns_story_start_node_id' => 'integer',
 		'_cns_story_marker_color'          => 'string',
 		'_cns_story_marker_size'           => 'number',

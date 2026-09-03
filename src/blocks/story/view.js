@@ -412,8 +412,7 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		if ( ! buildAreaPath( ctx, { shapeType: region.shapeType, nodes: pts }, W, H ) ) continue;
 
 		ctx.save();
-		ctx.globalAlpha = s?.fillOpacity ?? 0.25;
-		ctx.fillStyle   = s?.fill ?? '#e8a020';
+		ctx.fillStyle   = s?.fill ?? '#e8a02040';
 		ctx.fill();
 		ctx.restore();
 
@@ -450,7 +449,7 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		for ( const area of m.areas ) {
 			if ( ! buildAreaPath( ctx, area, W, H ) ) continue;
 			const s = area.canvasStyles;
-			ctx.globalAlpha = 0.15 * ( s?.fillOpacity ?? 1 );
+			ctx.globalAlpha = 0.15;
 			ctx.fillStyle   = s?.fill ?? '#888888';
 			ctx.fill();
 			ctx.globalAlpha = 0.25;
@@ -490,7 +489,6 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		const color   = edge.lineColor   ?? story.lineColor;
 		const width   = edge.lineWidth   ?? story.lineWidth;
 		const lstyle  = edge.lineStyle   ?? story.lineStyle;
-		const opacity = edge.lineOpacity ?? story.lineOpacity;
 
 		const from = nodeMap.get( edge.fromNodeId );
 		const to   = nodeMap.get( edge.toNodeId );
@@ -500,7 +498,6 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		ctx.save();
 		ctx.strokeStyle = color;
 		ctx.lineWidth   = width;
-		ctx.globalAlpha = opacity;
 		if      ( lstyle === 'dashed' ) ctx.setLineDash( [ 10, 5 ] );
 		else if ( lstyle === 'dotted' ) ctx.setLineDash( [ 2, 5 ] );
 		else                            ctx.setLineDash( [] );
@@ -514,7 +511,6 @@ function drawStory( canvas, data, activeNodeId, onImgLoad ) {
 		const ey    = ty - Math.sin( angle ) * nr;
 		ctx.save();
 		ctx.setLineDash( [] );
-		ctx.globalAlpha = opacity;
 		ctx.fillStyle = color;
 		ctx.beginPath();
 		ctx.moveTo( ex, ey );

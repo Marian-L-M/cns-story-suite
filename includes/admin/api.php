@@ -6,6 +6,23 @@ defined('ABSPATH') || exit;
 
 add_action('rest_api_init', 'cns_story_suite_register_routes');
 
+/**
+ * Sanitizes a colour, allowing the alpha byte. Colours carry their own opacity
+ * here (#rrggbbaa), which core's sanitize_hex_color() rejects — it stops at
+ * six digits. Returns $default for an empty or malformed value; pass null as
+ * the default for nullable "inherit" columns.
+ */
+function cns_story_suite_sanitize_color($value, ?string $default): ?string {
+	$value = is_string($value) ? trim($value) : '';
+	if ($value === '') {
+		return $default;
+	}
+	if (preg_match('/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/', $value)) {
+		return strtolower($value);
+	}
+	return $default;
+}
+
 function cns_story_suite_register_routes(): void {
 	$ns = 'cns-story-suite/v1';
 
@@ -151,7 +168,6 @@ function cns_story_suite_format_edge(array $row): array {
 		'lineColor'   => $row['line_color'],
 		'lineWidth'   => isset($row['line_width'])   ? (float) $row['line_width']   : null,
 		'lineStyle'   => $row['line_style'] ?? null,
-		'lineOpacity' => isset($row['line_opacity']) ? (float) $row['line_opacity'] : null,
 	];
 }
 
@@ -271,7 +287,6 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 	$line_color      = (string) ($req->get_param('line_color')     ?? '#ffffff');
 	$line_width      = (float)  ($req->get_param('line_width')     ?? 3.0);
 	$line_style      = (string) ($req->get_param('line_style')     ?? 'solid');
-	$line_opacity    = (float)  ($req->get_param('line_opacity')   ?? 1.0);
 	$start_node      = $req->get_param('start_node_id');
 	$thumbnail_id    = (int)    ($req->get_param('thumbnail_id')   ?? 0);
 	$marker_color      = (string) ($req->get_param('marker_color')          ?? '#00aaff');
@@ -325,11 +340,10 @@ function cns_story_suite_api_save_story(WP_REST_Request $req): WP_REST_Response|
 	}
 
 	update_post_meta($story_id, '_cns_story_map_id',             $map_id);
-	update_post_meta($story_id, '_cns_story_line_color',         sanitize_hex_color($line_color) ?: '#ffffff');
+	update_post_meta($story_id, '_cns_story_line_color',         cns_story_suite_sanitize_color($line_color, '#ffffff'));
 	update_post_meta($story_id, '_cns_story_line_width',         max(0.5, min(20.0, $line_width)));
 	update_post_meta($story_id, '_cns_story_line_style',         $line_style);
-	update_post_meta($story_id, '_cns_story_line_opacity',       max(0.0, min(1.0, $line_opacity)));
-	update_post_meta($story_id, '_cns_story_marker_color',          sanitize_hex_color($marker_color) ?: '#00aaff');
+	update_post_meta($story_id, '_cns_story_marker_color',          cns_story_suite_sanitize_color($marker_color, '#00aaff'));
 	update_post_meta($story_id, '_cns_story_marker_size',           max(0.0, min(30.0, $marker_size)));
 	update_post_meta($story_id, '_cns_story_marker_type',           $marker_type);
 	update_post_meta($story_id, '_cns_story_marker_icon_id',        $marker_icon_id);
@@ -379,7 +393,6 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 	$line_color         = (string) (get_post_meta($story_id, '_cns_story_line_color', true)         ?: '#ffffff');
 	$line_width         = (float)  (get_post_meta($story_id, '_cns_story_line_width', true)         ?: 3.0);
 	$line_style         = (string) (get_post_meta($story_id, '_cns_story_line_style', true)         ?: 'solid');
-	$line_opacity       = (float)  (get_post_meta($story_id, '_cns_story_line_opacity', true)       ?: 1.0);
 	$start_node         = (int)    get_post_meta($story_id, '_cns_story_start_node_id', true);
 	$marker_color      = (string) (get_post_meta($story_id, '_cns_story_marker_color', true)          ?: '#00aaff');
 	$marker_size       = (float)  (get_post_meta($story_id, '_cns_story_marker_size', true)           ?: 5.0);
@@ -445,7 +458,6 @@ function cns_story_suite_api_get_story_data(WP_REST_Request $req): WP_REST_Respo
 			'lineColor'        => $line_color,
 			'lineWidth'        => $line_width,
 			'lineStyle'        => $line_style,
-			'lineOpacity'      => $line_opacity,
 			'startNodeId'      => $start_node ?: null,
 			'viewUrl'          => $view_url,
 			'thumbnailId'      => $thumb_id ?: null,
@@ -563,15 +575,15 @@ function cns_story_suite_api_create_node(WP_REST_Request $req): WP_REST_Response
 			'y'                    => max(0.0, min(1.0, $y)),
 			'icon_type'            => $icon_type,
 			'icon_id'              => $icon_id ?: null,
-			'icon_color'           => sanitize_hex_color($icon_color) ?: '#ffffff',
+			'icon_color'           => cns_story_suite_sanitize_color($icon_color, '#ffffff'),
 			'icon_size'            => max(0.25, min(4.0, $icon_size)),
-			'icon_border_color'    => sanitize_hex_color($icon_border_color) ?: '#000000',
+			'icon_border_color'    => cns_story_suite_sanitize_color($icon_border_color, '#000000'),
 			'icon_border_width'    => max(0.0, min(20.0, $icon_border_width)),
-			'icon_bg_color'        => sanitize_hex_color($icon_bg_color) ?: '#ffffff',
+			'icon_bg_color'        => cns_story_suite_sanitize_color($icon_bg_color, '#ffffff'),
 			'icon_bg_shape'        => $icon_bg_shape,
 			'marker_type'          => $node_marker_type,
 			'marker_icon_id'       => $node_marker_icon ?: null,
-			'marker_color'         => ($node_marker_color !== null) ? (sanitize_hex_color($node_marker_color) ?: null) : null,
+			'marker_color'         => cns_story_suite_sanitize_color($node_marker_color, null),
 			'marker_size'          => ($node_marker_size !== null)  ? max(0.0, min(30.0, (float) $node_marker_size)) : null,
 			'marker_icon_offset_x' => ($node_off_x !== null) ? (float) $node_off_x : null,
 			'marker_icon_offset_y' => ($node_off_y !== null) ? (float) $node_off_y : null,
@@ -626,7 +638,7 @@ function cns_story_suite_api_update_node(WP_REST_Request $req): WP_REST_Response
 		$formats[]          = '%d';
 	}
 	if (($v = $req->get_param('icon_color')) !== null) {
-		$updates['icon_color'] = sanitize_hex_color($v) ?: '#ffffff';
+		$updates['icon_color'] = cns_story_suite_sanitize_color($v, '#ffffff');
 		$formats[]             = '%s';
 	}
 	if (($v = $req->get_param('icon_size')) !== null) {
@@ -648,7 +660,7 @@ function cns_story_suite_api_update_node(WP_REST_Request $req): WP_REST_Response
 		$formats[]                   = '%s';
 	}
 	if (($v = $req->get_param('icon_border_color')) !== null) {
-		$updates['icon_border_color'] = sanitize_hex_color($v) ?: '#000000';
+		$updates['icon_border_color'] = cns_story_suite_sanitize_color($v, '#000000');
 		$formats[] = '%s';
 	}
 	if (($v = $req->get_param('icon_border_width')) !== null) {
@@ -656,7 +668,7 @@ function cns_story_suite_api_update_node(WP_REST_Request $req): WP_REST_Response
 		$formats[] = '%f';
 	}
 	if (($v = $req->get_param('icon_bg_color')) !== null) {
-		$updates['icon_bg_color'] = sanitize_hex_color($v) ?: '#ffffff';
+		$updates['icon_bg_color'] = cns_story_suite_sanitize_color($v, '#ffffff');
 		$formats[] = '%s';
 	}
 	if (($v = $req->get_param('icon_bg_shape')) !== null) {
@@ -680,7 +692,7 @@ function cns_story_suite_api_update_node(WP_REST_Request $req): WP_REST_Response
 	// marker_color: explicitly null = clear override; string = set override.
 	if ($req->has_param('marker_color')) {
 		$v = $req->get_param('marker_color');
-		$updates['marker_color'] = ($v !== null && $v !== '') ? (sanitize_hex_color($v) ?: null) : null;
+		$updates['marker_color'] = cns_story_suite_sanitize_color($v, null);
 		$formats[] = '%s';
 	}
 	if ($req->has_param('marker_size')) {
@@ -861,7 +873,7 @@ function cns_story_suite_api_update_edge(WP_REST_Request $req): WP_REST_Response
 	}
 	if ($req->has_param('line_color')) {
 		$v = $req->get_param('line_color');
-		$updates['line_color'] = ($v !== null && $v !== '') ? (sanitize_hex_color($v) ?: null) : null;
+		$updates['line_color'] = cns_story_suite_sanitize_color($v, null);
 		$formats[] = '%s';
 	}
 	if ($req->has_param('line_width')) {
@@ -875,12 +887,6 @@ function cns_story_suite_api_update_edge(WP_REST_Request $req): WP_REST_Response
 		$allowed = ['solid', 'dashed', 'dotted'];
 		$updates['line_style'] = ($v !== null && in_array($v, $allowed, true)) ? $v : null;
 		$formats[] = '%s';
-	}
-	if ($req->has_param('line_opacity')) {
-		$v = $req->get_param('line_opacity');
-		$lo = ($v !== null && $v !== '') ? max(0.0, min(1.0, (float) $v)) : null;
-		$updates['line_opacity'] = $lo;
-		$formats[] = ($lo !== null) ? '%f' : '%s';
 	}
 
 	if ($updates) {
@@ -1108,7 +1114,7 @@ function cns_story_suite_api_create_path(WP_REST_Request $req): WP_REST_Response
 	}
 
 	$label    = sanitize_text_field($req->get_param('label') ?? '');
-	$m_color  = sanitize_hex_color($req->get_param('marker_color') ?? '#00aaff') ?: '#00aaff';
+	$m_color  = cns_story_suite_sanitize_color($req->get_param('marker_color'), '#00aaff');
 	$m_size   = max(0.0, min(30.0, (float) ($req->get_param('marker_size') ?? 5.0)));
 	$m_type   = $req->get_param('marker_type') ?? 'ring';
 	$m_icon   = (int) ($req->get_param('marker_icon_id') ?? 0);
@@ -1163,7 +1169,7 @@ function cns_story_suite_api_update_path(WP_REST_Request $req): WP_REST_Response
 		$formats[] = '%s';
 	}
 	if (($v = $req->get_param('marker_color')) !== null) {
-		$updates['marker_color'] = sanitize_hex_color($v) ?: '#00aaff';
+		$updates['marker_color'] = cns_story_suite_sanitize_color($v, '#00aaff');
 		$formats[] = '%s';
 	}
 	if (($v = $req->get_param('marker_size')) !== null) {

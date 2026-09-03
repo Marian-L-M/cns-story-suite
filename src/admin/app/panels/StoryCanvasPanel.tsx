@@ -1,5 +1,4 @@
 import {
-    RangeControl,
     SelectControl,
     __experimentalNumberControl as NumberControl,
     __experimentalToggleGroupControl as ToggleGroupControl,
@@ -163,7 +162,7 @@ export default function StoryCanvasPanel( {
                         { __( 'Lines:', 'cns-story-suite' ) }
                     </span>
                     <ColorField
-                        label={ __( 'Color', 'cns-story-suite' ) }
+                        label={ __( 'Color & opacity', 'cns-story-suite' ) }
                         value={ settings.lineColor }
                         onChange={ ( v ) => set( 'lineColor', v ) }
                     />
@@ -186,16 +185,6 @@ export default function StoryCanvasPanel( {
                         ] }
                         onChange={ ( v ) => set( 'lineStyle', v as LineStyle ) }
                     />
-                    <div className="cns-story-canvas-toolbar__opacity">
-                        <RangeControl
-                            label={ __( 'Opacity', 'cns-story-suite' ) }
-                            min={ 0 } max={ 1 } step={ 0.05 }
-                            withInputField={ false }
-                            value={ settings.lineOpacity }
-                            onChange={ ( v ) => set( 'lineOpacity', v ?? 1 ) }
-                        />
-                        <span>{ Math.round( settings.lineOpacity * 100 ) }%</span>
-                    </div>
                 </div>
             </div>
 
@@ -226,7 +215,6 @@ export default function StoryCanvasPanel( {
 							lineColor={ settings.lineColor }
 							lineWidth={ settings.lineWidth }
 							lineStyle={ settings.lineStyle }
-							lineOpacity={ settings.lineOpacity }
 							markerColor={ settings.markerColor }
 							markerSize={ settings.markerSize }
 							markerType={ settings.markerType }

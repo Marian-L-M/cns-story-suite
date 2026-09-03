@@ -34,7 +34,6 @@ $map_id           = (int)    get_post_meta($story_id, '_cns_story_map_id', true)
 $line_color       = (string) (get_post_meta($story_id, '_cns_story_line_color', true)   ?: '#ffffff');
 $line_width       = (float)  (get_post_meta($story_id, '_cns_story_line_width', true)   ?: 3.0);
 $line_style       = (string) (get_post_meta($story_id, '_cns_story_line_style', true)   ?: 'solid');
-$line_opacity     = (float)  (get_post_meta($story_id, '_cns_story_line_opacity', true) ?: 1.0);
 $start_node       = (int)    get_post_meta($story_id, '_cns_story_start_node_id', true);
 $marker_color     = (string) (get_post_meta($story_id, '_cns_story_marker_color', true)          ?: '#00aaff');
 $marker_size      = (float)  (get_post_meta($story_id, '_cns_story_marker_size', true)           ?: 5.0);
@@ -103,7 +102,6 @@ $edges = array_map(fn(array $e): array => [
 	'lineColor'   => $e['line_color'] ?? null,
 	'lineWidth'   => isset($e['line_width'])   ? (float) $e['line_width']   : null,
 	'lineStyle'   => $e['line_style']  ?? null,
-	'lineOpacity' => isset($e['line_opacity']) ? (float) $e['line_opacity'] : null,
 ], $raw_edges);
 
 // Map render data, with infoboxes resolved for the frontend click handlers.
@@ -138,7 +136,6 @@ $block_data = [
 		'lineColor'         => $line_color,
 		'lineWidth'         => $line_width,
 		'lineStyle'         => $line_style,
-		'lineOpacity'       => $line_opacity,
 		'startNodeId'       => $start_node ?: null,
 		'markerColor'       => $marker_color,
 		'markerSize'        => $marker_size,

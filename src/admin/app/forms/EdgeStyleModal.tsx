@@ -3,7 +3,6 @@ import {
 	Button,
 	Flex,
 	Modal,
-	RangeControl,
 	SelectControl,
 	__experimentalNumberControl as NumberControl,
 } from '@wordpress/components';
@@ -17,7 +16,6 @@ interface Props {
 	storyColor:   string;
 	storyWidth:   number;
 	storyStyle:   LineStyle;
-	storyOpacity: number;
 	onSave:       ( edgeId: number, data: EdgeFormData ) => void;
 	onDelete:     ( edgeId: number ) => void;
 	onClose:      () => void;
@@ -36,19 +34,19 @@ function ResetOverride( { visible, onReset }: { visible: boolean; onReset: () =>
 	);
 }
 
-export default function EdgeStyleModal( { edge, storyColor, storyWidth, storyStyle, storyOpacity, onSave, onDelete, onClose }: Props ) {
+export default function EdgeStyleModal( { edge, storyColor, storyWidth, storyStyle, onSave, onDelete, onClose }: Props ) {
 	const [ form, setForm ] = useState< EdgeFormData >( {
-		lineColor:   edge.lineColor,
-		lineWidth:   edge.lineWidth,
-		lineStyle:   edge.lineStyle,
-		lineOpacity: edge.lineOpacity,
+		lineColor: edge.lineColor,
+		lineWidth: edge.lineWidth,
+		lineStyle: edge.lineStyle,
 	} );
 
-	const effectiveColor   = form.lineColor   ?? storyColor;
-	const effectiveWidth   = form.lineWidth   ?? storyWidth;
-	const effectiveStyle   = form.lineStyle   ?? storyStyle;
-	const effectiveOpacity = form.lineOpacity ?? storyOpacity;
-	const hasOverride = form.lineColor !== null || form.lineWidth !== null || form.lineStyle !== null || form.lineOpacity !== null;
+	// The colour carries its own alpha, so a line's colour and its opacity are
+	// a single override now rather than two independent ones.
+	const effectiveColor = form.lineColor ?? storyColor;
+	const effectiveWidth = form.lineWidth ?? storyWidth;
+	const effectiveStyle = form.lineStyle ?? storyStyle;
+	const hasOverride = form.lineColor !== null || form.lineWidth !== null || form.lineStyle !== null;
 
 	const defaultHint = ( isDefault: boolean ) =>
 		isDefault ? __( '(story default)', 'cns-story-suite' ) : undefined;
@@ -70,7 +68,7 @@ export default function EdgeStyleModal( { edge, storyColor, storyWidth, storySty
 					<Flex gap={ 1 } align="flex-end">
 						<div style={ { flex: 1 } }>
 							<ColorField
-								label={ `${ __( 'Color', 'cns-story-suite' ) } ${ defaultHint( form.lineColor === null ) ?? '' }` }
+								label={ `${ __( 'Color & opacity', 'cns-story-suite' ) } ${ defaultHint( form.lineColor === null ) ?? '' }` }
 								value={ effectiveColor }
 								onChange={ ( v ) => setForm( ( p ) => ( { ...p, lineColor: v } ) ) }
 							/>
@@ -122,32 +120,13 @@ export default function EdgeStyleModal( { edge, storyColor, storyWidth, storySty
 						/>
 					</Flex>
 				</div>
-				<div className="cns-grid__group">
-					<Flex gap={ 1 } align="flex-end">
-						<div style={ { flex: 1 } }>
-							<RangeControl
-								__next40pxDefaultSize
-								__nextHasNoMarginBottom
-								label={ `${ __( 'Opacity', 'cns-story-suite' ) } ${ defaultHint( form.lineOpacity === null ) ?? '' }` }
-								min={ 0 } max={ 1 } step={ 0.05 }
-								withInputField
-								value={ effectiveOpacity }
-								onChange={ ( v ) => setForm( ( p ) => ( { ...p, lineOpacity: v ?? storyOpacity } ) ) }
-							/>
-						</div>
-						<ResetOverride
-							visible={ form.lineOpacity !== null }
-							onReset={ () => setForm( ( p ) => ( { ...p, lineOpacity: null } ) ) }
-						/>
-					</Flex>
-				</div>
 			</div>
 			{ hasOverride && (
 				<Button
 					variant="secondary"
 					icon={ undo }
 					style={ { marginTop: 12 } }
-					onClick={ () => setForm( { lineColor: null, lineWidth: null, lineStyle: null, lineOpacity: null } ) }
+					onClick={ () => setForm( { lineColor: null, lineWidth: null, lineStyle: null } ) }
 				>
 					{ __( 'Reset all to story defaults', 'cns-story-suite' ) }
 				</Button>

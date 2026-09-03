@@ -38,7 +38,6 @@ function buildInitialSettings(): StorySettings {
 		lineColor:       '#ffffff',
 		lineWidth:       3,
 		lineStyle:       'solid',
-		lineOpacity:     1.0,
 		startNodeId:     null,
 		viewUrl:         d.viewUrl  ?? '',
 		thumbnailId:     null,
@@ -131,7 +130,6 @@ export default function StoryEditorApp() {
 				line_color:         settings.lineColor,
 				line_width:         settings.lineWidth,
 				line_style:         settings.lineStyle,
-				line_opacity:       settings.lineOpacity,
 				start_node_id:      settings.startNodeId ?? 0,
 				thumbnail_id:       settings.thumbnailId ?? 0,
 				marker_color:          settings.markerColor,
@@ -303,7 +301,6 @@ export default function StoryEditorApp() {
 				line_color:   formData.lineColor,
 				line_width:   formData.lineWidth,
 				line_style:   formData.lineStyle,
-				line_opacity: formData.lineOpacity,
 			} );
 			setEdges( ( p ) => p.map( ( e ) => ( e.id === edgeId ? updated : e ) ) );
 		} catch {
@@ -756,7 +753,6 @@ export default function StoryEditorApp() {
 						storyColor={ settings.lineColor }
 						storyWidth={ settings.lineWidth }
 						storyStyle={ settings.lineStyle }
-						storyOpacity={ settings.lineOpacity }
 						onSave={ handleEdgeUpdate }
 						onDelete={ handleEdgeDelete }
 						onClose={ () => setEdgeModal( { open: false, edgeId: null } ) }

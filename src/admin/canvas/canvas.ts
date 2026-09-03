@@ -30,7 +30,6 @@ export interface DrawState {
 	lineColor:          string;
 	lineWidth:          number;
 	lineStyle:          LineStyle;
-	lineOpacity:        number;
 	markerColor:        string;
 	markerSize:         number;
 	markerType:         MarkerType;
@@ -98,8 +97,7 @@ function drawHierarchyRegions( ctx: CanvasRenderingContext2D, W: number, H: numb
 		if ( pts.length < 3 ) continue;
 
 		const s           = region.canvasStyles;
-		const fill        = s?.fill        ?? '#e8a020';
-		const fillOpacity = s?.fillOpacity ?? 0.25;
+		const fill        = s?.fill        ?? '#e8a02040';
 		const stroke      = s?.stroke      ?? '#e8a020';
 		const strokeWidth = s?.strokeWidth ?? 2;
 
@@ -111,7 +109,6 @@ function drawHierarchyRegions( ctx: CanvasRenderingContext2D, W: number, H: numb
 		ctx.closePath();
 
 		ctx.save();
-		ctx.globalAlpha = fillOpacity;
 		ctx.fillStyle   = fill;
 		ctx.fill();
 		ctx.restore();
@@ -158,7 +155,7 @@ function drawMapAreas( ctx: CanvasRenderingContext2D, W: number, H: number, stat
 		}
 		ctx.closePath();
 
-		ctx.globalAlpha = 0.15 * ( s?.fillOpacity ?? 1 );
+		ctx.globalAlpha = 0.15;
 		ctx.fillStyle   = s?.fill ?? '#888888';
 		ctx.fill();
 
@@ -213,7 +210,6 @@ function drawEdges( ctx: CanvasRenderingContext2D, W: number, H: number, state: 
 		const color   = edge.lineColor   ?? state.lineColor;
 		const width   = edge.lineWidth   ?? state.lineWidth;
 		const lstyle  = edge.lineStyle   ?? state.lineStyle;
-		const opacity = edge.lineOpacity ?? state.lineOpacity;
 
 		const from = nodeMap.get( edge.fromNodeId );
 		const to   = nodeMap.get( edge.toNodeId );
@@ -225,7 +221,6 @@ function drawEdges( ctx: CanvasRenderingContext2D, W: number, H: number, state: 
 		ctx.save();
 		ctx.strokeStyle = color;
 		ctx.lineWidth   = width;
-		ctx.globalAlpha = opacity;
 		if      ( lstyle === 'dashed' ) ctx.setLineDash( [ 10, 5 ] );
 		else if ( lstyle === 'dotted' ) ctx.setLineDash( [ 2,  5 ] );
 		else                            ctx.setLineDash( [] );
@@ -235,7 +230,7 @@ function drawEdges( ctx: CanvasRenderingContext2D, W: number, H: number, state: 
 		ctx.stroke();
 		ctx.restore();
 
-		drawArrowhead( ctx, fx, fy, tx, ty, width, color, opacity );
+		drawArrowhead( ctx, fx, fy, tx, ty, width, color );
 	}
 }
 
@@ -244,8 +239,7 @@ function drawArrowhead(
 	fx: number, fy: number,
 	tx: number, ty: number,
 	lineWidth: number,
-	color: string,
-	alpha: number
+	color: string
 ): void {
 	const angle      = Math.atan2( ty - fy, tx - fx );
 	const arrowSize  = Math.max( 10, lineWidth * 3 );
@@ -256,7 +250,6 @@ function drawArrowhead(
 
 	ctx.save();
 	ctx.setLineDash( [] );
-	ctx.globalAlpha = alpha;
 	ctx.fillStyle   = color;
 	ctx.beginPath();
 	ctx.moveTo( endX, endY );
