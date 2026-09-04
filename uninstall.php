@@ -46,6 +46,11 @@ delete_option('cns_story_suite_db_version');
 delete_option('cns_story_suite_delete_on_uninstall');
 delete_option('cns_story_suite_show_stories_menu');
 delete_option('cns_story_suite_show_substories_menu');
+delete_option('cns_story_suite_archive_enabled');
+delete_option('cns_story_suite_archive_slug');
+delete_option('cns_story_suite_archive_per_page');
+delete_option('cns_story_suite_archive_order');
+delete_option('cns_story_suite_needs_flush');
 delete_option('cns_story_suite_cache_ver');
 
 // Remove render-cache transients (includes/cache.php). Keys carry a version

@@ -144,6 +144,24 @@ add_action('admin_init', function (): void {
 		update_option('cns_story_suite_delete_on_uninstall',   ! empty($_POST['delete_on_uninstall']));
 		update_option('cns_story_suite_show_stories_menu',     ! empty($_POST['show_stories_menu']));
 		update_option('cns_story_suite_show_substories_menu',  ! empty($_POST['show_substories_menu']));
+
+		// Archive. The slug and enabled flag are watched in includes/archive.php,
+		// which schedules a rewrite flush for the next init.
+		update_option('cns_story_suite_archive_enabled', ! empty($_POST['archive_enabled']));
+
+		$slug = preg_replace('/[^a-z0-9\-]/', '', strtolower((string) ($_POST['archive_slug'] ?? '')));
+		update_option('cns_story_suite_archive_slug', $slug ?: CNS_STORY_ARCHIVE_DEFAULT_SLUG);
+
+		update_option(
+			'cns_story_suite_archive_per_page',
+			max(1, (int) ($_POST['archive_per_page'] ?? CNS_STORY_ARCHIVE_DEFAULT_PER_PAGE))
+		);
+
+		$order = sanitize_key((string) ($_POST['archive_order'] ?? ''));
+		update_option(
+			'cns_story_suite_archive_order',
+			array_key_exists($order, cns_story_suite_archive_order_options()) ? $order : CNS_STORY_ARCHIVE_DEFAULT_ORDER
+		);
 		$return_page = sanitize_key($_GET['page'] ?? CNS_STORY_PAGE_SETTINGS);
 		wp_safe_redirect(add_query_arg(['page' => $return_page, 'settings-saved' => '1'], admin_url('admin.php')));
 		exit;

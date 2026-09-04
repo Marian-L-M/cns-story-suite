@@ -16,6 +16,12 @@ $editor_url  = add_query_arg(['page' => CNS_STORY_PAGE_EDITOR], admin_url('admin
 $delete_on_uninstall  = (bool) get_option('cns_story_suite_delete_on_uninstall', false);
 $show_stories_menu    = (bool) get_option('cns_story_suite_show_stories_menu', false);
 $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu', false);
+$archive_enabled      = cns_story_suite_archive_enabled();
+$archive_slug         = cns_story_suite_archive_slug();
+$archive_per_page     = cns_story_suite_archive_per_page();
+$archive_order        = cns_story_suite_archive_order();
+$archive_order_opts   = cns_story_suite_archive_order_options();
+$archive_url          = $archive_enabled ? get_post_type_archive_link('cns_story') : '';
 ?>
 <div class="cns-stories-overview">
 
@@ -206,6 +212,77 @@ $show_substories_menu = (bool) get_option('cns_story_suite_show_substories_menu'
 			<?php wp_nonce_field('cns_story_save_settings'); ?>
 			<input type="hidden" name="cns_story_action" value="save_settings" />
 			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<?php esc_html_e('Story archive', 'cns-story-suite'); ?>
+						<?php if ($archive_url) : ?>
+							<a href="<?php echo esc_url($archive_url); ?>" target="_blank"
+							   style="display:block;font-size:12px;font-weight:normal;">
+								<?php esc_html_e('View archive ↗', 'cns-story-suite'); ?>
+							</a>
+						<?php endif; ?>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="archive_enabled" value="1" <?php checked($archive_enabled); ?> />
+							<?php esc_html_e('Enable the public story archive', 'cns-story-suite'); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e('Publishes a listing of all stories at the slug below. Off by default. Substories have no archive of their own.', 'cns-story-suite'); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="cns_story_archive_slug"><?php esc_html_e('URL slug', 'cns-story-suite'); ?></label>
+					</th>
+					<td>
+						<input
+							type="text"
+							id="cns_story_archive_slug"
+							name="archive_slug"
+							value="<?php echo esc_attr($archive_slug); ?>"
+							class="regular-text"
+							pattern="[a-z0-9\-]+"
+							placeholder="<?php echo esc_attr(CNS_STORY_ARCHIVE_DEFAULT_SLUG); ?>"
+						/>
+						<p class="description">
+							<?php esc_html_e('Lowercase letters, numbers, and hyphens only. Changes the archive URL and every single story URL — existing links will break.', 'cns-story-suite'); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="cns_story_archive_per_page"><?php esc_html_e('Stories per page', 'cns-story-suite'); ?></label>
+					</th>
+					<td>
+						<input
+							type="number"
+							id="cns_story_archive_per_page"
+							name="archive_per_page"
+							value="<?php echo esc_attr($archive_per_page); ?>"
+							min="1" step="1"
+							class="small-text"
+						/>
+						<p class="description">
+							<?php esc_html_e('Overrides the global Reading Settings value for the story archive only.', 'cns-story-suite'); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="cns_story_archive_order"><?php esc_html_e('Default sort order', 'cns-story-suite'); ?></label>
+					</th>
+					<td>
+						<select id="cns_story_archive_order" name="archive_order">
+							<?php foreach ($archive_order_opts as $value => $label) : ?>
+								<option value="<?php echo esc_attr($value); ?>" <?php selected($archive_order, $value); ?>>
+									<?php echo esc_html($label); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e('Admin menu visibility', 'cns-story-suite'); ?></th>
 					<td>

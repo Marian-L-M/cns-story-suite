@@ -42,6 +42,9 @@ function cns_story_suite_activate(): void {
 		);
 	}
 	require_once CNS_STORY_SUITE_DIR . 'includes/capabilities.php';
+	// post-types.php reads the archive settings, so its helpers must be loaded
+	// even though the top-level requires below normally got there first.
+	require_once CNS_STORY_SUITE_DIR . 'includes/archive.php';
 	require_once CNS_STORY_SUITE_DIR . 'includes/post-types.php';
 	require_once CNS_STORY_SUITE_DIR . 'includes/database.php';
 	cns_story_suite_add_capabilities();
@@ -73,6 +76,7 @@ if (! defined('CNS_MAP_SUITE_VERSION')) {
 // ── Core includes ─────────────────────────────────────────────────────────────
 
 require_once CNS_STORY_SUITE_DIR . 'includes/capabilities.php';
+require_once CNS_STORY_SUITE_DIR . 'includes/archive.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/post-types.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/database.php';
 require_once CNS_STORY_SUITE_DIR . 'includes/cache.php';
